@@ -210,18 +210,23 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         });
       }
       
+      // Life insurance - use DB ID mappings for proper matching
+      const dbIdsToQuery = dbInsurerIds.length > 0 
+        ? dbInsurerIds 
+        : selectedInsurers.map(i => i.id); // Fallback to frontend IDs if no mappings
+        
       const { data, error } = await supabase
         .from('insurer_metrics')
         .select('*')
         .eq('category', selectedCategory)
-        .in('insurer_id', selectedInsurers.map(i => i.id))
+        .in('insurer_id', dbIdsToQuery)
         .order('report_year', { ascending: true })
         .order('report_quarter', { ascending: true });
       
       if (error) return [];
       return data || [];
     },
-    enabled: selectedInsurers.length > 0,
+    enabled: selectedInsurers.length > 0 && idMappings.length > 0,
   });
 
   // Handle insurance type toggle and reset AI analysis
@@ -1401,18 +1406,31 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                           return bKey - aKey;
                         });
                       
-                      const latest = insurerTrend[0] as any;
-                      const previous = insurerTrend[1] as any;
-                      const latestPremium = latest?.gross_premium || latest?.insurance_service_revenue || latest?.aum || 0;
-                      const previousPremium = previous?.gross_premium || previous?.insurance_service_revenue || previous?.aum || 0;
+                      // Find data for the SELECTED year/quarter, not the latest
+                      const currentData = insurerTrend.find((d: any) => 
+                        d.report_year === selectedYear && d.report_quarter === selectedQuarter
+                      ) as any;
+                      
+                      // Find previous quarter data for comparison
+                      const getPreviousQuarter = (year: number, quarter: number) => {
+                        if (quarter === 1) return { year: year - 1, quarter: 4 };
+                        return { year, quarter: quarter - 1 };
+                      };
+                      const prevPeriod = getPreviousQuarter(selectedYear || 2024, selectedQuarter);
+                      const previousData = insurerTrend.find((d: any) => 
+                        d.report_year === prevPeriod.year && d.report_quarter === prevPeriod.quarter
+                      ) as any;
+                      
+                      const latestPremium = (currentData as any)?.gross_premium || (currentData as any)?.insurance_service_revenue || (currentData as any)?.aum || 0;
+                      const previousPremium = (previousData as any)?.gross_premium || (previousData as any)?.insurance_service_revenue || (previousData as any)?.aum || 0;
                       const premiumChange = previousPremium ? ((latestPremium - previousPremium) / previousPremium) * 100 : 0;
                       
-                      const latestAssets = latest?.total_assets || latest?.aum || 0;
-                      const previousAssets = previous?.total_assets || previous?.aum || 0;
+                      const latestAssets = (currentData as any)?.total_assets || (currentData as any)?.aum || 0;
+                      const previousAssets = (previousData as any)?.total_assets || (previousData as any)?.aum || 0;
                       const assetsChange = previousAssets ? ((latestAssets - previousAssets) / previousAssets) * 100 : 0;
                       
-                      const latestProfit = latest?.profit_after_tax || latest?.investment_return || 0;
-                      const previousProfit = previous?.profit_after_tax || previous?.investment_return || 0;
+                      const latestProfit = (currentData as any)?.profit_after_tax || (currentData as any)?.investment_return || 0;
+                      const previousProfit = (previousData as any)?.profit_after_tax || (previousData as any)?.investment_return || 0;
                       const profitChange = previousProfit ? ((latestProfit - previousProfit) / Math.abs(previousProfit)) * 100 : 0;
                       
                       return (
@@ -1439,7 +1457,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                               <div className="flex-1">
                                 <h5 className="font-bold text-base">{insurer.shortName}</h5>
                                 <p className="text-xs text-muted-foreground">
-                                  {latest ? `Q${latest.report_quarter} ${latest.report_year}` : 'No data'}
+                                  {currentData ? `Q${selectedQuarter} ${selectedYear}` : 'No data'}
                                 </p>
                               </div>
                               <div className={`px-3 py-1.5 rounded-full text-xs font-bold ${
