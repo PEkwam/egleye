@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/sheet';
 
 const primaryNavItems = [
-  { label: 'Home', icon: Home, href: '/' },
-  { label: 'Life', icon: Heart, href: '/executive-dashboard' },
-  { label: 'Non-Life', icon: Car, href: '/nonlife-dashboard' },
-  { label: 'Pensions', icon: Landmark, href: '/pension-dashboard' },
+  { label: 'Home', icon: Home, href: '/', color: 'text-blue-500', bgColor: 'bg-blue-500/15' },
+  { label: 'Life', icon: Heart, href: '/executive-dashboard', color: 'text-rose-500', bgColor: 'bg-rose-500/15' },
+  { label: 'Non-Life', icon: Car, href: '/nonlife-dashboard', color: 'text-emerald-500', bgColor: 'bg-emerald-500/15' },
+  { label: 'Pensions', icon: Landmark, href: '/pension-dashboard', color: 'text-amber-500', bgColor: 'bg-amber-500/15' },
 ];
 
 const moreNavItems = [
@@ -49,22 +49,22 @@ export const MobileBottomNav = () => {
                 className={cn(
                   "flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200",
                   active 
-                    ? "text-primary" 
+                    ? "text-foreground" 
                     : "text-muted-foreground active:scale-95"
                 )}
               >
                 <div className={cn(
                   "p-1.5 rounded-xl transition-all",
-                  active && "bg-primary/15"
+                  active ? item.bgColor : "bg-transparent"
                 )}>
                   <item.icon className={cn(
                     "h-5 w-5 transition-transform",
-                    active && "scale-110"
+                    active ? cn(item.color, "scale-110") : item.color
                   )} />
                 </div>
                 <span className={cn(
                   "text-[10px] font-medium",
-                  active && "font-semibold"
+                  active ? cn("font-semibold", item.color) : ""
                 )}>
                   {item.label}
                 </span>
