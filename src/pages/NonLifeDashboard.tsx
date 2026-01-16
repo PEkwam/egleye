@@ -130,19 +130,100 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
     );
   };
 
-  if (!selectedYear || isLoading) {
+  // Show proper empty state with navigation when no data
+  if (!selectedYear && !isLoading && availableYears.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Skeleton className="h-12 w-64 mb-8" />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-blue-950/10">
+        <header className="border-b border-border/40 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 shrink-0">
+                  <Link to="/">
+                    <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Back</span>
+                  </Link>
+                </Button>
+                <div className="h-6 w-px bg-border hidden sm:block" />
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0">
+                    <Car className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h1 className="text-sm sm:text-lg font-bold truncate">Non-Life Dashboard</h1>
+                    <p className="text-xs text-muted-foreground hidden sm:block">Motor, Property, Marine & Engineering</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <DashboardNavigation />
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-12">
+          <Card className="max-w-lg mx-auto text-center py-12">
+            <CardContent>
+              <Car className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+              <h2 className="text-xl font-semibold mb-2">No Data Available</h2>
+              <p className="text-muted-foreground mb-6">
+                Non-Life insurance data hasn't been uploaded yet. Please upload data via the Data Admin page.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button asChild>
+                  <Link to="/data-admin">Go to Data Admin</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/">Return Home</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-blue-950/10">
+        <header className="border-b border-border/40 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 shrink-0">
+                  <Link to="/">
+                    <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Back</span>
+                  </Link>
+                </Button>
+                <div className="h-6 w-px bg-border hidden sm:block" />
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0">
+                    <Car className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h1 className="text-sm sm:text-lg font-bold truncate">Non-Life Dashboard</h1>
+                    <p className="text-xs text-muted-foreground hidden sm:block">Loading data...</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <DashboardNavigation />
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             {[1,2,3,4].map(i => <Skeleton key={i} className="h-32" />)}
           </div>
           <Skeleton className="h-96" />
-        </div>
+        </main>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-blue-950/10">
