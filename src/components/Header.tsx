@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Search, RefreshCw, Menu, X, Brain, ChevronRight, BarChart3, ChevronDown, Building2, Shield, Landmark, Wallet, Newspaper } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, RefreshCw, Menu, X, Brain, ChevronRight, BarChart3, ChevronDown, Building2, Shield, Landmark, Newspaper, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { newsApi } from '@/lib/api/news';
@@ -24,7 +24,7 @@ interface HeaderProps {
   activeInsuranceCategory?: InsuranceCategory | null;
 }
 
-// Enterprise Group subsidiaries - Updated from https://myenterprisegroup.io/our-subsidiaries/
+// Enterprise Group subsidiaries
 const enterpriseSubsidiaries = [
   { id: 'enterprise-life', name: 'Enterprise Life Assurance', keywords: ['enterprise life'] },
   { id: 'enterprise-insurance', name: 'Enterprise Insurance', keywords: ['enterprise insurance', 'eic'] },
@@ -32,10 +32,6 @@ const enterpriseSubsidiaries = [
   { id: 'enterprise-properties', name: 'Enterprise Properties', keywords: ['enterprise properties'] },
   { id: 'enterprise-funeral', name: 'Enterprise Funeral Services', keywords: ['enterprise funeral', 'transitions ghana'] },
   { id: 'acacia-health', name: 'Acacia Health Insurance', keywords: ['acacia health', 'acacia insurance'] },
-];
-
-const baseCategories: { id: NewsCategory | 'all'; label: string }[] = [
-  { id: 'all', label: 'All News' },
 ];
 
 export function Header({ 
@@ -48,10 +44,10 @@ export function Header({
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   const handleInsurerSelect = (insurer: GhanaInsurer) => {
     onInsurerSelect?.(insurer);
-    // Also search for news about this insurer
     onSearch(insurer.keywords[0]);
   };
 
@@ -78,154 +74,170 @@ export function Header({
     }
   };
 
+  const isHome = location.pathname === '/';
+
   return (
-    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-xl border-b border-border/50 shadow-sm">
+    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
       <div className="container mx-auto px-4">
-        {/* Top bar */}
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-3 group">
+        {/* Main Header Row */}
+        <div className="flex items-center justify-between h-16 gap-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 shrink-0">
             <img 
               src="/enterprise-life-logo.png" 
-              alt="Enterprise Life" 
-              className="h-10 sm:h-12 w-auto object-contain"
+              alt="InsuraWatch" 
+              className="h-9 sm:h-10 w-auto object-contain"
             />
+            <div className="hidden sm:block">
+              <span className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                InsuraWatch
+              </span>
+              <p className="text-[10px] text-muted-foreground -mt-0.5">Ghana Insurance Intelligence</p>
+            </div>
           </Link>
 
           {/* Desktop Search */}
-          <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2 flex-1 max-w-md mx-8">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <form onSubmit={handleSearch} className="hidden lg:flex items-center flex-1 max-w-lg">
+            <div className="relative w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search Ghana insurance news..."
+                placeholder="Search news, insurers, regulators..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-11 bg-secondary/50 border-0 rounded-xl focus:bg-secondary focus:ring-2 focus:ring-primary/20 transition-all"
+                className="w-full pl-10 h-10 bg-muted/50 border-0 rounded-full focus:bg-muted focus:ring-2 focus:ring-primary/20 text-sm"
               />
             </div>
           </form>
 
-          <div className="flex items-center gap-2">
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-2">
             <Button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              variant="outline"
-              className="hidden sm:flex items-center gap-2 h-10 px-4 rounded-xl border-green-600/30 text-green-600 hover:bg-green-600/10 transition-all"
+              size="sm"
+              variant="ghost"
+              className="h-9 px-3 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden lg:inline font-medium">Refresh</span>
+              <span className="ml-1.5 hidden xl:inline text-sm">Refresh</span>
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden h-11 w-11 rounded-xl"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+            <Link to="/insurance-ai">
+              <Button
+                size="sm"
+                className="h-9 px-4 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-purple-500/25"
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                <span className="text-sm font-medium">AI Insights</span>
+              </Button>
+            </Link>
           </div>
+
+          {/* Mobile Menu Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-10 w-10 rounded-full"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 pb-3 -mx-1">
-          {baseCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => onCategoryChange(cat.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeCategory === cat.id
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+        <nav className="hidden md:flex items-center gap-1 pb-2.5 -mx-1 overflow-x-auto scrollbar-hide">
+          {/* News Categories */}
+          <button
+            onClick={() => onCategoryChange('all')}
+            className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+              activeCategory === 'all' && isHome
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            All News
+          </button>
 
-          {/* Regulators Dropdown - NEW */}
+          <div className="w-px h-4 bg-border/60 mx-1" />
+
+          {/* Regulators */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1 ${
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeCategory === 'regulator'
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
               >
-                <Landmark className="h-4 w-4" />
+                <Shield className="h-3.5 w-3.5" />
                 Regulators
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 bg-card border border-border shadow-lg z-50">
+            <DropdownMenuContent align="start" className="w-60 p-2">
               <DropdownMenuItem 
                 onClick={() => onCategoryChange('regulator')}
-                className="cursor-pointer"
+                className="rounded-lg p-2.5 cursor-pointer"
               >
-                <img src="/logos/nic-ghana-logo.png" alt="NIC" className="h-6 w-6 mr-2 object-contain" />
+                <img src="/logos/nic-ghana-logo.png" alt="NIC" className="h-8 w-8 rounded-lg object-contain bg-white p-1 mr-3" />
                 <div>
-                  <p className="font-medium">NIC - Insurance</p>
+                  <p className="font-semibold text-sm">NIC Ghana</p>
                   <p className="text-xs text-muted-foreground">National Insurance Commission</p>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/npra-pensions" className="flex items-center gap-2">
-                  <img src="/logos/npra-ghana-logo.png" alt="NPRA" className="h-6 w-6 mr-2 object-contain" />
+              <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
+                <Link to="/npra-pensions" className="flex items-center">
+                  <img src="/logos/npra-ghana-logo.png" alt="NPRA" className="h-8 w-8 rounded-lg object-contain bg-white p-1 mr-3" />
                   <div>
-                    <p className="font-medium">NPRA - Pensions</p>
-                    <p className="text-xs text-muted-foreground">National Pensions Regulatory Authority</p>
+                    <p className="font-semibold text-sm">NPRA Ghana</p>
+                    <p className="text-xs text-muted-foreground">Pensions Regulatory Authority</p>
                   </div>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Enterprise Group Dropdown with Subsidiaries */}
+          {/* Enterprise Group */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeCategory === 'enterprise_group'
-                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
               >
-                <img 
-                  src="/logos/enterprise-group-logo.jpg" 
-                  alt="Enterprise Group" 
-                  className="h-5 w-auto object-contain rounded"
-                />
+                <Building2 className="h-3.5 w-3.5" />
                 Enterprise Group
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 bg-card border border-border shadow-lg z-50">
+            <DropdownMenuContent align="start" className="w-56 p-2">
               <DropdownMenuItem 
                 onClick={() => onCategoryChange('enterprise_group')}
-                className="cursor-pointer font-medium"
+                className="rounded-lg p-2.5 cursor-pointer font-medium"
               >
-                <img src="/logos/enterprise-group-logo.jpg" alt="Enterprise Group" className="h-5 w-auto mr-2 object-contain rounded" />
+                <img src="/logos/enterprise-group-logo.jpg" alt="Enterprise Group" className="h-6 w-6 rounded mr-2 object-contain" />
                 All Enterprise News
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="my-1.5" />
               {enterpriseSubsidiaries.map((sub) => (
                 <DropdownMenuItem 
                   key={sub.id}
-                  onClick={() => {
-                    onSearch(sub.keywords[0]);
-                  }}
-                  className="cursor-pointer"
+                  onClick={() => onSearch(sub.keywords[0])}
+                  className="rounded-lg p-2 cursor-pointer text-sm"
                 >
                   {sub.name}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          {/* Category Dropdowns with Insurers */}
-          <div className="h-5 w-px bg-border/50 mx-1" />
+
+          <div className="w-px h-4 bg-border/60 mx-1" />
+
+          {/* Insurance Categories */}
           <CategoryDropdown 
             category="life" 
             onInsurerSelect={handleInsurerSelect}
@@ -241,267 +253,245 @@ export function Header({
             onInsurerSelect={handleInsurerSelect}
             isActive={activeInsuranceCategory === 'pension'}
           />
-          
-          <div className="h-5 w-px bg-border/50 mx-1" />
 
-          {/* Dashboards Dropdown */}
+          <div className="w-px h-4 bg-border/60 mx-1" />
+
+          {/* Dashboards */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-90">
-                <BarChart3 className="h-4 w-4" />
-                <span>Dashboards</span>
-                <ChevronDown className="h-3 w-3" />
+              <button className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 hover:from-blue-500/20 hover:to-indigo-500/20 whitespace-nowrap">
+                <BarChart3 className="h-3.5 w-3.5" />
+                Dashboards
+                <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 bg-card border border-border shadow-lg z-50">
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/executive-dashboard" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-blue-500" />
-                  Life Dashboard
+            <DropdownMenuContent align="start" className="w-52 p-2">
+              <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
+                <Link to="/executive-dashboard" className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Life Insurance</p>
+                    <p className="text-xs text-muted-foreground">Market metrics</p>
+                  </div>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/nonlife-dashboard" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-green-500" />
-                  Non-Life Dashboard
+              <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
+                <Link to="/nonlife-dashboard" className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <BarChart3 className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Non-Life Insurance</p>
+                    <p className="text-xs text-muted-foreground">Motor, property & more</p>
+                  </div>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/brokers-dashboard" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-purple-500" />
-                  Brokers Dashboard
+              <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
+                <Link to="/brokers-dashboard" className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Brokers</p>
+                    <p className="text-xs text-muted-foreground">Performance data</p>
+                  </div>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/pension-dashboard" className="flex items-center gap-2">
-                  <Landmark className="h-4 w-4 text-amber-500" />
-                  Pension Dashboard
+              <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
+                <Link to="/pension-dashboard" className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Landmark className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Pension Funds</p>
+                    <p className="text-xs text-muted-foreground">NPRA metrics</p>
+                  </div>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          <div className="ml-auto">
-            <Link
-              to="/insurance-ai"
-              className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Brain className="h-4 w-4" />
-              <span>AI Industry Tracker</span>
-              <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
         </nav>
+      </div>
 
-        {/* Mobile Menu - Redesigned */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 top-16 z-40 bg-background/98 backdrop-blur-lg overflow-y-auto animate-fade-in">
-            <div className="p-4 space-y-6 pb-24">
-              {/* Search */}
-              <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search Ghana insurance news..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-14 bg-secondary/50 border-0 rounded-2xl text-base"
-                  />
-                </div>
-              </form>
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 top-16 z-40 bg-background overflow-y-auto">
+          <div className="p-4 space-y-5 pb-24">
+            {/* Mobile Search */}
+            <form onSubmit={handleSearch}>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search news, insurers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 h-12 bg-muted border-0 rounded-2xl text-base"
+                />
+              </div>
+            </form>
 
-              {/* Quick Actions */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => {
-                    onCategoryChange('all');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all ${
-                    activeCategory === 'all'
-                      ? 'bg-primary text-primary-foreground shadow-lg'
-                      : 'bg-secondary/60 text-foreground hover:bg-secondary'
-                  }`}
-                >
-                  <Newspaper className="h-6 w-6" />
-                  <span className="text-sm font-medium">All News</span>
-                </button>
-                
-                <button
+            {/* Quick Actions Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  onCategoryChange('all');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${
+                  activeCategory === 'all'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card border-border hover:border-primary/50'
+                }`}
+              >
+                <Newspaper className="h-6 w-6" />
+                <span className="text-sm font-medium">All News</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  onCategoryChange('regulator');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${
+                  activeCategory === 'regulator'
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                    : 'bg-card border-border hover:border-emerald-500/30'
+                }`}
+              >
+                <Shield className="h-6 w-6" />
+                <span className="text-sm font-medium">Regulators</span>
+              </button>
+            </div>
+
+            {/* Regulators */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Regulators</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  to="/"
                   onClick={() => {
                     onCategoryChange('regulator');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all ${
-                    activeCategory === 'regulator'
-                      ? 'bg-gradient-to-br from-green-600 to-emerald-600 text-white shadow-lg'
-                      : 'bg-secondary/60 text-foreground hover:bg-secondary'
-                  }`}
+                  className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border"
                 >
-                  <Shield className="h-6 w-6" />
-                  <span className="text-sm font-medium">NIC News</span>
-                </button>
-              </div>
-
-              {/* Regulators Section */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Regulators</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <Link
-                    to="/"
-                    onClick={() => {
-                      onCategoryChange('regulator');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border/50 shadow-sm"
-                  >
-                    <img src="/logos/nic-ghana-logo.png" alt="NIC" className="h-10 w-10 object-contain rounded-lg" />
-                    <div>
-                      <p className="font-medium text-sm">NIC</p>
-                      <p className="text-xs text-muted-foreground">Insurance</p>
-                    </div>
-                  </Link>
-                  
-                  <Link
-                    to="/npra-pensions"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border/50 shadow-sm"
-                  >
-                    <img src="/logos/npra-ghana-logo.png" alt="NPRA" className="h-10 w-10 object-contain rounded-lg" />
-                    <div>
-                      <p className="font-medium text-sm">NPRA</p>
-                      <p className="text-xs text-muted-foreground">Pensions</p>
-                    </div>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Insurance Categories */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Insurance Categories</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <CategoryDropdown 
-                    category="life" 
-                    onInsurerSelect={(insurer) => {
-                      handleInsurerSelect(insurer);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    isActive={activeInsuranceCategory === 'life'}
-                  />
-                  <CategoryDropdown 
-                    category="nonlife" 
-                    onInsurerSelect={(insurer) => {
-                      handleInsurerSelect(insurer);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    isActive={activeInsuranceCategory === 'nonlife'}
-                  />
-                  <CategoryDropdown 
-                    category="pension" 
-                    onInsurerSelect={(insurer) => {
-                      handleInsurerSelect(insurer);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    isActive={activeInsuranceCategory === 'pension'}
-                  />
-                </div>
-              </div>
-
-              {/* Dashboards Section */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Dashboards</h3>
-                <div className="space-y-2">
-                  <Link
-                    to="/executive-dashboard"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                  >
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <BarChart3 className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Life Insurance</p>
-                      <p className="text-xs text-white/80">Market analytics & metrics</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-white/60" />
-                  </Link>
-
-                  <Link
-                    to="/nonlife-dashboard"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg"
-                  >
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <BarChart3 className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Non-Life Insurance</p>
-                      <p className="text-xs text-white/80">Motor, property & more</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-white/60" />
-                  </Link>
-
-                  <Link
-                    to="/brokers-dashboard"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg"
-                  >
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Insurance Brokers</p>
-                      <p className="text-xs text-white/80">Broker performance data</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-white/60" />
-                  </Link>
-
-                  <Link
-                    to="/pension-dashboard"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                  >
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Landmark className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Pension Funds</p>
-                      <p className="text-xs text-white/80">NPRA fund metrics</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-white/60" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* AI & Refresh Actions */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <Link
-                  to="/insurance-ai"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 h-14 rounded-xl bg-muted text-foreground font-medium border border-border"
-                >
-                  <Brain className="h-5 w-5" />
-                  <span>AI Tracker</span>
+                  <img src="/logos/nic-ghana-logo.png" alt="NIC" className="h-10 w-10 object-contain rounded-lg bg-white p-1" />
+                  <div>
+                    <p className="font-medium text-sm">NIC</p>
+                    <p className="text-xs text-muted-foreground">Insurance</p>
+                  </div>
                 </Link>
                 
-                <Button
-                  onClick={() => {
-                    handleRefresh();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  disabled={isRefreshing}
-                  variant="outline"
-                  className="h-14 rounded-xl border-green-600/30 text-green-600 hover:bg-green-50"
+                <Link
+                  to="/npra-pensions"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border"
                 >
-                  <RefreshCw className={`h-5 w-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
+                  <img src="/logos/npra-ghana-logo.png" alt="NPRA" className="h-10 w-10 object-contain rounded-lg bg-white p-1" />
+                  <div>
+                    <p className="font-medium text-sm">NPRA</p>
+                    <p className="text-xs text-muted-foreground">Pensions</p>
+                  </div>
+                </Link>
               </div>
             </div>
+
+            {/* Dashboards */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Dashboards</h3>
+              <div className="space-y-2">
+                <Link
+                  to="/executive-dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20"
+                >
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Life Insurance</p>
+                    <p className="text-xs text-muted-foreground">Market analytics</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+
+                <Link
+                  to="/nonlife-dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20"
+                >
+                  <div className="p-2 bg-emerald-500/20 rounded-lg">
+                    <BarChart3 className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Non-Life Insurance</p>
+                    <p className="text-xs text-muted-foreground">Motor, property & more</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+
+                <Link
+                  to="/brokers-dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20"
+                >
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Users className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Insurance Brokers</p>
+                    <p className="text-xs text-muted-foreground">Performance data</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+
+                <Link
+                  to="/pension-dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20"
+                >
+                  <div className="p-2 bg-amber-500/20 rounded-lg">
+                    <Landmark className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Pension Funds</p>
+                    <p className="text-xs text-muted-foreground">NPRA metrics</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Link
+                to="/insurance-ai"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 h-12 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium shadow-lg"
+              >
+                <Sparkles className="h-5 w-5" />
+                <span>AI Insights</span>
+              </Link>
+              
+              <Button
+                onClick={() => {
+                  handleRefresh();
+                  setIsMobileMenuOpen(false);
+                }}
+                disabled={isRefreshing}
+                variant="outline"
+                className="h-12 rounded-xl"
+              >
+                <RefreshCw className={`h-5 w-5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </header>
   );
 }
