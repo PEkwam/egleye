@@ -145,7 +145,7 @@ export function AIInsightsPanel({ metricsSummary }: AIInsightsPanelProps) {
               <CardDescription>
                 Q{metricsSummary.quarter} {metricsSummary.year} • {
                   metricsSummary.category === 'life' ? 'Life Insurance' 
-                  : metricsSummary.category === 'motor' ? 'Non-Life' 
+                  : metricsSummary.category === 'nonlife' ? 'Non-Life Insurance' 
                   : metricsSummary.category === 'pension' ? 'Pension' : 'All Sectors'
                 }
               </CardDescription>

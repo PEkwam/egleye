@@ -24,16 +24,6 @@ const sanitizeText = (text: string | null | undefined): string => {
   return decoded.trim();
 };
 
-// Source logo mapping for local logos
-const sourceLogos: Record<string, string> = {
-  'NIC': '/logos/nic-ghana-logo.png',
-  'National Insurance Commission': '/logos/nic-ghana-logo.png',
-  'NPRA': '/logos/npra-ghana-logo.png',
-  'National Pensions Regulatory Authority': '/logos/npra-ghana-logo.png',
-  'Enterprise Group': '/logos/enterprise-group-logo.jpg',
-  'Enterprise Life': '/logos/enterprise-life-logo.png',
-};
-
 // Credibility badge configuration based on source
 const sourceCredibility: Record<string, { level: 'official' | 'verified' | 'standard'; label: string; logo?: string }> = {
   'NIC': { level: 'official', label: 'NIC', logo: '/logos/nic-ghana-logo.png' },

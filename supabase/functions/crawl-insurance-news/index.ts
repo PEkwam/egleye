@@ -354,8 +354,10 @@ function parseRSS(xml: string, defaultCategory: string, sourceName: string): New
       } else if (lowerText.includes('claim') || lowerText.includes('payout') || lowerText.includes('settlement')) {
         category = 'claims';
       } else if (lowerText.includes('motor') || lowerText.includes('vehicle') || 
-                 lowerText.includes('car insurance') || lowerText.includes('third party')) {
-        category = 'motor';
+                 lowerText.includes('car insurance') || lowerText.includes('third party') ||
+                 lowerText.includes('property insurance') || lowerText.includes('marine') ||
+                 lowerText.includes('non-life') || lowerText.includes('general insurance')) {
+        category = 'nonlife';
       } else if (lowerText.includes('life insurance') || lowerText.includes('life assurance') ||
                  lowerText.includes('term life') || lowerText.includes('whole life')) {
         category = 'life_insurance';
