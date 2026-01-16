@@ -370,6 +370,7 @@ export type Database = {
           total_liabilities: number | null
           updated_at: string
           workman_compensation: number | null
+          years_in_ghana: number | null
         }
         Insert: {
           accident_others?: number | null
@@ -433,6 +434,7 @@ export type Database = {
           total_liabilities?: number | null
           updated_at?: string
           workman_compensation?: number | null
+          years_in_ghana?: number | null
         }
         Update: {
           accident_others?: number | null
@@ -496,6 +498,7 @@ export type Database = {
           total_liabilities?: number | null
           updated_at?: string
           workman_compensation?: number | null
+          years_in_ghana?: number | null
         }
         Relationships: []
       }
@@ -538,6 +541,7 @@ export type Database = {
           unit_price: number | null
           updated_at: string
           voluntary_contributions: number | null
+          years_in_ghana: number | null
         }
         Insert: {
           active_contributors?: number | null
@@ -577,6 +581,7 @@ export type Database = {
           unit_price?: number | null
           updated_at?: string
           voluntary_contributions?: number | null
+          years_in_ghana?: number | null
         }
         Update: {
           active_contributors?: number | null
@@ -616,6 +621,7 @@ export type Database = {
           unit_price?: number | null
           updated_at?: string
           voluntary_contributions?: number | null
+          years_in_ghana?: number | null
         }
         Relationships: []
       }

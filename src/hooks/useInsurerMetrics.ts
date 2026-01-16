@@ -41,7 +41,32 @@ export interface InsurerMetrics {
 
 export function useInsurerMetrics(category?: InsuranceCategory, year?: number, quarter?: number) {
   const queryClient = useQueryClient();
-  const latestYear = year || new Date().getFullYear(); // Default to current year for quarterly data
+
+  // First, get the latest available year from the database
+  const { data: latestAvailableYear } = useQuery({
+    queryKey: ['insurer-metrics-latest-year', category],
+    queryFn: async () => {
+      let query = supabase
+        .from('insurer_metrics')
+        .select('report_year')
+        .order('report_year', { ascending: false })
+        .limit(1);
+
+      if (category) {
+        query = query.eq('category', category);
+      }
+
+      const { data, error } = await query;
+      
+      if (error || !data || data.length === 0) {
+        return new Date().getFullYear();
+      }
+      
+      return data[0].report_year;
+    },
+  });
+
+  const latestYear = year || latestAvailableYear || new Date().getFullYear();
 
   const { data: metrics = [], isLoading, refetch } = useQuery({
     queryKey: ['insurer-metrics', category, latestYear, quarter],
@@ -69,6 +94,7 @@ export function useInsurerMetrics(category?: InsuranceCategory, year?: number, q
       
       return data as InsurerMetrics[];
     },
+    enabled: !!latestYear,
   });
 
   // Get available report years
@@ -216,7 +242,25 @@ export interface NonLifeMetrics {
 }
 
 export function useNonLifeMetrics(year?: number, quarter?: number) {
-  const latestYear = year || new Date().getFullYear();
+  // First, get the latest available year from the database
+  const { data: latestAvailableYear } = useQuery({
+    queryKey: ['nonlife-metrics-latest-year'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('report_year')
+        .order('report_year', { ascending: false })
+        .limit(1);
+      
+      if (error || !data || data.length === 0) {
+        return new Date().getFullYear();
+      }
+      
+      return data[0].report_year;
+    },
+  });
+
+  const latestYear = year || latestAvailableYear || new Date().getFullYear();
 
   const { data: metrics = [], isLoading, refetch } = useQuery({
     queryKey: ['nonlife-metrics', latestYear, quarter],
@@ -240,6 +284,7 @@ export function useNonLifeMetrics(year?: number, quarter?: number) {
       
       return data as NonLifeMetrics[];
     },
+    enabled: !!latestYear,
   });
 
   return {
