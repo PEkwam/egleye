@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { NewsCategory } from '@/types/news';
 import type { GhanaInsurer, InsuranceCategory } from '@/types/insurers';
 import { CategoryDropdown } from './CategoryDropdown';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ export function Header({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { siteName, siteTagline, logoUrl } = useSiteSettings();
 
   const handleInsurerSelect = (insurer: GhanaInsurer) => {
     onInsurerSelect?.(insurer);
@@ -84,15 +86,15 @@ export function Header({
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 shrink-0">
             <img 
-              src="/enterprise-life-logo.png" 
-              alt="InsuraWatch" 
+              src={logoUrl} 
+              alt={siteName} 
               className="h-9 sm:h-10 w-auto object-contain"
             />
             <div className="hidden sm:block">
               <span className="text-lg font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                InsuraWatch
+                {siteName}
               </span>
-              <p className="text-[10px] text-muted-foreground -mt-0.5">Ghana Insurance Intelligence</p>
+              <p className="text-[10px] text-muted-foreground -mt-0.5">{siteTagline}</p>
             </div>
           </Link>
 

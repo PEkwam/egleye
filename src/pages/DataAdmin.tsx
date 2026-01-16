@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, Database, RefreshCw, FileSpreadsheet, Check, AlertTriangle, 
   FileUp, X, Trash2, Newspaper, Building2, Landmark, Image, ImagePlus,
-  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar
+  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useInsurerMetrics } from '@/hooks/useInsurerMetrics';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 
@@ -102,7 +104,169 @@ interface BrokerSheetData {
   selected: boolean;
 }
 
-type AdminSection = 'overview' | 'news' | 'insurers' | 'brokers' | 'pension';
+type AdminSection = 'overview' | 'news' | 'insurers' | 'brokers' | 'pension' | 'settings';
+
+// Site Settings Section Component
+const SiteSettingsSection = () => {
+  const { settings, siteName, siteTagline, logoUrl, updateSetting, isUpdating } = useSiteSettings();
+  const [editName, setEditName] = useState(siteName);
+  const [editTagline, setEditTagline] = useState(siteTagline);
+  const [editLogoUrl, setEditLogoUrl] = useState(logoUrl);
+  const logoFileRef = useRef<HTMLInputElement>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  // Sync state when settings load
+  useState(() => {
+    setEditName(siteName);
+    setEditTagline(siteTagline);
+    setEditLogoUrl(logoUrl);
+  });
+
+  const handleSaveSettings = async () => {
+    try {
+      if (editName !== siteName) {
+        updateSetting({ key: 'site_name', value: editName });
+      }
+      if (editTagline !== siteTagline) {
+        updateSetting({ key: 'site_tagline', value: editTagline });
+      }
+      if (editLogoUrl !== logoUrl) {
+        updateSetting({ key: 'logo_url', value: editLogoUrl });
+      }
+      toast.success('Site settings saved!');
+    } catch (error) {
+      toast.error('Failed to save settings');
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `site-logo.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('insurer-logos')
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('insurer-logos')
+        .getPublicUrl(filePath);
+
+      setEditLogoUrl(urlData.publicUrl);
+      updateSetting({ key: 'logo_url', value: urlData.publicUrl });
+      toast.success('Logo uploaded successfully!');
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      toast.error('Failed to upload logo');
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoFileRef.current) logoFileRef.current.value = '';
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="h-5 w-5 text-cyan-500" />
+          Site Settings
+        </CardTitle>
+        <CardDescription>Configure your portal's branding and appearance</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Logo Preview & Upload */}
+        <div className="space-y-3">
+          <Label>Site Logo</Label>
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 rounded-xl bg-muted flex items-center justify-center border-2 border-dashed border-border overflow-hidden">
+              {editLogoUrl ? (
+                <img src={editLogoUrl} alt="Site Logo" className="w-full h-full object-contain p-2" />
+              ) : (
+                <Image className="h-8 w-8 text-muted-foreground" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <input
+                ref={logoFileRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                onClick={() => logoFileRef.current?.click()}
+                disabled={isUploadingLogo}
+                className="border-cyan-500/30 hover:bg-cyan-500/10"
+              >
+                {isUploadingLogo ? (
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
+                ) : (
+                  <><ImagePlus className="h-4 w-4 mr-2" />Upload New Logo</>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground">Recommended: PNG or SVG, 200x200px</p>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Site Name */}
+        <div className="space-y-2">
+          <Label htmlFor="site-name">
+            <Type className="h-4 w-4 inline mr-2" />
+            Site Name
+          </Label>
+          <Input
+            id="site-name"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder="e.g., InsuraWatch"
+            className="max-w-md"
+          />
+          <p className="text-xs text-muted-foreground">This appears next to the logo in the header</p>
+        </div>
+
+        {/* Tagline */}
+        <div className="space-y-2">
+          <Label htmlFor="site-tagline">Tagline</Label>
+          <Input
+            id="site-tagline"
+            value={editTagline}
+            onChange={(e) => setEditTagline(e.target.value)}
+            placeholder="e.g., Ghana Insurance Intelligence"
+            className="max-w-md"
+          />
+          <p className="text-xs text-muted-foreground">Shown below the site name on desktop</p>
+        </div>
+
+        <Separator />
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <Button
+            onClick={handleSaveSettings}
+            disabled={isUpdating}
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
+          >
+            {isUpdating ? (
+              <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+            ) : (
+              <><Save className="h-4 w-4 mr-2" />Save Settings</>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const DataAdmin = () => {
   const navigate = useNavigate();
@@ -1536,6 +1700,7 @@ const DataAdmin = () => {
     { id: 'insurers' as const, label: 'Insurers', icon: Shield, color: 'text-primary' },
     { id: 'brokers' as const, label: 'Brokers', icon: Users, color: 'text-purple-500' },
     { id: 'pension' as const, label: 'Pension', icon: Landmark, color: 'text-amber-500' },
+    { id: 'settings' as const, label: 'Site Settings', icon: Globe, color: 'text-cyan-500' },
   ];
 
   // Stats for overview
@@ -2304,6 +2469,11 @@ const DataAdmin = () => {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Site Settings Section */}
+            {activeSection === 'settings' && (
+              <SiteSettingsSection />
             )}
           </main>
         </div>
