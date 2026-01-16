@@ -24,6 +24,7 @@ import {
   LineChart, Line
 } from 'recharts';
 import { DashboardNavigation } from '@/components/DashboardNavigation';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 const CHART_COLORS = [
   'hsl(45, 93%, 47%)',
@@ -141,6 +142,10 @@ export default function PensionDashboard() {
       { name: 'Alternative', value: withAllocation.reduce((sum, m) => sum + (m.alternative_investments || 0), 0) / withAllocation.length, fill: CHART_COLORS[3] },
     ].filter(d => d.value > 0);
   }, [metrics]);
+
+  if (isLoading) {
+    return <DashboardSkeleton variant="pension" />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
