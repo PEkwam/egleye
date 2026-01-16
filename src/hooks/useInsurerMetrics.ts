@@ -181,6 +181,74 @@ export function useInsurerMetrics(category?: InsuranceCategory, year?: number, q
   };
 }
 
+// Hook for non-life insurance metrics
+export interface NonLifeMetrics {
+  id: string;
+  insurer_id: string;
+  insurer_name: string;
+  category: string;
+  report_year: number;
+  report_quarter: number | null;
+  report_source: string | null;
+  market_share: number | null;
+  insurance_service_revenue: number | null;
+  total_incurred_claims: number | null;
+  total_assets: number | null;
+  total_liabilities: number | null;
+  profit_after_tax: number | null;
+  claims_ratio: number | null;
+  expense_ratio: number | null;
+  motor_comprehensive: number | null;
+  motor_third_party: number | null;
+  motor_third_party_fire_theft: number | null;
+  motor_others: number | null;
+  fire_property_private: number | null;
+  fire_property_commercial: number | null;
+  marine_cargo: number | null;
+  marine_hull: number | null;
+  aviation: number | null;
+  engineering: number | null;
+  accident_personal: number | null;
+  accident_travel: number | null;
+  bonds: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useNonLifeMetrics(year?: number, quarter?: number) {
+  const latestYear = year || new Date().getFullYear();
+
+  const { data: metrics = [], isLoading, refetch } = useQuery({
+    queryKey: ['nonlife-metrics', latestYear, quarter],
+    queryFn: async () => {
+      let query = supabase
+        .from('nonlife_insurer_metrics')
+        .select('*')
+        .eq('report_year', latestYear)
+        .order('market_share', { ascending: false });
+
+      if (quarter) {
+        query = query.eq('report_quarter', quarter);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching non-life metrics:', error);
+        return [];
+      }
+      
+      return data as NonLifeMetrics[];
+    },
+  });
+
+  return {
+    metrics,
+    isLoading,
+    refetch,
+  };
+}
+
 // Fallback metrics when no data available
 export const fallbackMetrics: Omit<InsurerMetrics, 'id' | 'insurer_id' | 'insurer_name' | 'category' | 'report_year' | 'report_source' | 'created_at' | 'updated_at'> = {
   gross_premium: null,

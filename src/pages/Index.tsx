@@ -7,6 +7,7 @@ import { EnterpriseSection } from '@/components/EnterpriseSection';
 import { NICSection } from '@/components/NICSection';
 import { NPRASection } from '@/components/NPRASection';
 import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
+import { QuickInsights } from '@/components/QuickInsights';
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
 import { HomeInsurerMetrics } from '@/components/HomeInsurerMetrics';
@@ -145,6 +146,11 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
             enterpriseArticles={enterpriseArticles}
             isLoading={isLoading}
           />
+        )}
+
+        {/* Quick Insights - Category-specific metrics */}
+        {showSections && (
+          <QuickInsights />
         )}
 
         {showHero && (
