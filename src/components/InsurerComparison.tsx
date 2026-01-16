@@ -873,99 +873,41 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
             </div>
           </div>
 
-          {/* Non-Life Insurers Selection */}
+          {/* Non-Life Insurers Header */}
           {insuranceType === 'nonlife' && (
-            <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/20">
-              <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 rounded-xl bg-green-500/5 border border-green-500/20">
+              <div className="flex items-center gap-3">
                 <span className="text-sm font-semibold text-green-700 dark:text-green-400">
                   Non-Life Insurers ({selectedYear} Data)
                 </span>
                 <span className="text-sm font-medium text-muted-foreground">Q{selectedQuarter}</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {nonLifeMetrics.slice(0, 10).map((m) => {
-                  const isSelected = selectedInsurers.some(i => i.id === m.insurer_id);
-                  return (
-                    <button
-                      key={m.insurer_id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedInsurers(prev => prev.filter(i => i.id !== m.insurer_id));
-                        } else if (selectedInsurers.length < 4) {
-                          const newInsurer: GhanaInsurer = {
-                            id: m.insurer_id,
-                            name: m.insurer_name,
-                            shortName: m.insurer_name.split(' ').slice(0, 2).join(' '),
-                            category: 'nonlife',
-                            website: '#',
-                            keywords: [m.insurer_name.toLowerCase()],
-                            brandColor: 'hsl(145, 75%, 40%)',
-                          };
-                          setSelectedInsurers(prev => [...prev, newInsurer]);
-                        }
-                      }}
-                      disabled={!isSelected && selectedInsurers.length >= 4}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        isSelected
-                          ? 'bg-green-600 text-white shadow-sm'
-                          : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50'
-                      }`}
-                    >
-                      {m.insurer_name.split(' ').slice(0, 2).join(' ')}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           )}
 
-          {/* Pension Funds Selection */}
+          {/* Pension Funds Header */}
           {insuranceType === 'pension' && (
-            <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
-              <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20">
+              <div className="flex items-center gap-3">
                 <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">
                   Pension Funds ({selectedYear} Data)
                 </span>
                 <span className="text-sm font-medium text-muted-foreground">Q{selectedQuarter}</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {pensionMetrics.slice(0, 10).map((m) => {
-                  const isSelected = selectedInsurers.some(i => i.id === m.fund_id);
-                  return (
-                    <button
-                      key={m.fund_id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedInsurers(prev => prev.filter(i => i.id !== m.fund_id));
-                        } else if (selectedInsurers.length < 4) {
-                          const newFund: GhanaInsurer = {
-                            id: m.fund_id,
-                            name: m.fund_name,
-                            shortName: m.fund_name.split(' ').slice(0, 2).join(' '),
-                            category: 'pension',
-                            website: '#',
-                            keywords: [m.fund_name.toLowerCase()],
-                            brandColor: 'hsl(262, 83%, 58%)',
-                          };
-                          setSelectedInsurers(prev => [...prev, newFund]);
-                        }
-                      }}
-                      disabled={!isSelected && selectedInsurers.length >= 4}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        isSelected
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50'
-                      }`}
-                    >
-                      {m.fund_name.split(' ').slice(0, 2).join(' ')}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           )}
 
-          {/* Pension - Use dropdown selector like life insurance, no badge list */}
+          {/* Life Insurance Header */}
+          {insuranceType === 'life' && (
+            <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-primary">
+                  Life Insurers ({selectedYear} Data)
+                </span>
+                <span className="text-sm font-medium text-muted-foreground">Q{selectedQuarter}</span>
+              </div>
+            </div>
+          )}
 
           {/* Selected Insurers */}
           <div className="space-y-3">
