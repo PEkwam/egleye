@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, Database, RefreshCw, FileSpreadsheet, Check, AlertTriangle, 
   FileUp, X, Trash2, Newspaper, Building2, Landmark, Image, ImagePlus,
-  BarChart3, Settings, Users, TrendingUp, Shield, Zap
+  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -142,6 +142,7 @@ const DataAdmin = () => {
   const [isClearingNonLife, setIsClearingNonLife] = useState(false);
   const [isClearingPension, setIsClearingPension] = useState(false);
   const [isClearingBrokers, setIsClearingBrokers] = useState(false);
+  const [isSyncingYears, setIsSyncingYears] = useState(false);
 
   const { metrics, refetch } = useInsurerMetrics();
   
@@ -271,6 +272,26 @@ const DataAdmin = () => {
       toast.error('Failed to sync logos');
     } finally {
       setIsSyncingLogos(false);
+    }
+  };
+
+  // Sync years in Ghana handler
+  const handleSyncYears = async () => {
+    setIsSyncingYears(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-insurer-years');
+      
+      if (error) throw error;
+      
+      toast.success(data.message || 'Years in Ghana synced successfully');
+      queryClient.invalidateQueries({ queryKey: ['insurer-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['nonlife-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['pension-fund-metrics'] });
+    } catch (err) {
+      console.error('Years sync error:', err);
+      toast.error('Failed to sync years in Ghana');
+    } finally {
+      setIsSyncingYears(false);
     }
   };
 
@@ -1773,7 +1794,7 @@ const DataAdmin = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                       <Button variant="outline" onClick={() => handleCrawlNews()} disabled={isCrawlingNews} className="h-auto py-4 flex-col gap-2">
                         {isCrawlingNews ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Newspaper className="h-5 w-5 text-green-500" />}
                         <span className="text-xs">Crawl News</span>
@@ -1785,6 +1806,10 @@ const DataAdmin = () => {
                       <Button variant="outline" onClick={handleSyncLogos} disabled={isSyncingLogos} className="h-auto py-4 flex-col gap-2">
                         {isSyncingLogos ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Image className="h-5 w-5 text-purple-500" />}
                         <span className="text-xs">Sync Logos</span>
+                      </Button>
+                      <Button variant="outline" onClick={handleSyncYears} disabled={isSyncingYears} className="h-auto py-4 flex-col gap-2">
+                        {isSyncingYears ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Calendar className="h-5 w-5 text-amber-500" />}
+                        <span className="text-xs">Sync Years</span>
                       </Button>
                       <Button variant="outline" onClick={handleCleanupNews} disabled={isCleaningNews} className="h-auto py-4 flex-col gap-2 text-destructive hover:text-destructive">
                         {isCleaningNews ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}

@@ -121,18 +121,18 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
       />
 
       {/* Filters Section - Mobile optimized */}
-      <div className="container mx-auto px-4 py-3 md:py-4 border-b border-border/50">
-        <div className="flex items-center justify-between gap-2 md:gap-3">
-          <div className="flex items-center gap-2 md:gap-3 flex-1 overflow-x-auto pb-1 md:pb-0">
+      <div className="container mx-auto px-3 sm:px-4 py-2 md:py-4 border-b border-border/50">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1 overflow-x-auto scrollbar-hide">
             <TimeFilter selected={timeRange} onChange={setTimeRange} />
-            <div className="hidden sm:block">
+            <div className="hidden md:block">
               <InsurerComparison />
             </div>
           </div>
-          <div className="text-[10px] md:text-xs text-muted-foreground bg-green-500/10 text-green-600 px-2 md:px-3 py-1 md:py-1.5 rounded-full font-medium flex items-center gap-1 md:gap-1.5 flex-shrink-0">
-            <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="hidden xs:inline">Insurance News Only</span>
-            <span className="xs:hidden">Live</span>
+          <div className="text-[10px] sm:text-xs text-muted-foreground bg-green-500/10 text-green-600 px-2 py-1 sm:py-1.5 rounded-full font-medium flex items-center gap-1 flex-shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+            <span className="hidden sm:inline">Insurance News Only</span>
+            <span className="sm:hidden">Live</span>
           </div>
         </div>
       </div>
