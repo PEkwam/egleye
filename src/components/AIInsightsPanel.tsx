@@ -77,9 +77,12 @@ export function AIInsightsPanel({ metricsSummary }: AIInsightsPanelProps) {
     }
   };
 
-  // Auto-fetch when data changes significantly
+  // Auto-fetch when year or quarter changes
   useEffect(() => {
-    if (metricsSummary.companiesCount > 0 && !hasLoaded) {
+    if (metricsSummary.companiesCount > 0) {
+      // Reset and fetch new insights when filters change
+      setAnalysis(null);
+      setHasLoaded(false);
       fetchInsights();
     }
   }, [metricsSummary.category, metricsSummary.year, metricsSummary.quarter]);
