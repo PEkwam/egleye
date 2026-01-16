@@ -15,7 +15,7 @@ export function useNews(category?: NewsCategory | 'all', timeRange?: TimeRange) 
 
   const { data: featuredArticle } = useQuery({
     queryKey: ['featured-article', timeRange],
-    queryFn: () => newsApi.getFeaturedArticle(),
+    queryFn: () => newsApi.getFeaturedArticle(timeRange),
   });
 
   const { data: enterpriseArticles = [] } = useQuery({

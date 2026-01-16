@@ -60,12 +60,14 @@ export const newsApi = {
     return (data || []) as NewsArticle[];
   },
 
-  async getFeaturedArticle(): Promise<NewsArticle | null> {
+  async getFeaturedArticle(timeRange?: TimeRange): Promise<NewsArticle | null> {
+    const minDate = timeRange ? getTimeRangeDate(timeRange) : MIN_NEWS_DATE;
+    
     const { data, error } = await supabase
       .from('news_articles')
       .select('*')
       .eq('is_featured', true)
-      .gte('published_at', MIN_NEWS_DATE)
+      .gte('published_at', minDate)
       .order('published_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -73,6 +75,19 @@ export const newsApi = {
     if (error) {
       console.error('Error fetching featured article:', error);
       return null;
+    }
+
+    // If no featured article for this time range, get the latest article
+    if (!data) {
+      const { data: latestArticle } = await supabase
+        .from('news_articles')
+        .select('*')
+        .gte('published_at', minDate)
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      return latestArticle as NewsArticle | null;
     }
 
     return data as NewsArticle | null;
