@@ -136,8 +136,8 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
               <InsurerComparison />
             </div>
           </div>
-          <div className="text-[10px] sm:text-xs text-muted-foreground bg-green-500/10 text-green-600 px-2 py-1 sm:py-1.5 rounded-full font-medium flex items-center gap-1 flex-shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+          <div className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2 py-1 sm:py-1.5 rounded-full font-medium flex items-center gap-1 flex-shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
             <span className="hidden sm:inline">Insurance News Only</span>
             <span className="sm:hidden">Live</span>
           </div>

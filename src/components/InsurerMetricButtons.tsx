@@ -196,7 +196,7 @@ export function InsurerMetricButtons({
                   onClick={() => setTopCount(count)}
                   className={`px-3 py-1.5 text-sm font-medium transition-all ${
                     topCount === count
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-background text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >

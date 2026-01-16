@@ -228,15 +228,15 @@ export function AIInsightsPanel({ metricsSummary }: AIInsightsPanelProps) {
         {/* Opportunities & Risks */}
         <div className="grid md:grid-cols-2 gap-4">
           {analysis.opportunities && analysis.opportunities.length > 0 && (
-            <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/20">
+            <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
               <div className="flex items-center gap-2 mb-3">
-                <Lightbulb className="h-4 w-4 text-green-600" />
-                <span className="font-semibold text-green-700 dark:text-green-400">Opportunities</span>
+                <Lightbulb className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-primary">Opportunities</span>
               </div>
               <ul className="space-y-2">
                 {analysis.opportunities.map((opp, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm">
-                    <ChevronRight className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                     <span>{opp}</span>
                   </li>
                 ))}

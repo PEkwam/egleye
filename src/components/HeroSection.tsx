@@ -32,7 +32,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
     return (
       <section className="container mx-auto px-4 py-16">
         <div className="text-center py-24 glass-card">
-          <div className="w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-green-600 via-yellow-500 to-red-600 flex items-center justify-center shadow-xl animate-float">
+          <div className="w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-primary via-yellow-500 to-red-600 flex items-center justify-center shadow-xl animate-float">
             <Newspaper className="h-12 w-12 text-white" />
           </div>
           <h2 className="text-3xl font-bold font-display mb-4 text-foreground">
@@ -46,7 +46,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
             <span>Covering Ghana's Insurance Industry</span>
           </div>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-4">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span>Auto-updates every hour</span>
           </div>
         </div>
@@ -72,7 +72,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
         <div className="space-y-3 md:space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base md:text-lg font-semibold font-display text-foreground flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               Latest from Ghana
             </h3>
           </div>

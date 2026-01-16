@@ -169,7 +169,7 @@ export function Header({
               <button
                 className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeCategory === 'regulator'
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
               >
@@ -289,8 +289,8 @@ export function Header({
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
                 <Link to="/nonlife-dashboard" className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                    <BarChart3 className="h-4 w-4 text-emerald-500" />
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BarChart3 className="h-4 w-4 text-primary" />
                   </div>
                   <div>
                     <p className="font-medium text-sm">Non-Life Insurance</p>
@@ -431,10 +431,10 @@ export function Header({
                 <Link
                   to="/nonlife-dashboard"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20"
+                  className="flex items-center gap-3 p-3.5 rounded-xl bg-primary/10 border border-primary/20"
                 >
-                  <div className="p-2 bg-emerald-500/20 rounded-lg">
-                    <BarChart3 className="h-5 w-5 text-emerald-600" />
+                  <div className="p-2 bg-primary/20 rounded-lg">
+                    <BarChart3 className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-sm">Non-Life Insurance</p>

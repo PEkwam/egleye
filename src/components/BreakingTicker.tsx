@@ -8,7 +8,7 @@ interface BreakingTickerProps {
 export function BreakingTicker({ articles }: BreakingTickerProps) {
   if (articles.length === 0) {
     return (
-      <div className="bg-gradient-to-r from-green-700 via-green-600 to-emerald-600">
+      <div className="bg-primary">
         <div className="container mx-auto px-4 flex items-center">
           <div className="flex-shrink-0 flex items-center gap-2 py-2 md:py-3 pr-3 md:pr-6 border-r border-white/20">
             <div className="breaking-badge text-[10px] md:text-xs px-2 md:px-3">
@@ -29,7 +29,7 @@ export function BreakingTicker({ articles }: BreakingTickerProps) {
   const tickerItems = [...articles, ...articles];
 
   return (
-    <div className="bg-gradient-to-r from-green-700 via-green-600 to-emerald-600">
+    <div className="bg-primary">
       <div className="container mx-auto px-4 flex items-center">
         <div className="flex-shrink-0 flex items-center gap-2 py-2 md:py-3 pr-3 md:pr-6 border-r border-white/20">
           <div className="breaking-badge text-[10px] md:text-xs px-2 md:px-3">

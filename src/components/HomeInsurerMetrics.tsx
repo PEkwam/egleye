@@ -246,8 +246,8 @@ export function HomeInsurerMetrics() {
 
               {/* Key Stats */}
               <div className="space-y-2 md:space-y-3">
-                <div className="p-3 md:p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-                  <div className="flex items-center gap-1.5 md:gap-2 text-green-600 mb-0.5 md:mb-1">
+                <div className="p-3 md:p-4 rounded-xl bg-primary/10 border border-primary/20">
+                  <div className="flex items-center gap-1.5 md:gap-2 text-primary mb-0.5 md:mb-1">
                     <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="text-[10px] md:text-xs font-medium">Total Gross Premium</span>
                   </div>
