@@ -40,7 +40,7 @@ export const categoryColors: Record<NewsCategory, string> = {
 
 // Ghana insurers for filtering
 export const ghanaInsurers: { id: GhanaInsurer; label: string; keywords: string[] }[] = [
-  { id: 'enterprise', label: 'Enterprise Group', keywords: ['enterprise', 'egl', 'eic', 'etl', 'transitions ghana'] },
+  { id: 'enterprise', label: 'Enterprise Group', keywords: ['enterprise', 'egl', 'eic', 'etl', 'enterprise funeral', 'acacia health'] },
   { id: 'sic', label: 'SIC Insurance', keywords: ['sic', 'state insurance'] },
   { id: 'starlife', label: 'StarLife', keywords: ['starlife', 'star life'] },
   { id: 'hollard', label: 'Hollard', keywords: ['hollard'] },
