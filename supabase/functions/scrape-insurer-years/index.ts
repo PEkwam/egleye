@@ -28,33 +28,68 @@ const INSURER_ESTABLISHMENT_YEARS: Record<string, number> = {
 };
 
 // Non-Life Insurers establishment years (for nonlife_insurer_metrics table)
+// Source: NIC Annual Reports, Company websites, and regulatory filings
 const NONLIFE_ESTABLISHMENT_YEARS: Record<string, number> = {
+  // Pioneer/Legacy Insurers
   'enterprise-insurance': 1924, // Enterprise Insurance Ltd - oldest in Ghana
   'sic-insurance': 1962,        // SIC Insurance PLC
-  'glico-general': 1991,        // Glico General Insurance Ltd
-  'star-assurance': 1983,       // Star Assurance Limited Company
-  'vanguard-assurance': 1995,   // Vanguard Assurance Company Limited
-  'hollard-insurance': 2010,    // Hollard Insurance Ghana Ltd
-  'prime-insurance': 1987,      // Prime Insurance Company Limited
   'phoenix-insurance': 1970,    // Phoenix Insurance Company Limited
   'ghana-union': 1969,          // Ghana Union Assurance Ltd
+  'provident-insurance': 1980,  // Provident Insurance Company Limited
+  'star-assurance': 1983,       // Star Assurance Limited Company
+  'prime-insurance': 1987,      // Prime Insurance Company Limited
+  
+  // 1990s Entrants
+  'glico-general': 1991,        // Glico General Insurance Ltd
+  'donewell-insurance': 1992,   // Donewell Insurance Ltd
+  'vanguard-assurance': 1995,   // Vanguard Assurance Company Limited
   'unique-insurance': 1996,     // Unique Insurance Company Limited
   'quality-insurance': 1996,    // Quality Insurance Company Limited
-  'millennium-insurance': 2000, // Millennium Insurance Company Limited
-  'loyalty-insurance': 2011,    // Loyalty Insurance Company Limited
   'priority-insurance': 1999,   // Priority Insurance Ltd
-  'provident-insurance': 1980,  // Provident Insurance Company Limited
-  'donewell-insurance': 1992,   // Donewell Insurance Ltd
-  'bedrock-insurance': 2012,    // Bedrock Insurance Company Limited
+  
+  // 2000s Entrants
+  'millennium-insurance': 2000, // Millennium Insurance Company Limited
   'best-assurance': 2005,       // Best Assurance Company Limited
-  'activa-insurance': 2008,     // Activa International Insurance Company-Ghana Limited
-  'coronation-insurance': 2013, // Coronation Insurance Ghana Ltd
-  'nsia-insurance': 2016,       // NSIA Insurance Company Limited
+  'activa': 2008,               // Activa International Insurance Company-Ghana Limited
+  'activa-insurance': 2008,     // Activa International Insurance Company-Ghana (alternate ID)
+  'activa-international': 2008, // Activa International (alternate ID)
   'regency-nem': 2009,          // Regency Nem Insurance Ghana Limited
-  'sanlam-allianz-general': 2019, // Sanlam Allianz General Insurance Ghana Ltd
+  'regency': 2009,              // Regency NEM (alternate ID)
+  
+  // 2010s Entrants
+  'hollard-insurance': 2010,    // Hollard Insurance Ghana Ltd
+  'hollard': 2010,              // Hollard (alternate ID)
+  'loyalty-insurance': 2011,    // Loyalty Insurance Company Limited
+  'loyalty': 2011,              // Loyalty (alternate ID)
+  'bedrock-insurance': 2012,    // Bedrock Insurance Company Limited
+  'bedrock': 2012,              // Bedrock (alternate ID)
+  'coronation': 2013,           // Coronation Insurance Ghana Ltd
+  'coronation-insurance': 2013, // Coronation Insurance Ghana Ltd (alternate ID)
   'serene-insurance': 2013,     // Serene Insurance Company
-  'sunu-assurances': 2016,      // SUNU Assurances Ghana Ltd
+  'serene': 2013,               // Serene (alternate ID)
   'imperial-general': 2015,     // Imperial General Assurance Company Limited
+  'imperial': 2015,             // Imperial (alternate ID)
+  'nsia': 2016,                 // NSIA Insurance Company Limited
+  'nsia-insurance': 2016,       // NSIA Insurance Company Limited (alternate ID)
+  'sunu-assurances': 2016,      // SUNU Assurances Ghana Ltd
+  'sunu': 2016,                 // SUNU (alternate ID)
+  'sanlam-allianz-general': 2019, // Sanlam Allianz General Insurance Ghana Ltd
+  'sanlam': 2019,               // Sanlam (alternate ID)
+  'allianz': 2019,              // Allianz (alternate ID)
+  
+  // Additional insurers from NIC register
+  'wapic': 2017,                // WAPIC Insurance Ghana Company Ltd
+  'wapic-insurance': 2017,      // WAPIC Insurance (alternate ID)
+  'old-mutual-general': 2007,   // Old Mutual General Insurance Ghana
+  'old-mutual': 2007,           // Old Mutual (alternate ID)
+  'metropolitan-general': 2008, // Metropolitan Insurance Ghana
+  'metropolitan': 2008,         // Metropolitan (alternate ID)
+  'saham': 2015,                // Saham Assurance Company Ghana
+  'saham-assurance': 2015,      // Saham Assurance (alternate ID)
+  'ges-insurance': 1990,        // GES Insurance Company
+  'apex-mutual': 2018,          // Apex Mutual Insurance
+  'equity': 2008,               // Equity Assurance Company
+  'equity-assurance': 2008,     // Equity Assurance (alternate ID)
 };
 
 // Pension Trustees establishment years (for pension_fund_metrics table)
