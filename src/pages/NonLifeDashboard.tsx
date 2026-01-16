@@ -279,7 +279,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedYear.toString()} onValueChange={v => setSelectedYear(parseInt(v))}>
+            <Select value={selectedYear?.toString() || ''} onValueChange={v => setSelectedYear(parseInt(v))}>
               <SelectTrigger className="w-[100px] h-9 bg-background border-border/50">
                 <Calendar className="h-4 w-4 mr-1" />
                 <SelectValue />
