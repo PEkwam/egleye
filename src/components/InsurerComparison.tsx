@@ -229,17 +229,54 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     setSelectedInsurers([]);
   };
 
-  // Define metrics to display with formatters (only metrics available in NIC database)
-  const metricsConfig = [
-    { key: 'market_share', label: 'Market Share', icon: PieChart, format: formatPercent, highlight: 'max', unit: '%' },
-    { key: 'gross_premium', label: 'Gross Premium', icon: Wallet, format: formatCurrency, highlight: 'max', unit: '₵M' },
-    { key: 'total_assets', label: 'Total Assets', icon: Building2, format: formatCurrency, highlight: 'max', unit: '₵M' },
-    { key: 'claims_ratio', label: 'Claims Ratio', icon: Shield, format: formatPercent, highlight: 'min', unit: '%' },
-    { key: 'profit_after_tax', label: 'Profit After Tax', icon: TrendingUp, format: formatCurrency, highlight: 'max', unit: '₵M' },
-    { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'N/A', highlight: 'max', unit: 'years' },
-  ] as const;
+  // Define metrics to display with formatters - category-specific
+  const metricsConfig = useMemo(() => {
+    if (insuranceType === 'nonlife') {
+      return [
+        { key: 'market_share', label: 'Market Share', icon: PieChart, format: formatPercent, highlight: 'max' as const, unit: '%' },
+        { key: 'insurance_service_revenue', label: 'Premium Revenue', icon: Wallet, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+        { key: 'total_assets', label: 'Total Assets', icon: Building2, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+        { key: 'claims_ratio', label: 'Claims Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
+        { key: 'expense_ratio', label: 'Expense Ratio', icon: TrendingDown, format: formatPercent, highlight: 'min' as const, unit: '%' },
+        { key: 'profit_after_tax', label: 'Profit After Tax', icon: TrendingUp, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+      ];
+    } else if (insuranceType === 'pension') {
+      return [
+        { key: 'market_share', label: 'Market Share', icon: PieChart, format: formatPercent, highlight: 'max' as const, unit: '%' },
+        { key: 'aum', label: 'AUM', icon: Wallet, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+        { key: 'total_contributions', label: 'Total Contributions', icon: Building2, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+        { key: 'investment_return', label: 'Investment Return', icon: TrendingUp, format: formatPercent, highlight: 'max' as const, unit: '%' },
+        { key: 'expense_ratio', label: 'Expense Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
+        { key: 'total_contributors', label: 'Total Contributors', icon: Users, format: (v: number | null) => v ? v.toLocaleString() : 'N/A', highlight: 'max' as const, unit: '' },
+      ];
+    }
+    // Life insurance (default)
+    return [
+      { key: 'market_share', label: 'Market Share', icon: PieChart, format: formatPercent, highlight: 'max' as const, unit: '%' },
+      { key: 'gross_premium', label: 'Gross Premium', icon: Wallet, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+      { key: 'total_assets', label: 'Total Assets', icon: Building2, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+      { key: 'claims_ratio', label: 'Claims Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
+      { key: 'profit_after_tax', label: 'Profit After Tax', icon: TrendingUp, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+      { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'N/A', highlight: 'max' as const, unit: 'years' },
+    ];
+  }, [insuranceType]);
 
+  // Get metric value based on insurance type
   const getMetricValue = (insurerId: string, key: string): number | null => {
+    if (insuranceType === 'nonlife') {
+      const nonLifeData = nonLifeMetrics.find(m => m.insurer_id === insurerId);
+      if (nonLifeData) {
+        return nonLifeData[key as keyof typeof nonLifeData] as number | null;
+      }
+      return null;
+    } else if (insuranceType === 'pension') {
+      const pensionData = pensionMetrics.find(p => p.fund_id === insurerId);
+      if (pensionData) {
+        return pensionData[key as keyof typeof pensionData] as number | null;
+      }
+      return null;
+    }
+    // Life insurance
     const dbMetrics = getMetricsForInsurer(insurerId);
     if (dbMetrics) {
       return dbMetrics[key as keyof InsurerMetrics] as number | null;
@@ -256,11 +293,20 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     return highlight === 'max' ? Math.max(...values) : Math.min(...values);
   };
 
-  // Generate rankings
+  // Generate rankings - category-specific metrics
   const rankings = useMemo(() => {
     if (selectedInsurers.length === 0) return [];
     
-    const rankingMetrics = ['gross_premium', 'market_share', 'total_assets', 'profit_after_tax'];
+    // Use category-specific ranking metrics
+    let rankingMetrics: string[];
+    if (insuranceType === 'nonlife') {
+      rankingMetrics = ['insurance_service_revenue', 'market_share', 'total_assets', 'profit_after_tax'];
+    } else if (insuranceType === 'pension') {
+      rankingMetrics = ['aum', 'market_share', 'total_contributions', 'investment_return'];
+    } else {
+      rankingMetrics = ['gross_premium', 'market_share', 'total_assets', 'profit_after_tax'];
+    }
+    
     const scores: Record<string, { total: number; wins: number }> = {};
     
     selectedInsurers.forEach(insurer => {
@@ -286,38 +332,76 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         wins: score.wins,
       }))
       .sort((a, b) => b.score - a.score);
-  }, [selectedInsurers, metrics]);
+  }, [selectedInsurers, metrics, nonLifeMetrics, pensionMetrics, insuranceType]);
 
-  // Generate radar chart data - using available metrics from NIC database
+  // Generate radar chart data - category-specific metrics
   const radarData = useMemo(() => {
     const normalizeValue = (value: number | null, max: number) => {
       if (value === null || max === 0) return 0;
       return Math.min(100, (value / max) * 100);
     };
 
+    // Define metrics based on insurance type
+    let radarMetrics: { key: string; label: string }[];
+    if (insuranceType === 'nonlife') {
+      radarMetrics = [
+        { key: 'market_share', label: 'Market Share' },
+        { key: 'insurance_service_revenue', label: 'Premium' },
+        { key: 'total_assets', label: 'Assets' },
+        { key: 'profit_after_tax', label: 'Profit' },
+      ];
+    } else if (insuranceType === 'pension') {
+      radarMetrics = [
+        { key: 'market_share', label: 'Market Share' },
+        { key: 'aum', label: 'AUM' },
+        { key: 'total_contributions', label: 'Contributions' },
+        { key: 'investment_return', label: 'Returns' },
+      ];
+    } else {
+      radarMetrics = [
+        { key: 'market_share', label: 'Market Share' },
+        { key: 'gross_premium', label: 'Premium' },
+        { key: 'total_assets', label: 'Assets' },
+        { key: 'profit_after_tax', label: 'Profit' },
+      ];
+    }
+
     const maxValues: Record<string, number> = {};
-    ['market_share', 'gross_premium', 'total_assets', 'profit_after_tax'].forEach(key => {
+    radarMetrics.forEach(({ key }) => {
       const values = selectedInsurers.map(i => Math.abs(getMetricValue(i.id, key) || 0));
       maxValues[key] = Math.max(...values, 1);
     });
 
-    return [
-      { subject: 'Market Share', ...Object.fromEntries(selectedInsurers.map(i => [i.id, normalizeValue(getMetricValue(i.id, 'market_share'), maxValues['market_share'])])) },
-      { subject: 'Premium', ...Object.fromEntries(selectedInsurers.map(i => [i.id, normalizeValue(getMetricValue(i.id, 'gross_premium'), maxValues['gross_premium'])])) },
-      { subject: 'Assets', ...Object.fromEntries(selectedInsurers.map(i => [i.id, normalizeValue(getMetricValue(i.id, 'total_assets'), maxValues['total_assets'])])) },
-      { subject: 'Profit', ...Object.fromEntries(selectedInsurers.map(i => [i.id, normalizeValue(Math.abs(getMetricValue(i.id, 'profit_after_tax') || 0), maxValues['profit_after_tax'])])) },
-    ];
-  }, [selectedInsurers]);
+    return radarMetrics.map(({ key, label }) => ({
+      subject: label,
+      ...Object.fromEntries(selectedInsurers.map(i => [i.id, normalizeValue(Math.abs(getMetricValue(i.id, key) || 0), maxValues[key])])),
+    }));
+  }, [selectedInsurers, insuranceType, nonLifeMetrics, pensionMetrics]);
 
-  // Generate bar chart comparison data - all values in millions for consistent scaling
+  // Generate bar chart comparison data - category-specific
   const barChartData = useMemo(() => {
+    if (insuranceType === 'nonlife') {
+      return selectedInsurers.map(insurer => ({
+        name: insurer.shortName.split(' ')[0],
+        'Premium Revenue (₵M)': (getMetricValue(insurer.id, 'insurance_service_revenue') || 0) / 1_000_000,
+        'Total Assets (₵M)': (getMetricValue(insurer.id, 'total_assets') || 0) / 1_000_000,
+        'Profit (₵M)': (getMetricValue(insurer.id, 'profit_after_tax') || 0) / 1_000_000,
+      }));
+    } else if (insuranceType === 'pension') {
+      return selectedInsurers.map(insurer => ({
+        name: insurer.shortName.split(' ')[0],
+        'AUM (₵M)': (getMetricValue(insurer.id, 'aum') || 0) / 1_000_000,
+        'Contributions (₵M)': (getMetricValue(insurer.id, 'total_contributions') || 0) / 1_000_000,
+        'Return (%)': (getMetricValue(insurer.id, 'investment_return') || 0) * 100,
+      }));
+    }
     return selectedInsurers.map(insurer => ({
       name: insurer.shortName.split(' ')[0],
       'Gross Premium (₵M)': (getMetricValue(insurer.id, 'gross_premium') || 0) / 1_000_000,
       'Total Assets (₵M)': (getMetricValue(insurer.id, 'total_assets') || 0) / 1_000_000,
       'Profit (₵M)': (getMetricValue(insurer.id, 'profit_after_tax') || 0) / 1_000_000,
     }));
-  }, [selectedInsurers]);
+  }, [selectedInsurers, insuranceType, nonLifeMetrics, pensionMetrics]);
 
   // Generate trend data
   const trendData = useMemo(() => {
@@ -634,6 +718,50 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
             </div>
           )}
 
+          {/* Pension Funds Selection */}
+          {insuranceType === 'pension' && (
+            <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm font-medium text-purple-700 dark:text-purple-400">Pension Funds ({selectedYear} Data)</span>
+                <Badge variant="secondary" className="text-xs">Annual</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {pensionMetrics.slice(0, 10).map((m) => {
+                  const isSelected = selectedInsurers.some(i => i.id === m.fund_id);
+                  return (
+                    <button
+                      key={m.fund_id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedInsurers(prev => prev.filter(i => i.id !== m.fund_id));
+                        } else if (selectedInsurers.length < 4) {
+                          const newFund: GhanaInsurer = {
+                            id: m.fund_id,
+                            name: m.fund_name,
+                            shortName: m.fund_name.split(' ').slice(0, 2).join(' '),
+                            category: 'pension',
+                            website: '#',
+                            keywords: [m.fund_name.toLowerCase()],
+                            brandColor: 'hsl(262, 83%, 58%)',
+                          };
+                          setSelectedInsurers(prev => [...prev, newFund]);
+                        }
+                      }}
+                      disabled={!isSelected && selectedInsurers.length >= 4}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50'
+                      }`}
+                    >
+                      {m.fund_name.split(' ').slice(0, 2).join(' ')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Pension - Use dropdown selector like life insurance, no badge list */}
 
           {/* Selected Insurers */}
@@ -794,9 +922,25 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                             }}
                           />
                           <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                          <Bar dataKey="Gross Premium (₵M)" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="Total Assets (₵M)" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="Profit (₵M)" fill={CHART_COLORS[2] || 'hsl(262, 83%, 58%)'} radius={[4, 4, 0, 0]} />
+                          {insuranceType === 'nonlife' ? (
+                            <>
+                              <Bar dataKey="Premium Revenue (₵M)" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Total Assets (₵M)" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Profit (₵M)" fill={CHART_COLORS[2] || 'hsl(262, 83%, 58%)'} radius={[4, 4, 0, 0]} />
+                            </>
+                          ) : insuranceType === 'pension' ? (
+                            <>
+                              <Bar dataKey="AUM (₵M)" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Contributions (₵M)" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Return (%)" fill={CHART_COLORS[2] || 'hsl(262, 83%, 58%)'} radius={[4, 4, 0, 0]} />
+                            </>
+                          ) : (
+                            <>
+                              <Bar dataKey="Gross Premium (₵M)" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Total Assets (₵M)" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} />
+                              <Bar dataKey="Profit (₵M)" fill={CHART_COLORS[2] || 'hsl(262, 83%, 58%)'} radius={[4, 4, 0, 0]} />
+                            </>
+                          )}
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -961,24 +1105,38 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                           </div>
                         </div>
                         
-                        {/* Metric highlights */}
+                        {/* Metric highlights - category-specific */}
                         <div className="mt-5 grid grid-cols-4 gap-3">
-                          {['gross_premium', 'market_share', 'total_assets', 'profit_after_tax'].map(metric => {
+                          {(insuranceType === 'nonlife' 
+                            ? ['insurance_service_revenue', 'market_share', 'total_assets', 'profit_after_tax']
+                            : insuranceType === 'pension'
+                            ? ['aum', 'market_share', 'total_contributions', 'investment_return']
+                            : ['gross_premium', 'market_share', 'total_assets', 'profit_after_tax']
+                          ).map(metric => {
                             const value = getMetricValue(ranking.insurer.id, metric);
                             const isBest = getBestValue(metric, 'max') === value;
                             const labels: Record<string, string> = {
                               gross_premium: 'Premium',
+                              insurance_service_revenue: 'Revenue',
+                              aum: 'AUM',
                               market_share: 'Market Share',
                               total_assets: 'Assets',
+                              total_contributions: 'Contributions',
                               profit_after_tax: 'Profit',
+                              investment_return: 'Returns',
                             };
                             const colors: Record<string, string> = {
                               gross_premium: 'emerald',
+                              insurance_service_revenue: 'emerald',
+                              aum: 'emerald',
                               market_share: 'blue',
                               total_assets: 'purple',
+                              total_contributions: 'purple',
                               profit_after_tax: 'amber',
+                              investment_return: 'amber',
                             };
                             const color = colors[metric];
+                            const isPercentMetric = ['market_share', 'investment_return'].includes(metric);
                             return (
                               <div 
                                 key={metric} 
@@ -990,7 +1148,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                               >
                                 <p className="text-[10px] text-muted-foreground uppercase font-medium">{labels[metric]}</p>
                                 <p className={`text-sm font-bold mt-1 ${isBest ? 'text-primary' : ''}`}>
-                                  {metric === 'market_share' ? formatPercent(value) : formatCurrency(value)}
+                                  {isPercentMetric ? formatPercent(value) : formatCurrency(value)}
                                 </p>
                                 {isBest && (
                                   <div className="flex items-center justify-center gap-1 mt-1.5">
