@@ -25,7 +25,8 @@ const GHANA_KEYWORDS = [
   'nic', 'nicgh', 'national insurance commission', 'npra', 'national pensions',
   // Enterprise Group - Full coverage
   'enterprise group', 'enterprise life', 'enterprise insurance', 'eic', 'egl', 'etl',
-  'acacia health', 'enterprise trustees', 'enterprise properties', 'enterprise life gambia', 'enterprise life nigeria',
+  'acacia health', 'acacia insurance', 'enterprise trustees', 'enterprise properties',
+  'enterprise funeral', 'transitions ghana', 'enterprise life gambia', 'enterprise life nigeria',
   // Life Insurance Companies
   'sic insurance', 'sic life', 'sic ghana', 'starlife', 'star life', 'glico life', 'glico insurance',
   'prudential ghana', 'prudential life ghana', 'metropolitan life ghana', 'metropolitan insurance',
@@ -348,8 +349,10 @@ function parseRSS(xml: string, defaultCategory: string, sourceName: string): New
       } else if (isRegulatorNews(fullText)) {
         category = 'regulator';
       } else if (lowerText.includes('enterprise group') || lowerText.includes('enterprise life') || 
-                 lowerText.includes('enterprise insurance') ||
-                 lowerText.includes('egl') || lowerText.includes('eic')) {
+                 lowerText.includes('enterprise insurance') || lowerText.includes('enterprise trustees') ||
+                 lowerText.includes('enterprise properties') || lowerText.includes('enterprise funeral') ||
+                 lowerText.includes('acacia health') || lowerText.includes('acacia insurance') ||
+                 lowerText.includes('transitions ghana') || lowerText.includes('egl') || lowerText.includes('eic')) {
         category = 'enterprise_group';
       } else if (lowerText.includes('claim') || lowerText.includes('payout') || lowerText.includes('settlement')) {
         category = 'claims';
