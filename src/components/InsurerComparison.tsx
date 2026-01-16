@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { X, Plus, Scale, TrendingUp, TrendingDown, Users, Shield, Star, Building2, Wallet, PieChart, Calendar, Award, BarChart3, Lightbulb, Minus, ChevronRight, Sparkles, Target, AlertTriangle, Zap, Loader2, Heart, Car, Landmark } from 'lucide-react';
+import { X, Plus, Scale, TrendingUp, TrendingDown, Users, Shield, Star, Building2, Wallet, PieChart, Calendar, Award, BarChart3, Lightbulb, Minus, ChevronRight, Sparkles, Target, AlertTriangle, Zap, Loader2, Heart, Car, Landmark, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -542,17 +542,19 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
 
   // Generate trend data - map historical records to selected insurers using proper matching
   const trendData = useMemo(() => {
-    const periods = new Map<string, Record<string, number>>();
+    const periods = new Map<string, Record<string, number | string>>();
     
     historicalData.forEach((d: any) => {
       const matchedInsurerId = findMatchingInsurerId(d);
       if (!matchedInsurerId) return;
       
-      const period = `Q${d.report_quarter || 4}'${String(d.report_year).slice(2)}`;
-      if (!periods.has(period)) {
-        periods.set(period, { period: 0 });
+      const periodLabel = `Q${d.report_quarter || 4}'${String(d.report_year).slice(2)}`;
+      const periodKey = `${d.report_year}-${d.report_quarter || 4}`; // For sorting
+      
+      if (!periods.has(periodKey)) {
+        periods.set(periodKey, { period: periodLabel });
       }
-      const periodData = periods.get(period)!;
+      const periodData = periods.get(periodKey)!;
       
       // Use the frontend insurer ID as key for chart rendering
       const value = d.gross_premium || d.insurance_service_revenue || d.aum || 0;
@@ -560,9 +562,64 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     });
 
     return Array.from(periods.entries())
-      .map(([period, data]) => ({ period, ...data }))
+      .sort(([a], [b]) => a.localeCompare(b)) // Sort by year-quarter key
+      .map(([, data]) => data)
       .slice(-8);
   }, [historicalData, selectedInsurers, idMappings]);
+
+  // Data availability indicator - check which insurers have data for selected period
+  const dataAvailability = useMemo(() => {
+    return selectedInsurers.map(insurer => {
+      let hasData = false;
+      let latestQuarter: string | null = null;
+      
+      if (insuranceType === 'life') {
+        const record = findMatchingRecord(metrics, insurer);
+        hasData = !!record && record.report_year === selectedYear && record.report_quarter === selectedQuarter;
+        // Find latest available quarter for this insurer
+        const dbId = getDbId(insurer.id);
+        const insurerRecords = metrics.filter(m => 
+          m.insurer_id === dbId || 
+          m.insurer_id === insurer.id ||
+          m.insurer_name?.toLowerCase().includes(insurer.shortName.toLowerCase())
+        );
+        if (insurerRecords.length > 0) {
+          const latest = insurerRecords.sort((a, b) => 
+            (b.report_year * 10 + (b.report_quarter || 0)) - (a.report_year * 10 + (a.report_quarter || 0))
+          )[0];
+          latestQuarter = `Q${latest.report_quarter} ${latest.report_year}`;
+        }
+      } else if (insuranceType === 'nonlife') {
+        const record = findMatchingRecord(nonLifeMetrics, insurer);
+        hasData = !!record && record.report_year === selectedYear && record.report_quarter === selectedQuarter;
+        const insurerRecords = nonLifeMetrics.filter(m => 
+          m.insurer_name?.toLowerCase().includes(insurer.shortName.toLowerCase()) ||
+          m.insurer_id === insurer.id
+        );
+        if (insurerRecords.length > 0) {
+          const latest = insurerRecords.sort((a, b) => 
+            (b.report_year * 10 + (b.report_quarter || 0)) - (a.report_year * 10 + (a.report_quarter || 0))
+          )[0];
+          latestQuarter = `Q${latest.report_quarter} ${latest.report_year}`;
+        }
+      } else {
+        const record = findMatchingRecord(pensionMetrics, insurer);
+        hasData = !!record && record.report_year === selectedYear && record.report_quarter === selectedQuarter;
+        const insurerRecords = pensionMetrics.filter(m => 
+          m.fund_name?.toLowerCase().includes(insurer.shortName.toLowerCase()) ||
+          m.fund_id === insurer.id
+        );
+        if (insurerRecords.length > 0) {
+          const latest = insurerRecords.sort((a, b) => 
+            (b.report_year * 10 + (b.report_quarter || 0)) - (a.report_year * 10 + (a.report_quarter || 0))
+          )[0];
+          latestQuarter = `Q${latest.report_quarter} ${latest.report_year}`;
+        }
+      }
+      
+      return { insurer, hasData, latestQuarter };
+    });
+  }, [selectedInsurers, metrics, nonLifeMetrics, pensionMetrics, selectedYear, selectedQuarter, insuranceType, idMappings]);
 
   // AI Analysis mutation - adapts to insurance type
   const aiAnalysisMutation = useMutation({
@@ -975,6 +1032,40 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
               )}
             </div>
           </div>
+
+          {/* Data Availability Indicator */}
+          {selectedInsurers.length > 0 && (
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-medium text-muted-foreground">
+                  Data Availability for Q{selectedQuarter} {selectedYear}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {dataAvailability.map(({ insurer, hasData, latestQuarter }) => (
+                  <div 
+                    key={insurer.id}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs ${
+                      hasData 
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    }`}
+                  >
+                    {hasData ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3" />
+                    )}
+                    <span className="font-medium">{insurer.shortName}</span>
+                    {!hasData && latestQuarter && (
+                      <span className="opacity-70">• Latest: {latestQuarter}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Analysis Tabs */}
           {selectedInsurers.length > 0 ? (
