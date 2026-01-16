@@ -30,7 +30,8 @@ const enterpriseSubsidiaries = [
   { id: 'enterprise-insurance', name: 'Enterprise Insurance', keywords: ['enterprise insurance', 'eic'] },
   { id: 'enterprise-trustees', name: 'Enterprise Trustees', keywords: ['enterprise trustees', 'etl'] },
   { id: 'enterprise-properties', name: 'Enterprise Properties', keywords: ['enterprise properties'] },
-  { id: 'transitions-ghana', name: 'Transitions Ghana', keywords: ['transitions ghana'] },
+  { id: 'enterprise-funeral', name: 'Enterprise Funeral Services', keywords: ['enterprise funeral', 'transitions ghana'] },
+  { id: 'acacia-health', name: 'Acacia Health Insurance', keywords: ['acacia health', 'acacia insurance'] },
 ];
 
 const baseCategories: { id: NewsCategory | 'all'; label: string }[] = [
