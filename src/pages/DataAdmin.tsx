@@ -295,51 +295,113 @@ const DataAdmin = () => {
     }
   };
 
-  // Abbreviation and keyword mappings for flexible filename matching
-  // Keys are insurer_ids, values are unique identifying terms (NOT common words like "life", "insurance")
-  const abbreviationMappings: Record<string, string[]> = {
-    'enterprise-life': ['enterprise life', 'enterprise_life', 'enterpriselife', 'egl', 'entlife'],
-    'enterprise-insurance': ['enterprise insurance', 'enterprise_insurance', 'enterpriseinsurance', 'eic'],
-    'enterprise-trustees': ['enterprise trustees', 'enterprise_trustees', 'enterprisetrustees', 'etl'],
-    'starlife': ['starlife', 'star life', 'star_life', 'starlife assurance'],
-    'glico-life': ['glico life', 'glico_life', 'glicolife', 'glico life insurance'],
-    'glico-general': ['glico general', 'glico_general', 'glicogeneral'],
-    'prudential-life': ['prudential life', 'prudential_life', 'prudentiallife', 'prudential life insurance'],
-    'sic-life': ['sic life', 'sic_life', 'siclife', 'sic life company'],
-    'sic-insurance': ['sic insurance', 'sic_insurance', 'sicinsurance'],
-    'hollard-life': ['hollard life', 'hollard_life', 'hollardlife'],
-    'hollard-insurance': ['hollard insurance', 'hollard_insurance', 'hollardinsurance'],
-    'old-mutual-life': ['old mutual', 'old_mutual', 'oldmutual', 'old mutual life'],
-    'star-assurance': ['star assurance', 'star_assurance', 'starassurance'],
-    'metropolitan-life': ['metropolitan life', 'metropolitan_life', 'metropolitanlife', 'metlife'],
-    'sanlam-allianz-life': ['sanlam allianz', 'sanlam_allianz', 'sanlamallianz', 'sanlam allianz life', 'allianz life'],
-    'sanlam-allianz-general': ['sanlam allianz general', 'sanlam_allianz_general'],
-    'quality-life': ['quality life', 'quality_life', 'qualitylife', 'qlac', 'quality life assurance'],
-    'vanguard-life': ['vanguard life', 'vanguard_life', 'vanguardlife', 'vanguard assurance'],
-    'pinnacle-life': ['pinnacle life', 'pinnacle_life', 'pinnaclelife', 'pinnacle insurance'],
-    'ghana-life': ['ghana life', 'ghana_life', 'ghanalife', 'ghana life insurance'],
-    'exceed-life': ['exceed life', 'exceed_life', 'exceedlife', 'exceed assurance'],
-    'esich-life': ['esich life', 'esich_life', 'esichlife', 'esich assurance'],
-    'milife': ['milife', 'mi life', 'mi_life', 'milife company'],
-    'impact-life': ['impact life', 'impact_life', 'impactlife', 'impact insurance'],
-    'first-insurance': ['first insurance', 'first_insurance', 'firstinsurance'],
-    'beige-assure': ['beige assure', 'beige_assure', 'beigeassure', 'beige assurance'],
-    'phoenix-insurance': ['phoenix insurance', 'phoenix_insurance', 'phoenixinsurance'],
-    'priority-insurance': ['priority insurance', 'priority_insurance', 'priorityinsurance'],
-    'donewell-insurance': ['donewell', 'donewell insurance', 'donewell_insurance'],
-    'ghana-union': ['ghana union', 'ghana_union', 'ghanaunion', 'gua'],
-    'activa-insurance': ['activa insurance', 'activa_insurance', 'activainsurance', 'activa international'],
-    'imperial-general': ['imperial general', 'imperial_general', 'imperialgeneral'],
-    'loyalty-insurance': ['loyalty insurance', 'loyalty_insurance', 'loyaltyinsurance'],
-    'regency-nem': ['regency nem', 'regency_nem', 'regencynem', 'regency insurance'],
-    'millennium-insurance': ['millennium insurance', 'millennium_insurance', 'millenniuminsurance'],
-    'coronation-insurance': ['coronation insurance', 'coronation_insurance', 'coronationinsurance'],
-    'aster-life': ['aster life', 'aster_life', 'asterlife'],
-    'nsia-insurance': ['nsia insurance', 'nsia_insurance', 'nsiainsurance'],
-    'npra': ['npra', 'national pensions'],
+  // Common words to ignore when matching (these don't uniquely identify a company)
+  const commonWords = ['life', 'insurance', 'assurance', 'company', 'limited', 'ltd', 'ghana', 'plc', 'general', 'the', 'trust', 'pension', 'pensions', 'group', 'international'];
+  
+  // Normalize a string for comparison
+  const normalizeString = (str: string): string => {
+    return str.toLowerCase()
+      .replace(/[-_]/g, ' ')
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+  
+  // Extract unique identifying words from a string
+  const extractUniqueWords = (str: string): string[] => {
+    return normalizeString(str)
+      .split(' ')
+      .filter(w => w.length > 2 && !commonWords.includes(w));
+  };
+  
+  // Calculate similarity score between two strings
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    const words1 = extractUniqueWords(str1);
+    const words2 = extractUniqueWords(str2);
+    
+    if (words1.length === 0 || words2.length === 0) return 0;
+    
+    let matchScore = 0;
+    for (const w1 of words1) {
+      for (const w2 of words2) {
+        // Exact match
+        if (w1 === w2) {
+          matchScore += 100;
+        }
+        // One starts with the other (partial match)
+        else if (w1.length > 3 && w2.length > 3 && (w1.startsWith(w2) || w2.startsWith(w1))) {
+          matchScore += 60;
+        }
+        // Contains match (less strict)
+        else if (w1.length > 4 && w2.length > 4 && (w1.includes(w2) || w2.includes(w1))) {
+          matchScore += 40;
+        }
+      }
+    }
+    
+    // Bonus for matching number of unique words
+    if (words1.length === words2.length && matchScore > 0) {
+      matchScore += 20;
+    }
+    
+    return matchScore;
+  };
+  
+  // Find best matching insurer for a filename
+  const findBestMatch = (fileName: string, insurersList: typeof insurers): typeof insurers[0] | null => {
+    if (!insurersList || insurersList.length === 0) return null;
+    
+    const normalizedFileName = normalizeString(fileName);
+    const fileClean = normalizedFileName.replace(/\s/g, '');
+    
+    let bestMatch: typeof insurers[0] | null = null;
+    let bestScore = 0;
+    
+    for (const insurer of insurersList) {
+      const insurerId = insurer.insurer_id.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const shortNameClean = normalizeString(insurer.short_name).replace(/\s/g, '');
+      const nameClean = normalizeString(insurer.name).replace(/\s/g, '');
+      
+      // Exact matches (highest priority)
+      if (fileClean === insurerId || fileClean === shortNameClean) {
+        return insurer; // Perfect match, return immediately
+      }
+      
+      // Check if file starts with insurer identifier
+      if (fileClean.startsWith(insurerId) || fileClean.startsWith(shortNameClean)) {
+        const score = 200 + insurerId.length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = insurer;
+        }
+        continue;
+      }
+      
+      // Check if insurer identifier is in the filename
+      if (fileClean.includes(insurerId) && insurerId.length > 5) {
+        const score = 150 + insurerId.length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = insurer;
+        }
+        continue;
+      }
+      
+      // Calculate similarity scores
+      const scoreFromShortName = calculateSimilarity(fileName, insurer.short_name);
+      const scoreFromFullName = calculateSimilarity(fileName, insurer.name);
+      const maxScore = Math.max(scoreFromShortName, scoreFromFullName);
+      
+      if (maxScore > bestScore && maxScore >= 60) { // Minimum threshold
+        bestScore = maxScore;
+        bestMatch = insurer;
+      }
+    }
+    
+    return bestMatch;
   };
 
-  // Handle bulk logo upload
+  // Handle bulk logo upload with improved matching
   const handleBulkLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -354,80 +416,9 @@ const DataAdmin = () => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = file.name.toLowerCase().replace(/\.[^.]+$/, ''); // Remove extension
-      const fileNameNormalized = fileName.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
-      const fileNameClean = fileName.replace(/[^a-z0-9]/g, '');
-      const fileNameWords = fileNameNormalized.split(' ').filter(w => w.length > 2);
       
-      // Common words to ignore when matching (these don't uniquely identify a company)
-      const commonWords = ['life', 'insurance', 'assurance', 'company', 'limited', 'ltd', 'ghana', 'plc', 'general', 'the'];
-      
-      // Extract unique identifying words from filename
-      const uniqueFileWords = fileNameWords.filter(w => !commonWords.includes(w));
-      
-      // First check abbreviation mappings with STRICT matching
-      let matchedInsurerId: string | null = null;
-      let bestMatchScore = 0;
-      
-      for (const [insurerId, patterns] of Object.entries(abbreviationMappings)) {
-        for (const pattern of patterns) {
-          const patternNormalized = pattern.replace(/[-_]/g, ' ').trim();
-          const patternClean = pattern.replace(/[^a-z0-9]/g, '');
-          
-          // Exact match (highest priority - score 100)
-          if (fileNameNormalized === patternNormalized || fileNameClean === patternClean) {
-            matchedInsurerId = insurerId;
-            bestMatchScore = 100;
-            break;
-          }
-          
-          // File starts with the pattern (score 90)
-          if (fileNameNormalized.startsWith(patternNormalized + ' ') || fileNameNormalized.startsWith(patternNormalized)) {
-            const score = 90 + patternNormalized.length;
-            if (score > bestMatchScore) {
-              matchedInsurerId = insurerId;
-              bestMatchScore = score;
-            }
-          }
-          
-          // File contains pattern as complete phrase (score based on pattern length)
-          if (fileNameNormalized.includes(patternNormalized) && patternNormalized.length >= 5) {
-            const score = 50 + patternNormalized.length;
-            if (score > bestMatchScore) {
-              matchedInsurerId = insurerId;
-              bestMatchScore = score;
-            }
-          }
-        }
-        if (bestMatchScore >= 100) break;
-      }
-
-      // If no abbreviation match, try database matching with STRICT logic
-      const matchedInsurer = matchedInsurerId 
-        ? insurers.find(ins => ins.insurer_id === matchedInsurerId)
-        : insurers.find(ins => {
-            const insurerId = ins.insurer_id.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const insurerShort = ins.short_name.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const insurerNameNormalized = ins.name.toLowerCase().replace(/[-_]/g, ' ');
-            
-            // Extract unique identifying words from insurer name
-            const insurerNameWords = insurerNameNormalized.split(' ').filter(w => w.length > 2);
-            const uniqueInsurerWords = insurerNameWords.filter(w => !commonWords.includes(w));
-            
-            // Exact ID match
-            if (fileNameClean === insurerId) return true;
-            if (fileNameClean === insurerShort) return true;
-            
-            // Check if unique file words match unique insurer words
-            // This prevents "Pinnacle Life" from matching "Prudential Life" (both have "Life" but different unique words)
-            const matchingUniqueWords = uniqueFileWords.filter(fw => 
-              uniqueInsurerWords.some(iw => iw === fw || (iw.length > 4 && fw.length > 4 && (iw.startsWith(fw) || fw.startsWith(iw))))
-            );
-            
-            // Require at least one unique word match
-            if (matchingUniqueWords.length >= 1) return true;
-            
-            return false;
-          });
+      // Use the improved matching function
+      const matchedInsurer = findBestMatch(fileName, insurers);
 
       if (matchedInsurer) {
         try {
@@ -439,7 +430,7 @@ const DataAdmin = () => {
             .upload(filePath, file, { upsert: true });
           
           if (uploadError) {
-            failedFiles.push(`${file.name} (upload error)`);
+            failedFiles.push(`${file.name} (upload error: ${uploadError.message})`);
           } else {
             const { data: urlData } = supabase.storage
               .from('insurer-logos')
@@ -457,7 +448,8 @@ const DataAdmin = () => {
           failedFiles.push(`${file.name} (error)`);
         }
       } else {
-        failedFiles.push(`${file.name} (no match)`);
+        // Provide hint about available insurers for unmatched files
+        failedFiles.push(`${file.name} (no match - try renaming to match: ${insurers.slice(0, 3).map(i => i.short_name).join(', ')}...)`);
       }
 
       setLogoUploadProgress({ uploaded: i + 1, total: files.length });

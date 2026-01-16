@@ -144,7 +144,33 @@ Deno.serve(async (req) => {
       
       console.log(`\nProcessing: ${insurer.short_name} (${domain})`);
 
-      // Check if we already have a verified logo
+      // Check if we already have a manually uploaded logo (from storage)
+      const { data: existingFiles } = await supabase.storage
+        .from('insurer-logos')
+        .list('', { search: insurer.insurer_id });
+      
+      const hasUploadedLogo = existingFiles && existingFiles.length > 0;
+      
+      if (hasUploadedLogo) {
+        // Get the public URL of the existing uploaded logo
+        const existingFile = existingFiles[0];
+        const { data: publicUrl } = supabase.storage
+          .from('insurer-logos')
+          .getPublicUrl(existingFile.name);
+        
+        // Update the insurers table if needed
+        await supabase
+          .from('insurers')
+          .update({ logo_url: publicUrl.publicUrl })
+          .eq('insurer_id', insurer.insurer_id);
+        
+        console.log(`Skipping ${insurer.short_name} - using existing uploaded logo`);
+        results.skipped++;
+        results.details.push({ insurer: insurer.short_name, status: 'has_uploaded_logo', source: 'storage' });
+        continue;
+      }
+
+      // Check if we already have a verified logo in insurer_logos table
       const { data: existingLogo } = await supabase
         .from('insurer_logos')
         .select('*')
@@ -160,7 +186,7 @@ Deno.serve(async (req) => {
         if (daysSinceCheck < 7) {
           console.log(`Skipping ${insurer.short_name} - verified ${daysSinceCheck.toFixed(1)} days ago`);
           results.skipped++;
-          results.details.push({ insurer: insurer.short_name, status: 'skipped', source: existingLogo.source });
+          results.details.push({ insurer: insurer.short_name, status: 'recently_verified', source: existingLogo.source });
           continue;
         }
       }
@@ -169,20 +195,29 @@ Deno.serve(async (req) => {
       let logoResult: { data: ArrayBuffer; contentType: string } | null = null;
       let source: 'clearbit' | 'google' | 'website' = 'clearbit';
 
-      logoResult = await fetchLogoFromSource(domain, 'clearbit');
-      if (!logoResult) {
-        source = 'website';
-        logoResult = await fetchLogoFromSource(domain, 'website');
+      // Also try alternative domains for common corporate sites
+      const domainsToTry = [domain];
+      if (domain.includes('enterprisegroup')) {
+        domainsToTry.push('enterpriselife.com.gh');
       }
-      if (!logoResult) {
+
+      for (const tryDomain of domainsToTry) {
+        logoResult = await fetchLogoFromSource(tryDomain, 'clearbit');
+        if (logoResult) break;
+        
+        source = 'website';
+        logoResult = await fetchLogoFromSource(tryDomain, 'website');
+        if (logoResult) break;
+        
         source = 'google';
-        logoResult = await fetchLogoFromSource(domain, 'google');
+        logoResult = await fetchLogoFromSource(tryDomain, 'google');
+        if (logoResult) break;
       }
 
       if (!logoResult) {
-        console.log(`No logo found for ${insurer.short_name}`);
+        console.log(`No logo found for ${insurer.short_name} - manual upload required`);
         results.failed++;
-        results.details.push({ insurer: insurer.short_name, status: 'no_logo_found' });
+        results.details.push({ insurer: insurer.short_name, status: 'no_logo_found_manual_upload_needed' });
         continue;
       }
 
@@ -244,11 +279,22 @@ Deno.serve(async (req) => {
     }
 
     console.log(`\nLogo sync complete: ${results.successful}/${results.processed} successful`);
+    
+    // Provide helpful message about manual uploads
+    const failedInsurerNames = results.details
+      .filter(d => d.status === 'no_logo_found_manual_upload_needed')
+      .map(d => d.insurer)
+      .slice(0, 5);
+    
+    let message = `Logo sync complete: ${results.successful} successful, ${results.failed} failed, ${results.skipped} skipped`;
+    if (failedInsurerNames.length > 0) {
+      message += `. Manual upload needed for: ${failedInsurerNames.join(', ')}${results.failed > 5 ? '...' : ''}`;
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Logo sync complete: ${results.successful} successful, ${results.failed} failed, ${results.skipped} skipped`,
+        message,
         ...results,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
