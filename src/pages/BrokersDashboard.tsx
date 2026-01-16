@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Building2, DollarSign, BarChart3, Award, ArrowLeft, Users, Percent } from 'lucide-react';
 import { DashboardNavigation } from '@/components/DashboardNavigation';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 interface BrokerMetric {
   id: string;
@@ -232,12 +233,8 @@ const [selectedYear, setSelectedYear] = useState<string>('');
     },
   });
 
-  if (!selectedYear) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+  if (!selectedYear || isLoading) {
+    return <DashboardSkeleton variant="brokers" />;
   }
 
   return (

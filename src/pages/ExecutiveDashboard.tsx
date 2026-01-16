@@ -26,6 +26,7 @@ import { MarketPerformanceSummary } from '@/components/MarketPerformanceSummary'
 import { AIInsightsPanel } from '@/components/AIInsightsPanel';
 import { Footer } from '@/components/Footer';
 import { DashboardNavigation } from '@/components/DashboardNavigation';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { useInsurerMetrics } from '@/hooks/useInsurerMetrics';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
@@ -163,6 +164,10 @@ export default function ExecutiveDashboardPage() {
 
   // Category label is fixed to Life Insurance
   const getCategoryLabel = () => 'Life Insurance';
+
+  if (isLoading) {
+    return <DashboardSkeleton variant="life" />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

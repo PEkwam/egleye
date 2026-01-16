@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import InsuranceAI from "./pages/InsuranceAI";
 import ArticleDetail from "./pages/ArticleDetail";
@@ -21,27 +22,29 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <div className="pb-16 md:pb-0">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/executive-dashboard" element={<ExecutiveDashboardPage />} />
-            <Route path="/nonlife-dashboard" element={<NonLifeDashboard />} />
-            <Route path="/insurance-ai" element={<InsuranceAI />} />
-            <Route path="/article/:id" element={<ArticleDetail />} />
-            <Route path="/data-admin" element={<DataAdmin />} />
-            <Route path="/brokers-dashboard" element={<BrokersDashboard />} />
-            <Route path="/npra-pensions" element={<NPRAPensions />} />
-            <Route path="/pension-dashboard" element={<PensionDashboard />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-        <MobileBottomNav />
-      </BrowserRouter>
+      <ThemeProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ScrollToTop />
+          <div className="pb-16 md:pb-0">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/executive-dashboard" element={<ExecutiveDashboardPage />} />
+              <Route path="/nonlife-dashboard" element={<NonLifeDashboard />} />
+              <Route path="/insurance-ai" element={<InsuranceAI />} />
+              <Route path="/article/:id" element={<ArticleDetail />} />
+              <Route path="/data-admin" element={<DataAdmin />} />
+              <Route path="/brokers-dashboard" element={<BrokersDashboard />} />
+              <Route path="/npra-pensions" element={<NPRAPensions />} />
+              <Route path="/pension-dashboard" element={<PensionDashboard />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+          <MobileBottomNav />
+        </BrowserRouter>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
