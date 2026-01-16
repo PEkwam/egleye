@@ -62,6 +62,45 @@ export type Database = {
         }
         Relationships: []
       }
+      insurer_id_mappings: {
+        Row: {
+          category: string
+          created_at: string
+          db_fund_id: string | null
+          db_fund_name: string | null
+          db_insurer_id: string | null
+          db_insurer_name: string | null
+          frontend_id: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          db_fund_id?: string | null
+          db_fund_name?: string | null
+          db_insurer_id?: string | null
+          db_insurer_name?: string | null
+          frontend_id: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          db_fund_id?: string | null
+          db_fund_name?: string | null
+          db_insurer_id?: string | null
+          db_insurer_name?: string | null
+          frontend_id?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       insurer_logos: {
         Row: {
           created_at: string
