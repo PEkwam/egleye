@@ -876,9 +876,11 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
           {/* Non-Life Insurers Selection */}
           {insuranceType === 'nonlife' && (
             <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/20">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-medium text-green-700 dark:text-green-400">Non-Life Insurers ({selectedYear} Data)</span>
-                <Badge variant="secondary" className="text-xs">Q{selectedQuarter}</Badge>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                  Non-Life Insurers ({selectedYear} Data)
+                </span>
+                <span className="text-sm font-medium text-muted-foreground">Q{selectedQuarter}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {nonLifeMetrics.slice(0, 10).map((m) => {
@@ -920,9 +922,11 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
           {/* Pension Funds Selection */}
           {insuranceType === 'pension' && (
             <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-medium text-purple-700 dark:text-purple-400">Pension Funds ({selectedYear} Data)</span>
-                <Badge variant="secondary" className="text-xs">Annual</Badge>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">
+                  Pension Funds ({selectedYear} Data)
+                </span>
+                <span className="text-sm font-medium text-muted-foreground">Q{selectedQuarter}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {pensionMetrics.slice(0, 10).map((m) => {
