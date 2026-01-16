@@ -98,6 +98,32 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     'all'
   );
 
+  // Fetch ID mappings from database
+  const { data: idMappings = [] } = useQuery({
+    queryKey: ['insurer-id-mappings', insuranceType],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('insurer_id_mappings')
+        .select('*')
+        .eq('category', insuranceType)
+        .eq('is_active', true);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  // Helper to get DB ID from frontend ID using mappings
+  const getDbId = (frontendId: string): { insurerId?: string; fundId?: string } => {
+    const mapping = idMappings.find(m => m.frontend_id === frontendId);
+    if (mapping) {
+      return {
+        insurerId: mapping.db_insurer_id || undefined,
+        fundId: mapping.db_fund_id || undefined,
+      };
+    }
+    return {};
+  };
+
   // Fetch non-life insurance metrics
   const { data: nonLifeMetrics = [], isLoading: isLoadingNonLife } = useQuery({
     queryKey: ['nonlife-comparison-metrics', selectedYear, selectedQuarter],
@@ -129,13 +155,21 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     }
   }, [availableYears, pensionYears, insuranceType, selectedYear]);
 
-  // Fetch historical data for trend comparison - fetch all and filter by name matching
+  // Fetch historical data for trend comparison - use DB ID mappings first
   const { data: historicalData = [] } = useQuery({
-    queryKey: ['comparison-historical', insuranceType, selectedCategory, selectedInsurers.map(i => i.id)],
+    queryKey: ['comparison-historical', insuranceType, selectedCategory, selectedInsurers.map(i => i.id), idMappings.length],
     queryFn: async () => {
       if (selectedInsurers.length === 0) return [];
       
-      // Get keywords and names for matching
+      // Get DB IDs from mappings
+      const dbInsurerIds = selectedInsurers
+        .map(i => idMappings.find(m => m.frontend_id === i.id)?.db_insurer_id)
+        .filter(Boolean) as string[];
+      const dbFundIds = selectedInsurers
+        .map(i => idMappings.find(m => m.frontend_id === i.id)?.db_fund_id)
+        .filter(Boolean) as string[];
+      
+      // Get keywords and names for fallback matching
       const insurerKeywords = selectedInsurers.flatMap(i => i.keywords.map(k => k.toLowerCase()));
       const insurerShortNames = selectedInsurers.map(i => i.shortName.toLowerCase().split(' ')[0]);
       
@@ -147,8 +181,11 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
           .order('report_quarter', { ascending: true });
         if (error) return [];
         
-        // Filter by name matching
+        // Filter using DB IDs first, then fallback to name matching
         return (data || []).filter(d => {
+          // Check DB ID match first
+          if (dbInsurerIds.includes(d.insurer_id)) return true;
+          // Fallback to name matching
           const nameLower = d.insurer_name.toLowerCase();
           return insurerKeywords.some(k => nameLower.includes(k)) ||
                  insurerShortNames.some(s => nameLower.includes(s));
@@ -164,6 +201,9 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         if (error) return [];
         
         return (data || []).filter(d => {
+          // Check DB ID match first
+          if (dbFundIds.includes(d.fund_id)) return true;
+          // Fallback to name matching
           const nameLower = d.fund_name.toLowerCase();
           return insurerKeywords.some(k => nameLower.includes(k)) ||
                  insurerShortNames.some(s => nameLower.includes(s));
@@ -274,14 +314,27 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     ];
   }, [insuranceType]);
 
-  // Helper to find matching record by name similarity
+  // Helper to find matching record using DB mappings first, then fallback to name similarity
   const findMatchingRecord = <T extends { insurer_name?: string; insurer_id?: string; fund_name?: string; fund_id?: string }>(
     records: T[],
     insurer: GhanaInsurer
   ): T | undefined => {
     if (!records || records.length === 0) return undefined;
     
-    // First try exact ID match
+    // First try using DB ID mappings
+    const dbIds = getDbId(insurer.id);
+    
+    if (dbIds.insurerId && records[0] && 'insurer_id' in records[0]) {
+      const mappedMatch = records.find(r => r.insurer_id === dbIds.insurerId);
+      if (mappedMatch) return mappedMatch;
+    }
+    
+    if (dbIds.fundId && records[0] && 'fund_id' in records[0]) {
+      const mappedMatch = records.find(r => r.fund_id === dbIds.fundId);
+      if (mappedMatch) return mappedMatch;
+    }
+    
+    // Then try exact frontend ID match
     if (records[0] && 'insurer_id' in records[0]) {
       const exactMatch = records.find(r => r.insurer_id === insurer.id);
       if (exactMatch) return exactMatch;
@@ -291,7 +344,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
       if (exactMatch) return exactMatch;
     }
     
-    // Then try name-based matching using keywords and name similarity
+    // Fallback to name-based matching using keywords and name similarity
     const insurerNameLower = insurer.name.toLowerCase();
     const insurerShortNameLower = insurer.shortName.toLowerCase();
     const keywords = insurer.keywords.map(k => k.toLowerCase());
