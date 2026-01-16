@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { SwipeNavigationProvider } from "@/components/SwipeNavigationProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import InsuranceAI from "./pages/InsuranceAI";
@@ -27,6 +28,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <SwipeNavigationProvider />
           <div className="pb-16 md:pb-0">
             <Routes>
               <Route path="/" element={<Index />} />
