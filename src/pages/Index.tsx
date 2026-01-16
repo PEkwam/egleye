@@ -7,6 +7,7 @@ import { EnterpriseSection } from '@/components/EnterpriseSection';
 import { NICSection } from '@/components/NICSection';
 import { NPRASection } from '@/components/NPRASection';
 import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
+import { MobileDashboard } from '@/components/MobileDashboard';
 
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
@@ -138,14 +139,19 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
       </div>
 
       <main>
-        {/* Executive Dashboard */}
+        {/* Mobile Dashboard with Swipeable Cards */}
+        {showSections && <MobileDashboard />}
+
+        {/* Executive Dashboard - Desktop */}
         {showSections && (
-          <ExecutiveDashboard
-            articles={articles}
-            regulatorArticles={regulatorArticles}
-            enterpriseArticles={enterpriseArticles}
-            isLoading={isLoading}
-          />
+          <div className="hidden md:block">
+            <ExecutiveDashboard
+              articles={articles}
+              regulatorArticles={regulatorArticles}
+              enterpriseArticles={enterpriseArticles}
+              isLoading={isLoading}
+            />
+          </div>
         )}
 
 
