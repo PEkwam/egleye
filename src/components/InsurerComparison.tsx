@@ -511,24 +511,53 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     }));
   }, [selectedInsurers, insuranceType, nonLifeMetrics, pensionMetrics]);
 
-  // Generate trend data
+  // Helper to find matching insurer for historical data record
+  const findMatchingInsurerId = (record: any): string | null => {
+    for (const insurer of selectedInsurers) {
+      const dbIds = getDbId(insurer.id);
+      const recordId = record.insurer_id || record.fund_id;
+      const recordName = (record.insurer_name || record.fund_name || '').toLowerCase();
+      
+      // Check DB ID match first
+      if (dbIds.insurerId && dbIds.insurerId === recordId) return insurer.id;
+      if (dbIds.fundId && dbIds.fundId === recordId) return insurer.id;
+      
+      // Check exact ID match
+      if (recordId === insurer.id) return insurer.id;
+      
+      // Check name-based match
+      const keywords = insurer.keywords.map(k => k.toLowerCase());
+      const shortNameFirst = insurer.shortName.toLowerCase().split(' ')[0];
+      
+      if (keywords.some(k => recordName.includes(k))) return insurer.id;
+      if (recordName.includes(shortNameFirst)) return insurer.id;
+    }
+    return null;
+  };
+
+  // Generate trend data - map historical records to selected insurers using proper matching
   const trendData = useMemo(() => {
     const periods = new Map<string, Record<string, number>>();
     
     historicalData.forEach((d: any) => {
+      const matchedInsurerId = findMatchingInsurerId(d);
+      if (!matchedInsurerId) return;
+      
       const period = `Q${d.report_quarter || 4}'${String(d.report_year).slice(2)}`;
       if (!periods.has(period)) {
         periods.set(period, { period: 0 });
       }
       const periodData = periods.get(period)!;
-      const id = d.insurer_id || d.fund_id;
-      periodData[id] = (d.gross_premium || d.aum || 0) / 1e6;
+      
+      // Use the frontend insurer ID as key for chart rendering
+      const value = d.gross_premium || d.insurance_service_revenue || d.aum || 0;
+      periodData[matchedInsurerId] = value / 1e6;
     });
 
     return Array.from(periods.entries())
       .map(([period, data]) => ({ period, ...data }))
-      .slice(-6);
-  }, [historicalData]);
+      .slice(-8);
+  }, [historicalData, selectedInsurers, idMappings]);
 
   // AI Analysis mutation - adapts to insurance type
   const aiAnalysisMutation = useMutation({
@@ -1362,9 +1391,11 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedInsurers.map((insurer, idx) => {
-                      const insurerTrend = historicalData.filter((d: any) => 
-                        d.insurer_id === insurer.id || d.fund_id === insurer.id
-                      ).sort((a: any, b: any) => {
+                      // Use proper matching to filter historical data for this insurer
+                      const insurerTrend = historicalData.filter((d: any) => {
+                        const matchedId = findMatchingInsurerId(d);
+                        return matchedId === insurer.id;
+                      }).sort((a: any, b: any) => {
                           const aKey = a.report_year * 10 + (a.report_quarter || 0);
                           const bKey = b.report_year * 10 + (b.report_quarter || 0);
                           return bKey - aKey;
