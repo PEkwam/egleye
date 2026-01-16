@@ -14,12 +14,12 @@ const COLORS = {
   others: 'hsl(262, 83%, 58%)',
 };
 
-interface MotorProductBreakdownProps {
+interface NonLifeMotorBreakdownProps {
   year: number;
   quarter: number;
 }
 
-export function MotorProductBreakdown({ year, quarter }: MotorProductBreakdownProps) {
+export function NonLifeMotorBreakdown({ year, quarter }: NonLifeMotorBreakdownProps) {
   const [filter, setFilter] = useState<'top5' | 'top10'>('top5');
   
   const { data: metrics = [], isLoading } = useQuery({

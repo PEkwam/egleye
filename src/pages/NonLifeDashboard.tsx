@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from 'recharts';
 import { NonLifeQuarterlyTrends } from '@/components/NonLifeQuarterlyTrends';
-import { MotorProductBreakdown } from '@/components/MotorProductBreakdown';
+import { NonLifeMotorBreakdown } from '@/components/NonLifeMotorBreakdown';
 import { NonLifeAIInsights } from '@/components/NonLifeAIInsights';
 import { PropertyBreakdown } from '@/components/PropertyBreakdown';
 import { AccidentLiabilityBreakdown } from '@/components/AccidentLiabilityBreakdown';
@@ -393,7 +393,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
           </TabsContent>
 
           <TabsContent value="motor">
-            <MotorProductBreakdown year={selectedYear} quarter={selectedQuarter} />
+            <NonLifeMotorBreakdown year={selectedYear} quarter={selectedQuarter} />
           </TabsContent>
 
           <TabsContent value="property">
