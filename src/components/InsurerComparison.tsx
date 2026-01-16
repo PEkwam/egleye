@@ -536,9 +536,9 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
       let insurerData;
       
       if (insuranceType === 'pension') {
-        // Get pension-specific data
+        // Get pension-specific data using findMatchingRecord
         insurerData = selectedInsurers.map(insurer => {
-          const pensionData = pensionMetrics.find(p => p.fund_id === insurer.id);
+          const pensionData = findMatchingRecord(pensionMetrics, insurer);
           return {
             id: insurer.id,
             name: insurer.shortName,
@@ -555,9 +555,9 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
           };
         });
       } else if (insuranceType === 'nonlife') {
-        // Get non-life specific data
+        // Get non-life specific data using findMatchingRecord
         insurerData = selectedInsurers.map(insurer => {
-          const nonLifeData = nonLifeMetrics.find(m => m.insurer_id === insurer.id);
+          const nonLifeData = findMatchingRecord(nonLifeMetrics, insurer);
           return {
             id: insurer.id,
             name: insurer.shortName,
