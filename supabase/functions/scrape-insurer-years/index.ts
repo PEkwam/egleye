@@ -197,22 +197,69 @@ Deno.serve(async (req) => {
     }
     
     // === UPDATE NON-LIFE INSURERS (nonlife_insurer_metrics table) ===
-    // Note: nonlife_insurer_metrics doesn't have years_in_ghana column
-    // We'll skip this for now since the column doesn't exist
-    console.log('Non-life table does not have years_in_ghana column - skipping');
+    console.log('Processing non-life insurers...');
+    const { data: nonLifeMetrics } = await supabase
+      .from('nonlife_insurer_metrics')
+      .select('id, insurer_id, years_in_ghana');
+    
+    for (const [insurerId, establishmentYear] of Object.entries(NONLIFE_ESTABLISHMENT_YEARS)) {
+      const yearsInGhana = calculateYearsInGhana(establishmentYear);
+      const found = nonLifeMetrics?.filter(m => 
+        m.insurer_id === insurerId || 
+        m.insurer_id.toLowerCase().includes(insurerId.split('-')[0])
+      ) || [];
+      
+      if (found.length > 0) {
+        for (const record of found) {
+          const { error } = await supabase
+            .from('nonlife_insurer_metrics')
+            .update({ years_in_ghana: yearsInGhana })
+            .eq('id', record.id);
+          
+          if (!error) {
+            results.nonlife_updated++;
+            results.details.push({ table: 'nonlife_insurer_metrics', id: record.insurer_id, years_in_ghana: yearsInGhana });
+          }
+        }
+        console.log(`Non-Life: Updated ${insurerId} with ${yearsInGhana} years`);
+      }
+    }
     
     // === UPDATE PENSION FUNDS (pension_fund_metrics table) ===
-    // Note: pension_fund_metrics doesn't have years_in_ghana column
-    // We'll skip this for now since the column doesn't exist
-    console.log('Pension table does not have years_in_ghana column - skipping');
+    console.log('Processing pension funds...');
+    const { data: pensionMetrics } = await supabase
+      .from('pension_fund_metrics')
+      .select('id, fund_id, fund_name, years_in_ghana');
+    
+    for (const [fundId, establishmentYear] of Object.entries(PENSION_ESTABLISHMENT_YEARS)) {
+      const yearsInGhana = calculateYearsInGhana(establishmentYear);
+      const found = pensionMetrics?.filter(m => 
+        m.fund_id === fundId || 
+        m.fund_name.toLowerCase().includes(fundId.split('-')[0])
+      ) || [];
+      
+      if (found.length > 0) {
+        for (const record of found) {
+          const { error } = await supabase
+            .from('pension_fund_metrics')
+            .update({ years_in_ghana: yearsInGhana })
+            .eq('id', record.id);
+          
+          if (!error) {
+            results.pension_updated++;
+            results.details.push({ table: 'pension_fund_metrics', id: record.fund_id, years_in_ghana: yearsInGhana });
+          }
+        }
+        console.log(`Pension: Updated ${fundId} with ${yearsInGhana} years`);
+      }
+    }
     
     console.log('Sync completed:', results);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Updated ${results.life_updated} life insurer metrics with years_in_ghana`,
-        note: 'Non-life and pension tables do not have years_in_ghana column',
+        message: `Updated ${results.life_updated} life, ${results.nonlife_updated} non-life, ${results.pension_updated} pension records with years_in_ghana`,
         results,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
