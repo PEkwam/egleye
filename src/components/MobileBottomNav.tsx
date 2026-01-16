@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Brain, Lightbulb, BarChart3, Landmark, Building2, Newspaper, Heart, Car } from 'lucide-react';
+import { Home, LayoutDashboard, Brain, Lightbulb, BarChart3, Landmark, Building2, Newspaper, Heart, Car, MoreHorizontal, Settings, Sparkles, TrendingUp, Shield, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { InsurerComparison } from './InsurerComparison';
@@ -8,7 +8,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 
 const primaryNavItems = [
@@ -19,9 +18,10 @@ const primaryNavItems = [
 ];
 
 const moreNavItems = [
-  { label: 'Brokers', icon: Building2, href: '/brokers-dashboard' },
-  { label: 'AI Tracker', icon: Brain, href: '/insurance-ai' },
-  { label: 'NPRA', icon: Landmark, href: '/npra-pensions' },
+  { label: 'Brokers', icon: Building2, href: '/brokers-dashboard', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+  { label: 'AI Tracker', icon: Sparkles, href: '/insurance-ai', color: 'text-violet-500', bgColor: 'bg-violet-500/10' },
+  { label: 'NPRA Reports', icon: Shield, href: '/npra-pensions', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
+  { label: 'Data Admin', icon: Settings, href: '/data-admin', color: 'text-slate-500', bgColor: 'bg-slate-500/10' },
 ];
 
 export const MobileBottomNav = () => {
@@ -32,6 +32,9 @@ export const MobileBottomNav = () => {
     if (href === '/') return location.pathname === '/';
     return location.pathname.startsWith(href);
   };
+
+  // Check if any of the "more" items are active
+  const isMoreActive = moreNavItems.some(item => isActive(item.href));
 
   return (
     <>
@@ -69,41 +72,83 @@ export const MobileBottomNav = () => {
             );
           })}
           
-          {/* Quick Insight Button */}
-          <InsurerComparison 
-            trigger={
-              <button className="flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200 text-muted-foreground active:scale-95">
-                <div className="p-1.5 rounded-xl bg-primary/10">
-                  <Lightbulb className="h-5 w-5 text-primary" />
-                </div>
-                <span className="text-[10px] font-medium">Insight</span>
-              </button>
-            }
-          />
+          {/* More Button */}
+          <button 
+            onClick={() => setShowMore(true)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200",
+              isMoreActive 
+                ? "text-primary" 
+                : "text-muted-foreground active:scale-95"
+            )}
+          >
+            <div className={cn(
+              "p-1.5 rounded-xl transition-all",
+              isMoreActive && "bg-primary/15"
+            )}>
+              <MoreHorizontal className={cn(
+                "h-5 w-5 transition-transform",
+                isMoreActive && "scale-110"
+              )} />
+            </div>
+            <span className={cn(
+              "text-[10px] font-medium",
+              isMoreActive && "font-semibold"
+            )}>
+              More
+            </span>
+          </button>
         </div>
         
         {/* Safe area for iOS devices */}
         <div className="h-safe-area-inset-bottom bg-card" />
       </nav>
       
-      {/* Floating More Actions Sheet */}
+      {/* More Options Sheet */}
       <Sheet open={showMore} onOpenChange={setShowMore}>
         <SheetContent side="bottom" className="rounded-t-3xl pb-safe-area-inset-bottom">
-          <SheetHeader className="text-left">
+          <SheetHeader className="text-left pb-4">
             <SheetTitle>More Options</SheetTitle>
           </SheetHeader>
-          <div className="grid grid-cols-3 gap-4 py-6">
-            {moreNavItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={() => setShowMore(false)}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-secondary/50 hover:bg-secondary transition-colors"
-              >
-                <item.icon className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 gap-3 pb-6">
+            {moreNavItems.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setShowMore(false)}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-2xl transition-colors",
+                    active 
+                      ? "bg-primary/10 border-2 border-primary/30" 
+                      : "bg-secondary/50 hover:bg-secondary border-2 border-transparent"
+                  )}
+                >
+                  <div className={cn("p-2.5 rounded-xl", item.bgColor)}>
+                    <item.icon className={cn("h-6 w-6", item.color)} />
+                  </div>
+                  <span className={cn(
+                    "text-sm font-medium",
+                    active && "text-primary"
+                  )}>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+          
+          {/* Quick Insight */}
+          <div className="border-t border-border/50 pt-4">
+            <InsurerComparison 
+              trigger={
+                <button className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 transition-all hover:from-primary/20 hover:to-primary/10">
+                  <Lightbulb className="h-5 w-5 text-primary" />
+                  <span className="font-medium text-primary">Quick Market Insight</span>
+                </button>
+              }
+            />
           </div>
         </SheetContent>
       </Sheet>
