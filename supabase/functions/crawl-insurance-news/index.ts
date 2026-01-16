@@ -32,7 +32,7 @@ const GHANA_KEYWORDS = [
   'hollard ghana', 'hollard life', 'hollard insurance', 'old mutual ghana', 'old mutual life',
   'saham life ghana', 'saham ghana', 'beige assure', 'donewell life', 'donewell insurance',
   'vanguard life', 'vanguard assurance', 'quality life', 'quality insurance', 'activa life', 'activa insurance',
-  // Motor Insurance Companies
+  // Non-Life Insurance Companies
   'allianz ghana', 'star assurance', 'phoenix insurance ghana', 'priority insurance ghana',
   'unique insurance ghana', 'millennium insurance ghana', 'regency alliance ghana',
   'loyalty insurance ghana', 'best assurance ghana',
@@ -176,12 +176,12 @@ const GOOGLE_NEWS_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=Hollard+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Old+Mutual+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
   
-  // Motor Insurance Companies
-  { url: 'https://news.google.com/rss/search?q=ghana+motor+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'motor', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=SIC+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'motor', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Hollard+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'motor', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=GLICO+General+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'motor', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Star+Assurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'motor', source: 'Google News' },
+  // Non-Life Insurance Companies
+  { url: 'https://news.google.com/rss/search?q=ghana+non+life+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=SIC+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Hollard+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=GLICO+General+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Star+Assurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
 ];
 
 // NIC-specific RSS queries

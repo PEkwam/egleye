@@ -48,7 +48,7 @@ serve(async (req) => {
 
     // Build a detailed prompt with the insurer data based on category
     const isPension = category === 'pension';
-    const isNonLife = category === 'nonlife' || category === 'motor';
+    const isNonLife = category === 'nonlife';
     
     const insurerSummaries = insurers.map((insurer) => {
       const metrics: string[] = [];
@@ -86,7 +86,7 @@ serve(async (req) => {
     }).join('\n\n');
 
     const categoryLabel = category === 'life' ? 'Life Insurance' : 
-                         category === 'nonlife' || category === 'motor' ? 'Non-Life/Motor Insurance' : 
+                         category === 'nonlife' ? 'Non-Life Insurance' : 
                          category === 'pension' ? 'Pension Fund' : 'Insurance';
     
     const dataSource = category === 'pension' ? 'NPRA' : 'NIC';

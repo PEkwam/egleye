@@ -185,7 +185,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
       if (type === 'life') {
         setSelectedCategory('life');
       } else if (type === 'nonlife') {
-        setSelectedCategory('motor');
+        setSelectedCategory('nonlife');
       } else {
         setSelectedCategory('pension');
       }
@@ -574,7 +574,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                 }`}
               >
                 <Car className="h-4 w-4" />
-                Motor Insurance
+                Non-Life Insurance
               </button>
               <button
                 onClick={() => handleInsuranceTypeChange('pension')}
@@ -611,7 +611,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                             id: m.insurer_id,
                             name: m.insurer_name,
                             shortName: m.insurer_name.split(' ').slice(0, 2).join(' '),
-                            category: 'motor',
+                            category: 'nonlife',
                             website: '#',
                             keywords: [m.insurer_name.toLowerCase()],
                             brandColor: 'hsl(145, 75%, 40%)',

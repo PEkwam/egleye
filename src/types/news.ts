@@ -1,4 +1,4 @@
-export type NewsCategory = 'general' | 'enterprise_group' | 'regulator' | 'claims' | 'life_insurance' | 'motor' | 'pensions';
+export type NewsCategory = 'general' | 'enterprise_group' | 'regulator' | 'claims' | 'life_insurance' | 'nonlife' | 'pensions';
 
 // Specific insurers for filtering
 export type GhanaInsurer = 'sic' | 'starlife' | 'hollard' | 'allianz' | 'enterprise' | 'glico' | 'prudential';
@@ -24,7 +24,7 @@ export const categoryLabels: Record<NewsCategory, string> = {
   regulator: 'NIC Regulator',
   claims: 'Claims',
   life_insurance: 'Life Insurance',
-  motor: 'Motor Insurance',
+  nonlife: 'Non-Life Insurance',
   pensions: 'NPRA Pensions',
 };
 
@@ -34,7 +34,7 @@ export const categoryColors: Record<NewsCategory, string> = {
   regulator: 'category-regulator',
   claims: 'category-claims',
   life_insurance: 'category-life',
-  motor: 'category-motor',
+  nonlife: 'category-nonlife',
   pensions: 'category-pensions',
 };
 
