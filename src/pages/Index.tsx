@@ -31,6 +31,12 @@ const Index = () => {
   const [activeInsuranceCategory, setActiveInsuranceCategory] = useState<InsuranceCategory | null>(null);
   const [selectedInsurer, setSelectedInsurer] = useState<GhanaInsurer | null>(null);
 
+  // Handle time range change with scroll to top
+  const handleTimeRangeChange = (range: TimeRange) => {
+    setTimeRange(range);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
 const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoading, refetch } = useNews(activeCategory, timeRange);
   const pensionArticles = useMemo(() => articles.filter(a => a.category === 'pensions'), [articles]);
   const { results: searchResults, isLoading: isSearching } = useNewsSearch(searchQuery);
@@ -125,7 +131,7 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
       <div className="container mx-auto px-3 sm:px-4 py-2 md:py-4 border-b border-border/50">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-1 overflow-x-auto scrollbar-hide">
-            <TimeFilter selected={timeRange} onChange={setTimeRange} />
+            <TimeFilter selected={timeRange} onChange={handleTimeRangeChange} />
             <div className="hidden md:block">
               <InsurerComparison />
             </div>
