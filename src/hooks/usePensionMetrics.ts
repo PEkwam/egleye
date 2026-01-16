@@ -46,8 +46,28 @@ export function usePensionMetrics(
   year?: number,
   quarter?: number | 'all' | null
 ) {
+  // First, get the latest available year from the database
+  const { data: latestAvailableYear } = useQuery({
+    queryKey: ['pension-metrics-latest-year'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pension_fund_metrics')
+        .select('report_year')
+        .order('report_year', { ascending: false })
+        .limit(1);
+      
+      if (error || !data || data.length === 0) {
+        return new Date().getFullYear();
+      }
+      
+      return data[0].report_year;
+    },
+  });
+
+  const effectiveYear = year || latestAvailableYear;
+
   const { data: metrics = [], isLoading, error } = useQuery({
-    queryKey: ['pension-fund-metrics', fundType, year, quarter],
+    queryKey: ['pension-fund-metrics', fundType, effectiveYear, quarter],
     queryFn: async () => {
       let query = supabase
         .from('pension_fund_metrics')
@@ -57,8 +77,8 @@ export function usePensionMetrics(
       if (fundType && fundType !== 'all') {
         query = query.eq('fund_type', fundType);
       }
-      if (year) {
-        query = query.eq('report_year', year);
+      if (effectiveYear) {
+        query = query.eq('report_year', effectiveYear);
       }
       // Only filter by quarter if a specific quarter is selected (not 'all' or null)
       // This allows annual data (where report_quarter is null) to show when quarter filter is 'all'
@@ -72,6 +92,7 @@ export function usePensionMetrics(
       if (error) throw error;
       return data as PensionFundMetric[];
     },
+    enabled: !!effectiveYear,
   });
 
   // Get available years
