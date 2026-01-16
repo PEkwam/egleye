@@ -72,7 +72,7 @@ export function NonLifeAIInsights({ metrics, year, quarter }: NonLifeAIInsightsP
       avgClaimsRatio,
       companiesCount: metrics.length,
       topInsurers,
-      category: 'motor',
+      category: 'nonlife',
       year,
       quarter,
     };
