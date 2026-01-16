@@ -47,6 +47,13 @@ export function useSiteSettings() {
     },
   });
 
+  const colorTheme = getSetting('color_theme') || 'enterprise_life';
+  
+  // Dynamic logo based on color theme
+  const themeLogoUrl = colorTheme === 'enterprise_group' 
+    ? '/logos/enterprise-group.jpg' 
+    : '/enterprise-life-logo.png';
+
   return {
     settings,
     isLoading,
@@ -54,8 +61,8 @@ export function useSiteSettings() {
     getSetting,
     siteName: getSetting('site_name') || 'InsuraWatch',
     siteTagline: getSetting('site_tagline') || 'Ghana Insurance Intelligence',
-    logoUrl: getSetting('logo_url') || '/enterprise-life-logo.png',
-    colorTheme: getSetting('color_theme') || 'enterprise_life',
+    logoUrl: themeLogoUrl,
+    colorTheme,
     updateSetting: updateSettingMutation.mutate,
     isUpdating: updateSettingMutation.isPending,
   };
