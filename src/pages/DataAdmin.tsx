@@ -296,7 +296,7 @@ const DataAdmin = () => {
   };
 
   // Common words to ignore when matching (these don't uniquely identify a company)
-  const commonWords = ['life', 'insurance', 'assurance', 'company', 'limited', 'ltd', 'ghana', 'plc', 'general', 'the', 'trust', 'pension', 'pensions', 'group', 'international'];
+  const commonWords = ['life', 'insurance', 'assurance', 'company', 'limited', 'ltd', 'ghana', 'plc', 'general', 'the', 'trust', 'pension', 'pensions', 'group', 'international', 'logo', 'png', 'jpg', 'jpeg', 'svg'];
   
   // Normalize a string for comparison
   const normalizeString = (str: string): string => {
@@ -307,44 +307,10 @@ const DataAdmin = () => {
       .trim();
   };
   
-  // Extract unique identifying words from a string
-  const extractUniqueWords = (str: string): string[] => {
-    return normalizeString(str)
-      .split(' ')
-      .filter(w => w.length > 2 && !commonWords.includes(w));
-  };
-  
-  // Calculate similarity score between two strings
-  const calculateSimilarity = (str1: string, str2: string): number => {
-    const words1 = extractUniqueWords(str1);
-    const words2 = extractUniqueWords(str2);
-    
-    if (words1.length === 0 || words2.length === 0) return 0;
-    
-    let matchScore = 0;
-    for (const w1 of words1) {
-      for (const w2 of words2) {
-        // Exact match
-        if (w1 === w2) {
-          matchScore += 100;
-        }
-        // One starts with the other (partial match)
-        else if (w1.length > 3 && w2.length > 3 && (w1.startsWith(w2) || w2.startsWith(w1))) {
-          matchScore += 60;
-        }
-        // Contains match (less strict)
-        else if (w1.length > 4 && w2.length > 4 && (w1.includes(w2) || w2.includes(w1))) {
-          matchScore += 40;
-        }
-      }
-    }
-    
-    // Bonus for matching number of unique words
-    if (words1.length === words2.length && matchScore > 0) {
-      matchScore += 20;
-    }
-    
-    return matchScore;
+  // Extract the first meaningful word (usually the unique identifier)
+  const extractPrimaryWord = (str: string): string => {
+    const words = normalizeString(str).split(' ').filter(w => w.length > 1 && !commonWords.includes(w));
+    return words[0] || '';
   };
   
   // Find best matching insurer for a filename
@@ -353,6 +319,7 @@ const DataAdmin = () => {
     
     const normalizedFileName = normalizeString(fileName);
     const fileClean = normalizedFileName.replace(/\s/g, '');
+    const filePrimaryWord = extractPrimaryWord(fileName);
     
     let bestMatch: typeof insurers[0] | null = null;
     let bestScore = 0;
@@ -360,16 +327,53 @@ const DataAdmin = () => {
     for (const insurer of insurersList) {
       const insurerId = insurer.insurer_id.toLowerCase().replace(/[^a-z0-9]/g, '');
       const shortNameClean = normalizeString(insurer.short_name).replace(/\s/g, '');
-      const nameClean = normalizeString(insurer.name).replace(/\s/g, '');
+      const shortNamePrimary = extractPrimaryWord(insurer.short_name);
+      const idParts = insurer.insurer_id.split('-');
+      const idPrimary = idParts[0]; // e.g., "acacia" from "acacia-health"
       
       // Exact matches (highest priority)
       if (fileClean === insurerId || fileClean === shortNameClean) {
         return insurer; // Perfect match, return immediately
       }
       
+      // PRIMARY WORD MATCH - e.g., "acacia" matches "acacia-health"
+      if (filePrimaryWord && filePrimaryWord.length >= 3) {
+        // File primary word matches insurer id prefix
+        if (idPrimary === filePrimaryWord || idPrimary.startsWith(filePrimaryWord) || filePrimaryWord.startsWith(idPrimary)) {
+          const score = 250 + filePrimaryWord.length;
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = insurer;
+          }
+          continue;
+        }
+        
+        // File primary word matches short name primary word
+        if (shortNamePrimary === filePrimaryWord || 
+            shortNamePrimary.startsWith(filePrimaryWord) || 
+            filePrimaryWord.startsWith(shortNamePrimary)) {
+          const score = 240 + filePrimaryWord.length;
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = insurer;
+          }
+          continue;
+        }
+      }
+      
       // Check if file starts with insurer identifier
       if (fileClean.startsWith(insurerId) || fileClean.startsWith(shortNameClean)) {
         const score = 200 + insurerId.length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = insurer;
+        }
+        continue;
+      }
+      
+      // Check if insurer id primary is in the filename
+      if (fileClean.includes(idPrimary) && idPrimary.length > 3) {
+        const score = 180 + idPrimary.length;
         if (score > bestScore) {
           bestScore = score;
           bestMatch = insurer;
@@ -384,17 +388,6 @@ const DataAdmin = () => {
           bestScore = score;
           bestMatch = insurer;
         }
-        continue;
-      }
-      
-      // Calculate similarity scores
-      const scoreFromShortName = calculateSimilarity(fileName, insurer.short_name);
-      const scoreFromFullName = calculateSimilarity(fileName, insurer.name);
-      const maxScore = Math.max(scoreFromShortName, scoreFromFullName);
-      
-      if (maxScore > bestScore && maxScore >= 60) { // Minimum threshold
-        bestScore = maxScore;
-        bestMatch = insurer;
       }
     }
     
