@@ -169,11 +169,11 @@ export function Header({
               <button
                 className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeCategory === 'regulator'
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
               >
-                <Shield className="h-3.5 w-3.5" />
+                <Shield className="h-3.5 w-3.5 text-emerald-500" />
                 Regulators
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
@@ -211,7 +211,7 @@ export function Header({
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
               >
-                <Building2 className="h-3.5 w-3.5" />
+                <Building2 className="h-3.5 w-3.5 text-amber-500" />
                 Enterprise Group
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
@@ -270,7 +270,7 @@ export function Header({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 hover:from-blue-500/20 hover:to-indigo-500/20 whitespace-nowrap">
-                <BarChart3 className="h-3.5 w-3.5" />
+                <BarChart3 className="h-3.5 w-3.5 text-blue-500" />
                 Dashboards
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
@@ -278,8 +278,8 @@ export function Header({
             <DropdownMenuContent align="start" className="w-52 p-2">
               <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
                 <Link to="/executive-dashboard" className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                  <div className="h-8 w-8 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                    <TrendingUp className="h-4 w-4 text-rose-500" />
                   </div>
                   <div>
                     <p className="font-medium text-sm">Life Insurance</p>
@@ -289,8 +289,8 @@ export function Header({
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="rounded-lg p-2.5 cursor-pointer">
                 <Link to="/nonlife-dashboard" className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BarChart3 className="h-4 w-4 text-primary" />
+                  <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <BarChart3 className="h-4 w-4 text-emerald-500" />
                   </div>
                   <div>
                     <p className="font-medium text-sm">Non-Life Insurance</p>
