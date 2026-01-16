@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Car, TrendingUp, Award, BarChart3, PieChart, Calendar, Sparkles, Flame, Shield, Ship, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,10 @@ import { MarineAviationBreakdown } from '@/components/MarineAviationBreakdown';
 import { NonLifeMarketSummary } from '@/components/NonLifeMarketSummary';
 import { DashboardNavigation } from '@/components/DashboardNavigation';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
+import { PullToRefresh } from '@/components/PullToRefresh';
+import { VirtualizedTable } from '@/components/VirtualizedTable';
+import { TrendingIndicator, TrendBadge } from '@/components/TrendingIndicator';
+import { CollapsibleSection, CollapsibleGroup } from '@/components/CollapsibleSection';
 
 const COLORS = ['hsl(145, 75%, 40%)', 'hsl(221, 83%, 53%)', 'hsl(262, 83%, 58%)', 'hsl(24, 95%, 53%)', 'hsl(340, 75%, 55%)', 'hsl(180, 70%, 45%)', 'hsl(45, 90%, 50%)', 'hsl(300, 60%, 50%)', 'hsl(200, 70%, 50%)', 'hsl(120, 60%, 45%)'];
 
@@ -25,6 +29,14 @@ export default function NonLifeDashboard() {
 const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
   const [marketShareFilter, setMarketShareFilter] = useState<'all' | 'top5' | 'top10'>('top5');
+  const queryClient = useQueryClient();
+
+  // Pull-to-refresh handler
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['nonlife-metrics'] });
+    await queryClient.invalidateQueries({ queryKey: ['nonlife-metrics-previous'] });
+    await new Promise(resolve => setTimeout(resolve, 500)); // Minimum visual feedback
+  };
 
   // Fetch available years
   const { data: availableYears = [] } = useQuery({
@@ -227,6 +239,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
         </div>
       </header>
 
+      <PullToRefresh onRefresh={handleRefresh} className="h-[calc(100vh-64px)] md:h-auto md:overflow-visible">
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Filters Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -288,7 +301,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
           quarter={selectedQuarter} 
         />
 
-        {/* Key Metrics Cards */}
+        {/* Key Metrics Cards with Trend Indicators */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
             <CardContent className="p-5">
@@ -301,7 +314,16 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                   <BarChart3 className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
-              <Badge variant="secondary" className="mt-3 text-xs">Q{selectedQuarter} {selectedYear}</Badge>
+              <div className="mt-3 flex items-center gap-2">
+                {previousMetrics.length > 0 && (
+                  <TrendingIndicator 
+                    currentValue={totalRevenue} 
+                    previousValue={previousMetrics.reduce((sum, m) => sum + (m.insurance_service_revenue || 0), 0)}
+                    size="sm"
+                  />
+                )}
+                <Badge variant="secondary" className="text-xs">Q{selectedQuarter} {selectedYear}</Badge>
+              </div>
             </CardContent>
           </Card>
           
@@ -316,7 +338,16 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                   <Car className="h-5 w-5 text-green-500" />
                 </div>
               </div>
-              <Badge variant="secondary" className="mt-3 text-xs">All Motor Types</Badge>
+              <div className="mt-3 flex items-center gap-2">
+                {previousMetrics.length > 0 && (
+                  <TrendingIndicator 
+                    currentValue={totalMotor} 
+                    previousValue={previousMetrics.reduce((sum, m) => sum + (m.motor_comprehensive || 0) + (m.motor_third_party || 0), 0)}
+                    size="sm"
+                  />
+                )}
+                <Badge variant="secondary" className="text-xs">All Motor Types</Badge>
+              </div>
             </CardContent>
           </Card>
           
@@ -346,7 +377,17 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                   <Users className="h-5 w-5 text-purple-500" />
                 </div>
               </div>
-              <Badge variant="secondary" className="mt-3 text-xs">Non-Life Sector</Badge>
+              <div className="mt-3 flex items-center gap-2">
+                {previousMetrics.length > 0 && (
+                  <TrendingIndicator 
+                    currentValue={metrics.length} 
+                    previousValue={previousMetrics.length}
+                    format="number"
+                    size="sm"
+                  />
+                )}
+                <Badge variant="secondary" className="text-xs">Non-Life Sector</Badge>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -462,47 +503,83 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
           </TabsContent>
         </Tabs>
 
-        {/* Rankings Table */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Non-Life Insurance Rankings - Q{selectedQuarter} {selectedYear}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/50">
-                    <th className="text-left py-3 px-2 font-medium text-muted-foreground">#</th>
-                    <th className="text-left py-3 px-2 font-medium text-muted-foreground">Insurer</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Revenue (₵M)</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Motor (₵M)</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Profit (₵M)</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Claims %</th>
-                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Share %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metrics.slice(0, 15).map((m, i) => (
-                    <tr key={m.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-2">
-                        <Badge variant={i < 3 ? "default" : "secondary"} className={`text-xs ${i === 0 ? "bg-amber-500" : i === 1 ? "bg-gray-400" : i === 2 ? "bg-amber-700" : ""}`}>{i + 1}</Badge>
-                      </td>
-                      <td className="py-3 px-2 font-medium">{m.insurer_name}</td>
-                      <td className="py-3 px-2 text-right">₵{((m.insurance_service_revenue || 0) / 1e6).toFixed(1)}</td>
-                      <td className="py-3 px-2 text-right">₵{(((m.motor_comprehensive || 0) + (m.motor_third_party || 0)) / 1e6).toFixed(1)}</td>
-                      <td className={`py-3 px-2 text-right font-medium ${(m.profit_after_tax || 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        ₵{((m.profit_after_tax || 0) / 1e6).toFixed(1)}
-                      </td>
-                      <td className="py-3 px-2 text-right">{m.claims_ratio ? ((m.claims_ratio * 100).toFixed(1)) : '-'}%</td>
-                      <td className="py-3 px-2 text-right font-medium">{m.market_share ? ((m.market_share * 100).toFixed(1)) : '-'}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Rankings Table with Virtualization and Trends */}
+        <CollapsibleSection 
+          title="Non-Life Insurance Rankings" 
+          subtitle={`Q${selectedQuarter} ${selectedYear} • ${metrics.length} insurers`}
+          icon={BarChart3}
+          variant="card"
+          badge={
+            previousMetrics.length > 0 && (
+              <TrendBadge 
+                currentValue={totalRevenue} 
+                previousValue={previousMetrics.reduce((sum, m) => sum + (m.insurance_service_revenue || 0), 0)}
+                label="prev quarter"
+              />
+            )
+          }
+        >
+          <VirtualizedTable
+            data={metrics}
+            keyField="id"
+            showRank
+            trendField="insurance_service_revenue"
+            previousData={previousMetrics}
+            maxHeight={400}
+            columns={[
+              {
+                key: 'insurer_name',
+                header: 'Insurer',
+                render: (item) => (
+                  <span className="font-medium">{item.insurer_name}</span>
+                )
+              },
+              {
+                key: 'insurance_service_revenue',
+                header: 'Revenue',
+                align: 'right' as const,
+                width: '100px',
+                render: (item) => `₵${((item.insurance_service_revenue || 0) / 1e6).toFixed(1)}M`
+              },
+              {
+                key: 'motor',
+                header: 'Motor',
+                align: 'right' as const,
+                width: '90px',
+                render: (item) => `₵${(((item.motor_comprehensive || 0) + (item.motor_third_party || 0)) / 1e6).toFixed(1)}M`
+              },
+              {
+                key: 'profit_after_tax',
+                header: 'Profit',
+                align: 'right' as const,
+                width: '90px',
+                render: (item) => (
+                  <span className={(item.profit_after_tax || 0) >= 0 ? 'text-green-600' : 'text-red-500'}>
+                    ₵{((item.profit_after_tax || 0) / 1e6).toFixed(1)}M
+                  </span>
+                )
+              },
+              {
+                key: 'claims_ratio',
+                header: 'Claims',
+                align: 'right' as const,
+                width: '70px',
+                render: (item) => `${item.claims_ratio ? ((item.claims_ratio * 100).toFixed(1)) : '-'}%`
+              },
+              {
+                key: 'market_share',
+                header: 'Share',
+                align: 'right' as const,
+                width: '70px',
+                render: (item) => (
+                  <span className="font-medium">{item.market_share ? ((item.market_share * 100).toFixed(1)) : '-'}%</span>
+                )
+              },
+            ]}
+          />
+        </CollapsibleSection>
       </main>
+      </PullToRefresh>
     </div>
   );
 }
