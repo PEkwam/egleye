@@ -26,7 +26,8 @@ const GHANA_KEYWORDS = [
   // Enterprise Group - Full coverage
   'enterprise group', 'enterprise life', 'enterprise insurance', 'eic', 'egl', 'etl',
   'acacia health', 'acacia insurance', 'enterprise trustees', 'enterprise properties',
-  'enterprise funeral', 'transitions ghana', 'enterprise life gambia', 'enterprise life nigeria',
+  'enterprise funeral', 'transitions ghana', 'transitions funeral', 'funeral people',
+  'enterprise life gambia', 'enterprise life nigeria', 'enterprise property',
   // Life Insurance Companies
   'sic insurance', 'sic life', 'sic ghana', 'starlife', 'star life', 'glico life', 'glico insurance',
   'prudential ghana', 'prudential life ghana', 'metropolitan life ghana', 'metropolitan insurance',
@@ -106,10 +107,12 @@ const INSURANCE_KEYWORDS = [
   'claims ratio', 'loss ratio', 'expense ratio', 'combined ratio',
   // Ghana-specific insurers
   'enterprise life', 'enterprise insurance', 'enterprise group', 'enterprise trustees',
+  'enterprise properties', 'enterprise property', 'enterprise funeral', 'transitions funeral',
+  'funeral people', 'acacia health',
   'sic life', 'sic insurance', 'starlife', 'star life', 'star assurance',
   'glico', 'prudential', 'metropolitan life', 'hollard', 'old mutual',
   'allianz', 'petra trust', 'axis pension', 'dalex pension', 'pensions alliance',
-  'acacia health', 'quality life', 'vanguard assurance', 'donewell',
+  'quality life', 'vanguard assurance', 'donewell',
 ];
 
 // ============ RSS FEEDS - LOCAL GHANA NEWS SOURCES ============
@@ -161,11 +164,16 @@ const GOOGLE_NEWS_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=NIC+ghana+insurance+regulator&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=National+Insurance+Commission+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   
-  // Enterprise Group
+  // Enterprise Group & Subsidiaries
   { url: 'https://news.google.com/rss/search?q=Enterprise+Group+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Enterprise+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Enterprise+Insurance+Company+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Enterprise+Trustees+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Acacia+Health+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Enterprise+Properties+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Enterprise+Funeral+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Transitions+Funeral+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Funeral+People+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   
   // Life Insurance Companies
   { url: 'https://news.google.com/rss/search?q=ghana+life+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
@@ -236,6 +244,8 @@ function isInsuranceRelated(text: string): boolean {
     'insurance', 'insurer', 'insurers', 'assurance', 'underwriting', 'underwriter',
     'premium', 'premiums', 'policyholder', 'claims', 'claim',
     'enterprise life', 'enterprise insurance', 'enterprise group', 'enterprise trustees',
+    'enterprise properties', 'enterprise property', 'enterprise funeral', 'acacia health',
+    'transitions funeral', 'funeral people', 'transitions ghana',
     'sic life', 'sic insurance', 'starlife', 'star life', 'star assurance',
     'glico', 'prudential', 'hollard', 'old mutual', 'allianz', 'metropolitan life',
     'national insurance commission', 'nicgh', 'nic ghana',
