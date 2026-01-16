@@ -42,7 +42,7 @@ serve(async (req) => {
     }
 
     const categoryLabel = metricsSummary.category === 'life' ? 'Life Insurance' 
-      : metricsSummary.category === 'motor' ? 'Non-Life Insurance' 
+      : metricsSummary.category === 'nonlife' ? 'Non-Life Insurance' 
       : metricsSummary.category === 'pension' ? 'Pension' : 'All Sectors';
 
     const formatCurrency = (value: number) => {

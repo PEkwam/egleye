@@ -480,7 +480,7 @@ export function QuickInsights() {
               <TabsTrigger value="nonlife" className="gap-2">
                 <Car className="h-4 w-4" />
                 <span className="hidden sm:inline">Non-Life</span>
-                <span className="sm:hidden">Motor</span>
+                <span className="sm:hidden">Non-Life</span>
               </TabsTrigger>
               <TabsTrigger value="pensions" className="gap-2">
                 <Wallet className="h-4 w-4" />

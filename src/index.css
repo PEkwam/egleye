@@ -52,8 +52,8 @@
     --claims-foreground: 0 0% 100%;
     --life: 145 75% 38%;
     --life-foreground: 0 0% 100%;
-    --motor: 45 85% 45%;
-    --motor-foreground: 0 0% 10%;
+    --nonlife: 45 85% 45%;
+    --nonlife-foreground: 0 0% 10%;
     --pensions: 35 90% 50%;
     --pensions-foreground: 0 0% 10%;
 

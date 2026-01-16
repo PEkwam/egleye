@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { InsurerLogo } from '@/components/InsurerLogo';
 import type { GhanaInsurer, InsuranceCategory } from '@/types/insurers';
-import { categoryConfig, lifeInsurers, motorInsurers, pensionProviders } from '@/types/insurers';
+import { categoryConfig, lifeInsurers, nonlifeInsurers, pensionProviders } from '@/types/insurers';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -23,13 +23,13 @@ interface CategoryDropdownProps {
 
 const insurersByCategory: Record<InsuranceCategory, GhanaInsurer[]> = {
   life: lifeInsurers,
-  motor: motorInsurers,
+  nonlife: nonlifeInsurers,
   pension: pensionProviders,
 };
 
 const categoryIcons: Record<InsuranceCategory, React.ReactNode> = {
   life: <Heart className="h-4 w-4" />,
-  motor: <Car className="h-4 w-4" />,
+  nonlife: <Car className="h-4 w-4" />,
   pension: <Landmark className="h-4 w-4" />,
 };
 
@@ -74,7 +74,7 @@ export function CategoryDropdown({ category, onInsurerSelect, isActive }: Catego
         >
           {CategoryIcon}
           <span className="hidden lg:inline">{config.label}</span>
-          <span className="lg:hidden">{category === 'life' ? 'Life' : category === 'motor' ? 'Motor' : 'Pension'}</span>
+          <span className="lg:hidden">{category === 'life' ? 'Life' : category === 'nonlife' ? 'Non-Life' : 'Pension'}</span>
           <ChevronDown className={`h-3.5 w-3.5 opacity-70 transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`} />
         </Button>
       </DropdownMenuTrigger>
@@ -89,7 +89,7 @@ export function CategoryDropdown({ category, onInsurerSelect, isActive }: Catego
           </div>
           <span className="flex-1">
             {category === 'life' && 'Life Insurance Companies'}
-            {category === 'motor' && 'Motor Insurance Companies'}
+            {category === 'nonlife' && 'Non-Life Insurance Companies'}
             {category === 'pension' && 'Pension & Trustees'}
           </span>
           <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full text-[11px] font-semibold">

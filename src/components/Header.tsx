@@ -231,9 +231,9 @@ export function Header({
             isActive={activeInsuranceCategory === 'life'}
           />
           <CategoryDropdown 
-            category="motor" 
+            category="nonlife" 
             onInsurerSelect={handleInsurerSelect}
-            isActive={activeInsuranceCategory === 'motor'}
+            isActive={activeInsuranceCategory === 'nonlife'}
           />
           <CategoryDropdown 
             category="pension" 
@@ -389,12 +389,12 @@ export function Header({
                     isActive={activeInsuranceCategory === 'life'}
                   />
                   <CategoryDropdown 
-                    category="motor" 
+                    category="nonlife" 
                     onInsurerSelect={(insurer) => {
                       handleInsurerSelect(insurer);
                       setIsMobileMenuOpen(false);
                     }}
-                    isActive={activeInsuranceCategory === 'motor'}
+                    isActive={activeInsuranceCategory === 'nonlife'}
                   />
                   <CategoryDropdown 
                     category="pension" 
