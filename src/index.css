@@ -213,6 +213,10 @@
     @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20;
   }
 
+  .category-nonlife {
+    @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20;
+  }
+
   .category-general {
     @apply bg-primary/10 text-primary font-semibold border border-primary/20;
   }
