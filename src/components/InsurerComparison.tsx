@@ -129,32 +129,45 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     }
   }, [availableYears, pensionYears, insuranceType, selectedYear]);
 
-  // Fetch historical data for trend comparison
+  // Fetch historical data for trend comparison - fetch all and filter by name matching
   const { data: historicalData = [] } = useQuery({
     queryKey: ['comparison-historical', insuranceType, selectedCategory, selectedInsurers.map(i => i.id)],
     queryFn: async () => {
       if (selectedInsurers.length === 0) return [];
       
+      // Get keywords and names for matching
+      const insurerKeywords = selectedInsurers.flatMap(i => i.keywords.map(k => k.toLowerCase()));
+      const insurerShortNames = selectedInsurers.map(i => i.shortName.toLowerCase().split(' ')[0]);
+      
       if (insuranceType === 'nonlife') {
         const { data, error } = await supabase
           .from('nonlife_insurer_metrics')
           .select('*')
-          .in('insurer_id', selectedInsurers.map(i => i.id))
           .order('report_year', { ascending: true })
           .order('report_quarter', { ascending: true });
         if (error) return [];
-        return data || [];
+        
+        // Filter by name matching
+        return (data || []).filter(d => {
+          const nameLower = d.insurer_name.toLowerCase();
+          return insurerKeywords.some(k => nameLower.includes(k)) ||
+                 insurerShortNames.some(s => nameLower.includes(s));
+        });
       }
       
       if (insuranceType === 'pension') {
         const { data, error } = await supabase
           .from('pension_fund_metrics')
           .select('*')
-          .in('fund_id', selectedInsurers.map(i => i.id))
           .order('report_year', { ascending: true })
           .order('report_quarter', { ascending: true });
         if (error) return [];
-        return data || [];
+        
+        return (data || []).filter(d => {
+          const nameLower = d.fund_name.toLowerCase();
+          return insurerKeywords.some(k => nameLower.includes(k)) ||
+                 insurerShortNames.some(s => nameLower.includes(s));
+        });
       }
       
       const { data, error } = await supabase
@@ -261,16 +274,58 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     ];
   }, [insuranceType]);
 
+  // Helper to find matching record by name similarity
+  const findMatchingRecord = <T extends { insurer_name?: string; insurer_id?: string; fund_name?: string; fund_id?: string }>(
+    records: T[],
+    insurer: GhanaInsurer
+  ): T | undefined => {
+    if (!records || records.length === 0) return undefined;
+    
+    // First try exact ID match
+    if (records[0] && 'insurer_id' in records[0]) {
+      const exactMatch = records.find(r => r.insurer_id === insurer.id);
+      if (exactMatch) return exactMatch;
+    }
+    if (records[0] && 'fund_id' in records[0]) {
+      const exactMatch = records.find(r => r.fund_id === insurer.id);
+      if (exactMatch) return exactMatch;
+    }
+    
+    // Then try name-based matching using keywords and name similarity
+    const insurerNameLower = insurer.name.toLowerCase();
+    const insurerShortNameLower = insurer.shortName.toLowerCase();
+    const keywords = insurer.keywords.map(k => k.toLowerCase());
+    
+    return records.find(r => {
+      const recordName = ((r as any).insurer_name || (r as any).fund_name || '').toLowerCase();
+      
+      // Check if record name contains any keyword
+      if (keywords.some(keyword => recordName.includes(keyword))) return true;
+      
+      // Check if record name contains short name
+      if (recordName.includes(insurerShortNameLower.split(' ')[0])) return true;
+      
+      // Check if insurer name contains record name's first word
+      const recordFirstWord = recordName.split(' ')[0];
+      if (recordFirstWord && insurerNameLower.includes(recordFirstWord)) return true;
+      
+      return false;
+    });
+  };
+
   // Get metric value based on insurance type
   const getMetricValue = (insurerId: string, key: string): number | null => {
+    const insurer = selectedInsurers.find(i => i.id === insurerId);
+    if (!insurer) return null;
+
     if (insuranceType === 'nonlife') {
-      const nonLifeData = nonLifeMetrics.find(m => m.insurer_id === insurerId);
+      const nonLifeData = findMatchingRecord(nonLifeMetrics, insurer);
       if (nonLifeData) {
         return nonLifeData[key as keyof typeof nonLifeData] as number | null;
       }
       return null;
     } else if (insuranceType === 'pension') {
-      const pensionData = pensionMetrics.find(p => p.fund_id === insurerId);
+      const pensionData = findMatchingRecord(pensionMetrics, insurer);
       if (pensionData) {
         return pensionData[key as keyof typeof pensionData] as number | null;
       }
