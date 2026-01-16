@@ -112,30 +112,22 @@ Deno.serve(async (req) => {
       console.log('No insurers in database, using static list');
     }
 
-    // Static insurer list as fallback
-    const staticInsurers: InsurerData[] = [
-      // Life insurers
-      { insurer_id: 'enterprise-life', name: 'Enterprise Life Assurance Ltd', short_name: 'Enterprise Life', website: 'https://www.enterprisegroup.com.gh', brand_color: '#006633' },
-      { insurer_id: 'starlife', name: 'StarLife Assurance Company Limited', short_name: 'StarLife', website: 'https://www.starlife.com.gh', brand_color: '#FFD700' },
-      { insurer_id: 'glico-life', name: 'GLICO Life Insurance Ltd', short_name: 'GLICO Life', website: 'https://www.glicolife.com', brand_color: '#1E3A5F' },
-      { insurer_id: 'prudential-life', name: 'Prudential Life Insurance Ghana', short_name: 'Prudential Life', website: 'https://www.prudential.com.gh', brand_color: '#ED1C24' },
-      { insurer_id: 'sic-life', name: 'SIC Life Company Ltd', short_name: 'SIC Life', website: 'https://www.siclife-gh.com', brand_color: '#004A8F' },
-      { insurer_id: 'hollard-life', name: 'Hollard Life Assurance Ghana Ltd', short_name: 'Hollard Life', website: 'https://www.hollard.com.gh', brand_color: '#E31837' },
-      { insurer_id: 'old-mutual-life', name: 'Old Mutual Life Assurance Company (Ghana) Limited', short_name: 'Old Mutual Life', website: 'https://www.oldmutual.com.gh', brand_color: '#00594C' },
-      // Motor insurers
-      { insurer_id: 'enterprise-insurance', name: 'Enterprise Insurance Ltd', short_name: 'Enterprise Insurance', website: 'https://www.enterprisegroup.com.gh', brand_color: '#006633' },
-      { insurer_id: 'sic-insurance', name: 'SIC Insurance PLC', short_name: 'SIC Insurance', website: 'https://www.sic-gh.com', brand_color: '#004A8F' },
-      { insurer_id: 'hollard-insurance', name: 'Hollard Insurance Ghana Ltd', short_name: 'Hollard Insurance', website: 'https://www.hollard.com.gh', brand_color: '#E31837' },
-      { insurer_id: 'star-assurance', name: 'Star Assurance Limited Company', short_name: 'Star Assurance', website: 'https://www.starassurance.com', brand_color: '#FFD700' },
-      { insurer_id: 'glico-general', name: 'Glico General Insurance Ltd', short_name: 'Glico General', website: 'https://www.glicogeneral.com', brand_color: '#1E3A5F' },
-      // Pension
-      { insurer_id: 'enterprise-trustees', name: 'Enterprise Trustees Limited', short_name: 'Enterprise Trustees', website: 'https://www.enterprisetrustees.com.gh', brand_color: '#006633' },
-      { insurer_id: 'ssnit', name: 'Social Security & National Insurance Trust', short_name: 'SSNIT', website: 'https://www.ssnit.org.gh', brand_color: '#0277BD' },
-      { insurer_id: 'npra', name: 'National Pensions Regulatory Authority', short_name: 'NPRA', website: 'https://www.npra.gov.gh', brand_color: '#1976D2' },
-    ];
+    // If no insurers in DB, return early with message
+    if (!insurers || insurers.length === 0) {
+      console.log('No insurers in database. Please sync insurers first.');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'No insurers found in database. Please sync insurers first using the "Sync Insurers" button.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const insurersToProcess = insurers && insurers.length > 0 ? insurers : staticInsurers;
+    const insurersToProcess = insurers;
+
     
+    console.log(`Processing ${insurersToProcess.length} insurers for logos`);
     console.log(`Processing ${insurersToProcess.length} insurers for logos`);
 
     const results = {
