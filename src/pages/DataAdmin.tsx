@@ -295,8 +295,7 @@ const DataAdmin = () => {
     }
   };
 
-  // Common words to ignore when matching (these don't uniquely identify a company)
-  const commonWords = ['life', 'insurance', 'assurance', 'company', 'limited', 'ltd', 'ghana', 'plc', 'general', 'the', 'trust', 'pension', 'pensions', 'group', 'international', 'logo', 'png', 'jpg', 'jpeg', 'svg'];
+  // Logo matching helper functions below
   
   // Normalize a string for comparison
   const normalizeString = (str: string): string => {
@@ -307,87 +306,88 @@ const DataAdmin = () => {
       .trim();
   };
   
-  // Extract the first meaningful word (usually the unique identifier)
-  const extractPrimaryWord = (str: string): string => {
-    const words = normalizeString(str).split(' ').filter(w => w.length > 1 && !commonWords.includes(w));
-    return words[0] || '';
-  };
-  
-  // Find best matching insurer for a filename
+  // Find best matching insurer for a filename - STRICT matching only
   const findBestMatch = (fileName: string, insurersList: typeof insurers): typeof insurers[0] | null => {
     if (!insurersList || insurersList.length === 0) return null;
     
     const normalizedFileName = normalizeString(fileName);
+    const fileWords = normalizedFileName.split(' ').filter(w => w.length > 1);
     const fileClean = normalizedFileName.replace(/\s/g, '');
-    const filePrimaryWord = extractPrimaryWord(fileName);
     
+    // First pass: look for EXACT or NEAR-EXACT matches only
+    for (const insurer of insurersList) {
+      const insurerId = insurer.insurer_id.toLowerCase();
+      const idClean = insurerId.replace(/[^a-z0-9]/g, '');
+      const shortNameLower = insurer.short_name.toLowerCase();
+      const shortNameClean = normalizeString(insurer.short_name).replace(/\s/g, '');
+      const nameLower = insurer.name.toLowerCase();
+      
+      // Exact match on insurer_id (e.g., "acacia-health" or "acaciahealth")
+      if (fileClean === idClean || normalizedFileName === insurerId.replace(/-/g, ' ')) {
+        return insurer;
+      }
+      
+      // Exact match on short_name (e.g., "acacia health" or "acaciahealth")
+      if (fileClean === shortNameClean || normalizedFileName === shortNameLower) {
+        return insurer;
+      }
+      
+      // File contains the FULL insurer_id or short_name
+      if (fileClean.includes(idClean) && idClean.length >= 6) {
+        return insurer;
+      }
+      if (fileClean.includes(shortNameClean) && shortNameClean.length >= 6) {
+        return insurer;
+      }
+    }
+    
+    // Second pass: match on primary identifier (first part of hyphenated id)
+    // BUT require minimum 4 chars AND exact word match
+    for (const insurer of insurersList) {
+      const idParts = insurer.insurer_id.split('-');
+      const idPrimary = idParts[0].toLowerCase(); // e.g., "acacia" from "acacia-health"
+      
+      // Skip if primary is too short (avoid false positives like "nic")
+      if (idPrimary.length < 4) continue;
+      
+      // Check if any file word EXACTLY matches the primary id
+      for (const word of fileWords) {
+        if (word === idPrimary) {
+          return insurer;
+        }
+      }
+      
+      // Check if filename starts with the primary id
+      if (fileClean.startsWith(idPrimary) && idPrimary.length >= 5) {
+        return insurer;
+      }
+    }
+    
+    // Third pass: fuzzy matching with stricter thresholds
     let bestMatch: typeof insurers[0] | null = null;
     let bestScore = 0;
+    const MIN_SCORE_THRESHOLD = 100; // Must score at least this much
     
     for (const insurer of insurersList) {
-      const insurerId = insurer.insurer_id.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const insurerId = insurer.insurer_id.toLowerCase();
       const shortNameClean = normalizeString(insurer.short_name).replace(/\s/g, '');
-      const shortNamePrimary = extractPrimaryWord(insurer.short_name);
-      const idParts = insurer.insurer_id.split('-');
-      const idPrimary = idParts[0]; // e.g., "acacia" from "acacia-health"
+      const idClean = insurerId.replace(/[^a-z0-9]/g, '');
       
-      // Exact matches (highest priority)
-      if (fileClean === insurerId || fileClean === shortNameClean) {
-        return insurer; // Perfect match, return immediately
+      let score = 0;
+      
+      // Score based on how much of the insurer id is contained in filename
+      if (fileClean.includes(idClean.slice(0, Math.min(6, idClean.length))) && idClean.length >= 6) {
+        score = 80 + idClean.length;
       }
       
-      // PRIMARY WORD MATCH - e.g., "acacia" matches "acacia-health"
-      if (filePrimaryWord && filePrimaryWord.length >= 3) {
-        // File primary word matches insurer id prefix
-        if (idPrimary === filePrimaryWord || idPrimary.startsWith(filePrimaryWord) || filePrimaryWord.startsWith(idPrimary)) {
-          const score = 250 + filePrimaryWord.length;
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = insurer;
-          }
-          continue;
-        }
-        
-        // File primary word matches short name primary word
-        if (shortNamePrimary === filePrimaryWord || 
-            shortNamePrimary.startsWith(filePrimaryWord) || 
-            filePrimaryWord.startsWith(shortNamePrimary)) {
-          const score = 240 + filePrimaryWord.length;
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = insurer;
-          }
-          continue;
-        }
+      // Score based on how much of short name is in filename
+      if (fileClean.includes(shortNameClean.slice(0, Math.min(6, shortNameClean.length))) && shortNameClean.length >= 6) {
+        score = Math.max(score, 70 + shortNameClean.length);
       }
       
-      // Check if file starts with insurer identifier
-      if (fileClean.startsWith(insurerId) || fileClean.startsWith(shortNameClean)) {
-        const score = 200 + insurerId.length;
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = insurer;
-        }
-        continue;
-      }
-      
-      // Check if insurer id primary is in the filename
-      if (fileClean.includes(idPrimary) && idPrimary.length > 3) {
-        const score = 180 + idPrimary.length;
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = insurer;
-        }
-        continue;
-      }
-      
-      // Check if insurer identifier is in the filename
-      if (fileClean.includes(insurerId) && insurerId.length > 5) {
-        const score = 150 + insurerId.length;
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = insurer;
-        }
+      if (score > bestScore && score >= MIN_SCORE_THRESHOLD) {
+        bestScore = score;
+        bestMatch = insurer;
       }
     }
     
