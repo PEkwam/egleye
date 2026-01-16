@@ -11,6 +11,7 @@ interface DashboardNav {
   icon: React.ComponentType<{ className?: string }>;
   gradient: string;
   iconColor: string;
+  hoverBg: string;
 }
 
 const dashboards: DashboardNav[] = [
@@ -21,6 +22,7 @@ const dashboards: DashboardNav[] = [
     icon: Heart,
     gradient: 'from-blue-600 to-indigo-600',
     iconColor: 'text-blue-500',
+    hoverBg: 'hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400',
   },
   {
     path: '/nonlife-dashboard',
@@ -29,6 +31,7 @@ const dashboards: DashboardNav[] = [
     icon: Car,
     gradient: 'from-green-600 to-teal-600',
     iconColor: 'text-green-500',
+    hoverBg: 'hover:bg-green-500/10 hover:text-green-600 dark:hover:text-green-400',
   },
   {
     path: '/brokers-dashboard',
@@ -37,6 +40,7 @@ const dashboards: DashboardNav[] = [
     icon: Building2,
     gradient: 'from-purple-600 to-violet-600',
     iconColor: 'text-purple-500',
+    hoverBg: 'hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400',
   },
   {
     path: '/pension-dashboard',
@@ -45,6 +49,7 @@ const dashboards: DashboardNav[] = [
     icon: Landmark,
     gradient: 'from-amber-500 to-orange-600',
     iconColor: 'text-amber-500',
+    hoverBg: 'hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400',
   },
 ];
 
@@ -65,16 +70,16 @@ export function DashboardNavigation() {
           
           return (
             <Link key={dashboard.path} to={dashboard.path}>
-              <Button
-                variant={isActive ? 'default' : 'ghost'}
-                size="sm"
-                className={cn(
-                  'gap-2 h-8 px-3 text-xs font-medium transition-all',
-                  isActive && `bg-gradient-to-r ${dashboard.gradient} text-white shadow-sm`,
-                  !isActive && 'hover:bg-background/80'
-                )}
-              >
-                <Icon className={cn('h-3.5 w-3.5', !isActive && dashboard.iconColor)} />
+                <Button
+                  variant={isActive ? 'default' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    'gap-2 h-8 px-3 text-xs font-medium transition-all',
+                    isActive && `bg-gradient-to-r ${dashboard.gradient} text-white shadow-sm`,
+                    !isActive && dashboard.hoverBg
+                  )}
+                >
+                  <Icon className={cn('h-3.5 w-3.5', !isActive && dashboard.iconColor)} />
                 <span className="hidden lg:inline">{dashboard.label}</span>
                 <span className="lg:hidden">{dashboard.shortLabel}</span>
               </Button>
