@@ -52,12 +52,14 @@ const ChangeIndicator = ({ value, size = 'sm' }: { value: number | null; size?: 
   
   const iconSize = size === 'lg' ? 'h-4 w-4' : 'h-3 w-3';
   
+  const colorClasses = isPositive 
+    ? 'text-emerald-600 dark:text-emerald-400' 
+    : isNegative 
+    ? 'text-rose-600 dark:text-rose-400' 
+    : 'text-muted-foreground';
+  
   return (
-    <div className={`flex items-center ${sizeClasses} ${
-      isPositive ? 'text-emerald-600 dark:text-emerald-400' : 
-      isNegative ? 'text-rose-600 dark:text-rose-400' : 
-      'text-muted-foreground'
-    }`}>
+    <div className={`flex items-center ${sizeClasses} ${colorClasses}`}>
       <Icon className={iconSize} />
       <span>{formatChange(value)}</span>
     </div>
