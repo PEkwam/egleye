@@ -1,0 +1,485 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* InsureWatch - Modern Insurance News Portal Design System */
+
+@layer base {
+  :root {
+    /* Enterprise Life Green Theme */
+    --background: 140 20% 97%;
+    --foreground: 140 40% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 140 40% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 40% 10%;
+
+    /* Enterprise Green Primary */
+    --primary: 145 80% 32%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Light Gray Secondary */
+    --secondary: 140 10% 95%;
+    --secondary-foreground: 140 40% 15%;
+
+    /* Muted tones */
+    --muted: 140 10% 92%;
+    --muted-foreground: 140 10% 45%;
+
+    /* Gold Accent */
+    --accent: 45 90% 50%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 140 15% 88%;
+    --input: 140 15% 88%;
+    --ring: 145 80% 32%;
+
+    --radius: 0.75rem;
+
+    /* Category colors - Enterprise Life themed */
+    --enterprise: 145 80% 32%;
+    --enterprise-foreground: 0 0% 100%;
+    --regulator: 200 70% 40%;
+    --regulator-foreground: 0 0% 100%;
+    --claims: 170 70% 35%;
+    --claims-foreground: 0 0% 100%;
+    --life: 145 75% 38%;
+    --life-foreground: 0 0% 100%;
+    --motor: 45 85% 45%;
+    --motor-foreground: 0 0% 10%;
+    --pensions: 35 90% 50%;
+    --pensions-foreground: 0 0% 10%;
+
+    /* Typography */
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+
+    /* Modern shadows */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --shadow-glow: 0 0 40px rgba(0, 128, 60, 0.15);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 140 20% 26%;
+    --sidebar-primary: 145 80% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 140 10% 95%;
+    --sidebar-accent-foreground: 140 40% 10%;
+    --sidebar-border: 140 13% 91%;
+    --sidebar-ring: 145 80% 32%;
+  }
+
+  .dark {
+    --background: 150 20% 6%;
+    --foreground: 140 15% 95%;
+
+    --card: 150 20% 9%;
+    --card-foreground: 140 15% 95%;
+
+    --popover: 150 20% 9%;
+    --popover-foreground: 140 15% 95%;
+
+    --primary: 145 75% 45%;
+    --primary-foreground: 150 20% 6%;
+
+    --secondary: 150 15% 14%;
+    --secondary-foreground: 140 15% 95%;
+
+    --muted: 150 12% 16%;
+    --muted-foreground: 140 12% 55%;
+
+    --accent: 45 90% 55%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 150 12% 18%;
+    --input: 150 12% 18%;
+    --ring: 145 75% 45%;
+
+    --shadow-glow: 0 0 40px rgba(0, 128, 60, 0.25);
+
+    --sidebar-background: 150 20% 8%;
+    --sidebar-foreground: 140 10% 95%;
+    --sidebar-primary: 145 75% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 12% 12%;
+    --sidebar-accent-foreground: 140 10% 95%;
+    --sidebar-border: 150 12% 15%;
+    --sidebar-ring: 145 75% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Minimal Corporate Cards */
+  .news-card {
+    @apply bg-card rounded-xl overflow-hidden transition-all duration-300 border border-border/40;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .news-card:hover {
+    box-shadow: var(--shadow-md);
+    @apply -translate-y-1 border-border;
+  }
+
+  /* Clean Glass Effect */
+  .glass-card {
+    @apply bg-card/90 backdrop-blur-sm border border-border/40 rounded-xl;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .glass-effect {
+    @apply bg-card/95 backdrop-blur-sm;
+  }
+
+  /* Clean Gradients */
+  .hero-gradient {
+    background: linear-gradient(135deg, hsl(145, 75%, 35%) 0%, hsl(145, 65%, 42%) 100%);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(145, 75%, 30%) 0%, hsl(145, 65%, 42%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Subtle Mesh - Minimal Corporate */
+  .mesh-gradient {
+    background: 
+      radial-gradient(at 40% 20%, hsl(145, 50%, 50%, 0.04) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(45, 70%, 55%, 0.03) 0px, transparent 50%);
+  }
+
+  /* Modern Card Hover Effects */
+  .card-hover-lift {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover-lift:hover {
+    @apply -translate-y-0.5;
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Chart Container - Clean Background */
+  .chart-container {
+    @apply bg-card rounded-xl border border-border/40 p-4;
+  }
+
+  /* Minimal Category Badges */
+  .category-enterprise {
+    @apply bg-primary/10 text-primary font-semibold border border-primary/20;
+  }
+
+  .category-regulator {
+    @apply bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20;
+  }
+
+  .category-claims {
+    @apply bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/20;
+  }
+
+  .category-life {
+    @apply bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20;
+  }
+
+  .category-motor {
+    @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20;
+  }
+
+  .category-general {
+    @apply bg-primary/10 text-primary font-semibold border border-primary/20;
+  }
+
+  .breaking-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full shadow-lg;
+    background: linear-gradient(90deg, #ef4444, #f97316);
+    color: white;
+    animation: pulse-glow 2s infinite;
+  }
+
+  .featured-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full shadow-lg;
+    background: linear-gradient(90deg, hsl(25, 95%, 55%), hsl(45, 95%, 55%));
+    color: white;
+  }
+
+  /* News Ticker Styles */
+  .ticker-wrapper {
+    @apply overflow-hidden relative;
+    background: linear-gradient(90deg, hsl(145, 80%, 32%), hsl(145, 70%, 40%));
+  }
+
+  .ticker-track {
+    display: flex;
+    animation: ticker-scroll 60s linear infinite;
+    width: max-content;
+  }
+
+  .ticker-track:hover {
+    animation-play-state: paused;
+  }
+
+  .ticker-item {
+    @apply flex items-center gap-4 px-8 py-3 text-white font-medium whitespace-nowrap;
+  }
+
+  .ticker-divider {
+    @apply w-2 h-2 rounded-full bg-white/40;
+  }
+
+  /* Modern Button Styles */
+  .btn-modern {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+
+  .btn-modern::before {
+    content: '';
+    @apply absolute inset-0 bg-white/20 translate-y-full transition-transform duration-300;
+  }
+
+  .btn-modern:hover::before {
+    @apply translate-y-0;
+  }
+
+  /* Glow Effects */
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(145, 80%, 32%, 0.3), 0 0 40px hsl(145, 80%, 32%, 0.1);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(45, 90%, 50%, 0.3), 0 0 40px hsl(45, 90%, 50%, 0.1);
+  }
+
+  /* Modern Dropdown Styles */
+  .dropdown-modern {
+    @apply bg-card border border-border rounded-2xl shadow-2xl overflow-hidden;
+    backdrop-filter: blur(20px);
+  }
+
+  .dropdown-item-modern {
+    @apply flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200;
+    @apply hover:bg-secondary/80 rounded-xl mx-1;
+  }
+
+  .dropdown-item-modern:hover {
+    @apply scale-[1.01];
+  }
+
+  /* Insurer Logo Container */
+  .insurer-logo {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden;
+    @apply border-2 transition-all duration-300;
+  }
+
+  .insurer-logo:hover {
+    @apply scale-110;
+  }
+
+  .insurer-logo-initials {
+    @apply text-sm font-bold text-white;
+  }
+
+  /* Subtle Grid Pattern */
+  .grid-pattern {
+    background-image: 
+      linear-gradient(rgba(0, 128, 60, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 128, 60, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Floating Elements */
+  .float-subtle {
+    animation: float-subtle 6s ease-in-out infinite;
+  }
+
+  /* Shimmer Effect for Loading */
+  .shimmer {
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.3), 
+      transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  /* Executive Dashboard Cards */
+  .stat-card {
+    @apply bg-card rounded-2xl p-6 border border-border/50 transition-all duration-300;
+    @apply hover:border-primary/30 hover:shadow-lg;
+  }
+
+  .stat-card:hover .stat-icon {
+    @apply scale-110;
+  }
+
+  .stat-icon {
+    @apply transition-transform duration-300;
+  }
+
+  /* Priority Alert */
+  .priority-alert {
+    @apply relative overflow-hidden rounded-2xl p-6;
+    background: linear-gradient(135deg, hsl(145, 80%, 32%, 0.08), hsl(45, 90%, 50%, 0.05));
+    border-left: 4px solid hsl(145, 80%, 32%);
+  }
+
+  .priority-alert::before {
+    content: '';
+    @apply absolute top-0 right-0 w-32 h-32 opacity-10;
+    background: radial-gradient(circle, hsl(145, 80%, 32%) 0%, transparent 70%);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.4);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float-subtle {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}

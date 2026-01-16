@@ -1,0 +1,463 @@
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { ArrowLeft, Car, TrendingUp, Award, BarChart3, PieChart, Calendar, Sparkles, Flame, Shield, Ship, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from 'recharts';
+import { NonLifeQuarterlyTrends } from '@/components/NonLifeQuarterlyTrends';
+import { MotorProductBreakdown } from '@/components/MotorProductBreakdown';
+import { NonLifeAIInsights } from '@/components/NonLifeAIInsights';
+import { PropertyBreakdown } from '@/components/PropertyBreakdown';
+import { AccidentLiabilityBreakdown } from '@/components/AccidentLiabilityBreakdown';
+import { MarineAviationBreakdown } from '@/components/MarineAviationBreakdown';
+import { NonLifeMarketSummary } from '@/components/NonLifeMarketSummary';
+import { DashboardNavigation } from '@/components/DashboardNavigation';
+
+const COLORS = ['hsl(145, 75%, 40%)', 'hsl(221, 83%, 53%)', 'hsl(262, 83%, 58%)', 'hsl(24, 95%, 53%)', 'hsl(340, 75%, 55%)', 'hsl(180, 70%, 45%)', 'hsl(45, 90%, 50%)', 'hsl(300, 60%, 50%)', 'hsl(200, 70%, 50%)', 'hsl(120, 60%, 45%)'];
+
+export default function NonLifeDashboard() {
+const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+  const [marketShareFilter, setMarketShareFilter] = useState<'all' | 'top5' | 'top10'>('top5');
+
+  // Fetch available years
+  const { data: availableYears = [] } = useQuery({
+    queryKey: ['nonlife-available-years'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('report_year')
+        .order('report_year', { ascending: false });
+      
+      if (error) throw error;
+      const years = [...new Set(data?.map(d => d.report_year) || [])];
+      return years;
+    },
+  });
+
+  // Set default year to highest available
+  useEffect(() => {
+    if (availableYears.length > 0 && selectedYear === null) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
+
+  const { data: metrics = [], isLoading } = useQuery({
+    queryKey: ['nonlife-metrics', selectedYear, selectedQuarter],
+    queryFn: async () => {
+      if (!selectedYear) return [];
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('*')
+        .eq('report_year', selectedYear)
+        .eq('report_quarter', selectedQuarter)
+        .order('market_share', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: selectedYear !== null,
+  });
+
+  // Fetch previous quarter data for comparison
+  const { data: previousMetrics = [] } = useQuery({
+    queryKey: ['nonlife-metrics-previous', selectedYear, selectedQuarter],
+    queryFn: async () => {
+      if (!selectedYear) return [];
+      const prevQuarter = selectedQuarter === 1 ? 4 : selectedQuarter - 1;
+      const prevYear = selectedQuarter === 1 ? selectedYear - 1 : selectedYear;
+      
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('*')
+        .eq('report_year', prevYear)
+        .eq('report_quarter', prevQuarter)
+        .order('market_share', { ascending: false });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: selectedYear !== null,
+  });
+
+  const totalRevenue = metrics.reduce((sum, m) => sum + (m.insurance_service_revenue || 0), 0);
+  const totalMotor = metrics.reduce((sum, m) => sum + (m.motor_comprehensive || 0) + (m.motor_third_party || 0), 0);
+  const topInsurer = metrics[0];
+
+  // Calculate the number of items to show based on filter
+  const chartFilterCount = useMemo(() => {
+    if (marketShareFilter === 'all') return metrics.length;
+    if (marketShareFilter === 'top5') return Math.min(5, metrics.length);
+    return Math.min(10, metrics.length);
+  }, [marketShareFilter, metrics.length]);
+
+  // Filter chart data based on selection
+  const chartData = useMemo(() => {
+    return metrics.slice(0, chartFilterCount).map(m => ({
+      name: m.insurer_name.split(' ')[0],
+      revenue: (m.insurance_service_revenue || 0) / 1e6,
+      motor: ((m.motor_comprehensive || 0) + (m.motor_third_party || 0)) / 1e6,
+      profit: (m.profit_after_tax || 0) / 1e6,
+    }));
+  }, [metrics, chartFilterCount]);
+
+  // Filter pie chart data based on selection - multiply by 100 for percentage display
+  const marketShareData = useMemo(() => {
+    return metrics.slice(0, chartFilterCount).map((m, i) => ({
+      name: m.insurer_name.split(' ')[0],
+      value: (m.market_share || 0) * 100,
+      fill: COLORS[i % COLORS.length],
+    }));
+  }, [metrics, chartFilterCount]);
+
+  // Custom label renderer for pie chart
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    
+    if (value < 3) return null;
+    
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">
+        {`${value.toFixed(1)}%`}
+      </text>
+    );
+  };
+
+  if (!selectedYear || isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Skeleton className="h-12 w-64 mb-8" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-32" />)}
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-blue-950/10">
+      {/* Modern Header */}
+      <header className="border-b border-border/40 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <Button variant="ghost" size="sm" asChild className="hover:bg-primary/10 shrink-0">
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Back</span>
+                </Link>
+              </Button>
+              <div className="h-6 w-px bg-border hidden sm:block" />
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0">
+                  <Car className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-lg font-bold truncate">Non-Life Dashboard</h1>
+                  <p className="text-xs text-muted-foreground hidden sm:block">Motor, Property, Marine & Engineering</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <DashboardNavigation />
+              <Link to="/" className="hidden sm:block">
+                <img 
+                  src="/enterprise-life-logo.png" 
+                  alt="Enterprise Life" 
+                  className="h-8 sm:h-10 w-auto object-contain"
+                />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Filters Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="px-3 py-1.5 text-sm font-medium bg-primary/5 border-primary/20">
+              {selectedYear}
+            </Badge>
+            <Badge variant="outline" className="px-3 py-1.5 text-sm bg-muted/50">
+              Q{selectedQuarter}
+            </Badge>
+            <Badge variant="secondary" className="px-3 py-1.5 text-sm">
+              {metrics.length} Insurers
+            </Badge>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={selectedYear.toString()} onValueChange={v => setSelectedYear(parseInt(v))}>
+              <SelectTrigger className="w-[100px] h-9 bg-background border-border/50">
+                <Calendar className="h-4 w-4 mr-1" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedQuarter.toString()} onValueChange={v => setSelectedQuarter(parseInt(v))}>
+              <SelectTrigger className="w-[80px] h-9 bg-background border-border/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1,2,3,4].map(q => <SelectItem key={q} value={q.toString()}>Q{q}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            
+            <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border/50">
+              <span className="text-xs text-muted-foreground px-2 font-medium">Show:</span>
+              {(['all', 'top5', 'top10'] as const).map((filter) => (
+                <Button
+                  key={filter}
+                  variant={marketShareFilter === filter ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setMarketShareFilter(filter)}
+                  className={`h-7 px-3 text-xs ${marketShareFilter === filter ? 'shadow-sm' : ''}`}
+                >
+                  {filter === 'all' ? 'All' : filter === 'top5' ? 'Top 5' : 'Top 10'}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Market Performance Summary - New Component */}
+        <NonLifeMarketSummary 
+          metrics={metrics} 
+          previousMetrics={previousMetrics}
+          year={selectedYear} 
+          quarter={selectedQuarter} 
+        />
+
+        {/* Key Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Service Revenue</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">₵{(totalRevenue / 1e9).toFixed(2)}B</p>
+                </div>
+                <div className="h-11 w-11 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-blue-500" />
+                </div>
+              </div>
+              <Badge variant="secondary" className="mt-3 text-xs">Q{selectedQuarter} {selectedYear}</Badge>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20 hover:shadow-lg hover:shadow-green-500/5 transition-all duration-300">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Motor Premium</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">₵{(totalMotor / 1e9).toFixed(2)}B</p>
+                </div>
+                <div className="h-11 w-11 rounded-xl bg-green-500/15 flex items-center justify-center">
+                  <Car className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
+              <Badge variant="secondary" className="mt-3 text-xs">All Motor Types</Badge>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-amber-500/5 to-amber-500/10 border-amber-500/20 hover:shadow-lg hover:shadow-amber-500/5 transition-all duration-300">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Market Leader</p>
+                  <p className="text-lg font-bold truncate mt-1">{topInsurer?.insurer_name.split(' ').slice(0,2).join(' ')}</p>
+                </div>
+                <div className="h-11 w-11 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                  <Award className="h-5 w-5 text-amber-500" />
+                </div>
+              </div>
+              <Badge className="mt-3 text-xs bg-amber-500/20 text-amber-700 dark:text-amber-400">{((topInsurer?.market_share || 0) * 100).toFixed(1)}% share</Badge>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-purple-500/5 to-purple-500/10 border-purple-500/20 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Active Insurers</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{metrics.length}</p>
+                </div>
+                <div className="h-11 w-11 rounded-xl bg-purple-500/15 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-purple-500" />
+                </div>
+              </div>
+              <Badge variant="secondary" className="mt-3 text-xs">Non-Life Sector</Badge>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabbed Content */}
+        <Tabs defaultValue="overview">
+          <TabsList className="mb-6 flex-wrap bg-muted/50">
+            <TabsTrigger value="overview" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="motor" className="gap-2">
+              <Car className="h-4 w-4" />
+              Motor Breakdown
+            </TabsTrigger>
+            <TabsTrigger value="property" className="gap-2">
+              <Flame className="h-4 w-4" />
+              Property & Fire
+            </TabsTrigger>
+            <TabsTrigger value="accident" className="gap-2">
+              <Shield className="h-4 w-4" />
+              Accident & Liability
+            </TabsTrigger>
+            <TabsTrigger value="marine" className="gap-2">
+              <Ship className="h-4 w-4" />
+              Marine & Aviation
+            </TabsTrigger>
+            <TabsTrigger value="trends" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Quarterly Trends
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Insights
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <Card className="border-border/50 hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                    <TrendingUp className="h-5 w-5 text-blue-500" />
+                    {marketShareFilter === 'all' ? 'All' : marketShareFilter === 'top5' ? 'Top 5' : 'Top 10'} by Revenue (₵M)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={chartData} layout="vertical">
+                      <XAxis type="number" tickFormatter={v => `₵${v}M`} />
+                      <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(v: number) => `₵${v.toFixed(1)}M`} />
+                      <Bar dataKey="revenue" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-border/50 hover:shadow-lg transition-all duration-300">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                    <PieChart className="h-5 w-5 text-green-500" />
+                    Market Share - {marketShareFilter === 'all' ? 'All' : marketShareFilter === 'top5' ? 'Top 5' : 'Top 10'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <RechartsPie>
+                      <Pie 
+                        data={marketShareData} 
+                        dataKey="value" 
+                        nameKey="name" 
+                        cx="50%" 
+                        cy="50%" 
+                        outerRadius={130}
+                        labelLine={false}
+                        label={renderCustomLabel}
+                      >
+                        {marketShareData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                      </Pie>
+                      <Legend formatter={(value, entry: any) => `${value}: ${entry.payload.value?.toFixed(1)}%`} />
+                      <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
+                    </RechartsPie>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="motor">
+            <MotorProductBreakdown year={selectedYear} quarter={selectedQuarter} />
+          </TabsContent>
+
+          <TabsContent value="property">
+            <PropertyBreakdown year={selectedYear} quarter={selectedQuarter} />
+          </TabsContent>
+
+          <TabsContent value="accident">
+            <AccidentLiabilityBreakdown year={selectedYear} quarter={selectedQuarter} />
+          </TabsContent>
+
+          <TabsContent value="marine">
+            <MarineAviationBreakdown year={selectedYear} quarter={selectedQuarter} />
+          </TabsContent>
+
+          <TabsContent value="trends">
+            <NonLifeQuarterlyTrends />
+          </TabsContent>
+
+          <TabsContent value="insights">
+            <NonLifeAIInsights metrics={metrics} year={selectedYear} quarter={selectedQuarter} />
+          </TabsContent>
+        </Tabs>
+
+        {/* Rankings Table */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Non-Life Insurance Rankings - Q{selectedQuarter} {selectedYear}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left py-3 px-2 font-medium text-muted-foreground">#</th>
+                    <th className="text-left py-3 px-2 font-medium text-muted-foreground">Insurer</th>
+                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Revenue (₵M)</th>
+                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Motor (₵M)</th>
+                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Profit (₵M)</th>
+                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Claims %</th>
+                    <th className="text-right py-3 px-2 font-medium text-muted-foreground">Share %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.slice(0, 15).map((m, i) => (
+                    <tr key={m.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-2">
+                        <Badge variant={i < 3 ? "default" : "secondary"} className={`text-xs ${i === 0 ? "bg-amber-500" : i === 1 ? "bg-gray-400" : i === 2 ? "bg-amber-700" : ""}`}>{i + 1}</Badge>
+                      </td>
+                      <td className="py-3 px-2 font-medium">{m.insurer_name}</td>
+                      <td className="py-3 px-2 text-right">₵{((m.insurance_service_revenue || 0) / 1e6).toFixed(1)}</td>
+                      <td className="py-3 px-2 text-right">₵{(((m.motor_comprehensive || 0) + (m.motor_third_party || 0)) / 1e6).toFixed(1)}</td>
+                      <td className={`py-3 px-2 text-right font-medium ${(m.profit_after_tax || 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        ₵{((m.profit_after_tax || 0) / 1e6).toFixed(1)}
+                      </td>
+                      <td className="py-3 px-2 text-right">{m.claims_ratio ? ((m.claims_ratio * 100).toFixed(1)) : '-'}%</td>
+                      <td className="py-3 px-2 text-right font-medium">{m.market_share ? ((m.market_share * 100).toFixed(1)) : '-'}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
