@@ -137,8 +137,25 @@ const DataAdmin = () => {
   // Logo upload states
   const [isUploadingLogos, setIsUploadingLogos] = useState(false);
   const [logoUploadProgress, setLogoUploadProgress] = useState<{ uploaded: number; total: number } | null>(null);
+  // Clear database states
+  const [isClearingLife, setIsClearingLife] = useState(false);
+  const [isClearingNonLife, setIsClearingNonLife] = useState(false);
+  const [isClearingPension, setIsClearingPension] = useState(false);
+  const [isClearingBrokers, setIsClearingBrokers] = useState(false);
 
   const { metrics, refetch } = useInsurerMetrics();
+  
+  // Fetch ALL life metrics for status display (not just current year/quarter)
+  const { data: allLifeMetrics = [], refetch: refetchAllLife } = useQuery({
+    queryKey: ['all-life-metrics-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('insurer_metrics')
+        .select('report_year, report_quarter');
+      if (error) throw error;
+      return data || [];
+    },
+  });
   
   // Fetch insurers for logo upload
   const { data: insurers = [] } = useQuery({
@@ -524,10 +541,10 @@ const DataAdmin = () => {
     }
   };
 
-  // Get stats
+  // Get stats - use allLifeMetrics for accurate counts across all years/quarters
   const getQuarterStats = (year: number, quarter: number, dataType: 'life' | 'nonlife') => {
     if (dataType === 'life') {
-      return metrics.filter(m => m.report_year === year && m.report_quarter === quarter).length;
+      return allLifeMetrics.filter(m => m.report_year === year && m.report_quarter === quarter).length;
     } else {
       return nonlifeMetrics.filter(m => m.report_year === year && m.report_quarter === quarter).length;
     }
@@ -535,6 +552,99 @@ const DataAdmin = () => {
 
   const getBrokerQuarterStats = (year: number, quarter: number) => {
     return brokerMetrics.filter(m => m.report_year === year && m.report_quarter === quarter).length;
+  };
+
+  // Clear database handlers
+  const handleClearLifeData = async () => {
+    if (!confirm('Are you sure you want to delete ALL Life insurance data? This action cannot be undone.')) return;
+    
+    setIsClearingLife(true);
+    try {
+      const { error } = await supabase
+        .from('insurer_metrics')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+      
+      if (error) throw error;
+      
+      toast.success('Life insurance data cleared successfully');
+      refetch();
+      refetchAllLife();
+      queryClient.invalidateQueries({ queryKey: ['all-life-metrics-admin'] });
+    } catch (err) {
+      console.error('Clear life data error:', err);
+      toast.error('Failed to clear Life data');
+    } finally {
+      setIsClearingLife(false);
+    }
+  };
+
+  const handleClearNonLifeData = async () => {
+    if (!confirm('Are you sure you want to delete ALL Non-Life insurance data? This action cannot be undone.')) return;
+    
+    setIsClearingNonLife(true);
+    try {
+      const { error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (error) throw error;
+      
+      toast.success('Non-Life insurance data cleared successfully');
+      queryClient.invalidateQueries({ queryKey: ['nonlife-metrics-admin'] });
+    } catch (err) {
+      console.error('Clear non-life data error:', err);
+      toast.error('Failed to clear Non-Life data');
+    } finally {
+      setIsClearingNonLife(false);
+    }
+  };
+
+  const handleClearPensionData = async () => {
+    if (!confirm('Are you sure you want to delete ALL Pension fund data? This action cannot be undone.')) return;
+    
+    setIsClearingPension(true);
+    try {
+      const { error } = await supabase
+        .from('pension_fund_metrics')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (error) throw error;
+      
+      toast.success('Pension fund data cleared successfully');
+      refetchPension();
+      queryClient.invalidateQueries({ queryKey: ['pension-fund-metrics'] });
+    } catch (err) {
+      console.error('Clear pension data error:', err);
+      toast.error('Failed to clear Pension data');
+    } finally {
+      setIsClearingPension(false);
+    }
+  };
+
+  const handleClearBrokerData = async () => {
+    if (!confirm('Are you sure you want to delete ALL Broker data? This action cannot be undone.')) return;
+    
+    setIsClearingBrokers(true);
+    try {
+      const { error } = await supabase
+        .from('broker_metrics')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (error) throw error;
+      
+      toast.success('Broker data cleared successfully');
+      refetchBrokers();
+      queryClient.invalidateQueries({ queryKey: ['broker-metrics-admin'] });
+    } catch (err) {
+      console.error('Clear broker data error:', err);
+      toast.error('Failed to clear Broker data');
+    } finally {
+      setIsClearingBrokers(false);
+    }
   };
 
   // News cleanup - blocked keywords
@@ -1679,6 +1789,61 @@ const DataAdmin = () => {
                       <Button variant="outline" onClick={handleCleanupNews} disabled={isCleaningNews} className="h-auto py-4 flex-col gap-2 text-destructive hover:text-destructive">
                         {isCleaningNews ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
                         <span className="text-xs">Clean News</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Clear Database Section */}
+                <Card className="border-destructive/30">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-destructive">
+                      <Trash2 className="h-5 w-5" />
+                      Clear Database
+                    </CardTitle>
+                    <CardDescription>Delete all data from specific tables for fresh import. Use with caution!</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleClearLifeData} 
+                        disabled={isClearingLife} 
+                        className="h-auto py-4 flex-col gap-2 border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-500/50"
+                      >
+                        {isClearingLife ? <RefreshCw className="h-5 w-5 animate-spin text-blue-500" /> : <Trash2 className="h-5 w-5 text-blue-500" />}
+                        <span className="text-xs">Clear Life</span>
+                        <span className="text-[10px] text-muted-foreground">{allLifeMetrics.length} records</span>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleClearNonLifeData} 
+                        disabled={isClearingNonLife} 
+                        className="h-auto py-4 flex-col gap-2 border-green-500/30 hover:bg-green-500/10 hover:border-green-500/50"
+                      >
+                        {isClearingNonLife ? <RefreshCw className="h-5 w-5 animate-spin text-green-500" /> : <Trash2 className="h-5 w-5 text-green-500" />}
+                        <span className="text-xs">Clear Non-Life</span>
+                        <span className="text-[10px] text-muted-foreground">{nonlifeMetrics.length} records</span>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleClearBrokerData} 
+                        disabled={isClearingBrokers} 
+                        className="h-auto py-4 flex-col gap-2 border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500/50"
+                      >
+                        {isClearingBrokers ? <RefreshCw className="h-5 w-5 animate-spin text-purple-500" /> : <Trash2 className="h-5 w-5 text-purple-500" />}
+                        <span className="text-xs">Clear Brokers</span>
+                        <span className="text-[10px] text-muted-foreground">{brokerMetrics.length} records</span>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleClearPensionData} 
+                        disabled={isClearingPension} 
+                        className="h-auto py-4 flex-col gap-2 border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/50"
+                      >
+                        {isClearingPension ? <RefreshCw className="h-5 w-5 animate-spin text-amber-500" /> : <Trash2 className="h-5 w-5 text-amber-500" />}
+                        <span className="text-xs">Clear Pension</span>
+                        <span className="text-[10px] text-muted-foreground">{pensionMetrics.length} records</span>
                       </Button>
                     </div>
                   </CardContent>
