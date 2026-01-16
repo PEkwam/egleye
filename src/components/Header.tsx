@@ -25,14 +25,14 @@ interface HeaderProps {
   activeInsuranceCategory?: InsuranceCategory | null;
 }
 
-// Enterprise Group subsidiaries
+// Enterprise Group subsidiaries with logos
 const enterpriseSubsidiaries = [
-  { id: 'enterprise-life', name: 'Enterprise Life Assurance', keywords: ['enterprise life'] },
-  { id: 'enterprise-insurance', name: 'Enterprise Insurance', keywords: ['enterprise insurance', 'eic'] },
-  { id: 'enterprise-trustees', name: 'Enterprise Trustees', keywords: ['enterprise trustees', 'etl'] },
-  { id: 'enterprise-properties', name: 'Enterprise Properties', keywords: ['enterprise properties'] },
-  { id: 'enterprise-funeral', name: 'Enterprise Funeral Services', keywords: ['enterprise funeral', 'transitions ghana'] },
-  { id: 'acacia-health', name: 'Acacia Health Insurance', keywords: ['acacia health', 'acacia insurance'] },
+  { id: 'enterprise-life', name: 'Enterprise Life Assurance', keywords: ['enterprise life'], logo: '/logos/enterprise-life.png' },
+  { id: 'enterprise-insurance', name: 'Enterprise Insurance', keywords: ['enterprise insurance', 'eic'], logo: '/logos/enterprise-insurance-full.png' },
+  { id: 'enterprise-trustees', name: 'Enterprise Trustees', keywords: ['enterprise trustees', 'etl'], logo: '/logos/enterprise-trustees-full.jpg' },
+  { id: 'enterprise-properties', name: 'Enterprise Properties', keywords: ['enterprise properties'], logo: '/logos/enterprise-properties.png' },
+  { id: 'transitions-funeral', name: 'Transitions Funeral Services', keywords: ['enterprise funeral', 'transitions ghana'], logo: '/logos/transitions-funeral.png' },
+  { id: 'acacia-health', name: 'Acacia Health Insurance', keywords: ['acacia health', 'acacia insurance'], logo: '/logos/acacia-health.png' },
 ];
 
 export function Header({ 
@@ -216,22 +216,30 @@ export function Header({
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 p-2">
+            <DropdownMenuContent align="start" className="w-72 p-2">
               <DropdownMenuItem 
                 onClick={() => onCategoryChange('enterprise_group')}
                 className="rounded-lg p-2.5 cursor-pointer font-medium"
               >
-                <img src="/logos/enterprise-group-logo.jpg" alt="Enterprise Group" className="h-6 w-6 rounded mr-2 object-contain" />
-                All Enterprise News
+                <img src="/logos/enterprise-group.jpg" alt="Enterprise Group" className="h-8 w-8 rounded-lg mr-3 object-contain bg-[#8B1538] p-1" />
+                <div>
+                  <p className="font-semibold text-sm">All Enterprise News</p>
+                  <p className="text-xs text-muted-foreground">View all subsidiaries</p>
+                </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-1.5" />
               {enterpriseSubsidiaries.map((sub) => (
                 <DropdownMenuItem 
                   key={sub.id}
                   onClick={() => onSearch(sub.keywords[0])}
-                  className="rounded-lg p-2 cursor-pointer text-sm"
+                  className="rounded-lg p-2.5 cursor-pointer flex items-center gap-3"
                 >
-                  {sub.name}
+                  <img 
+                    src={sub.logo} 
+                    alt={sub.name} 
+                    className="h-8 w-8 rounded-lg object-contain bg-white p-0.5 border border-border/30" 
+                  />
+                  <span className="text-sm font-medium">{sub.name}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

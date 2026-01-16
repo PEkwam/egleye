@@ -108,10 +108,11 @@ type AdminSection = 'overview' | 'news' | 'insurers' | 'brokers' | 'pension' | '
 
 // Site Settings Section Component
 const SiteSettingsSection = () => {
-  const { settings, siteName, siteTagline, logoUrl, updateSetting, isUpdating } = useSiteSettings();
+  const { settings, siteName, siteTagline, logoUrl, colorTheme, updateSetting, isUpdating } = useSiteSettings();
   const [editName, setEditName] = useState(siteName);
   const [editTagline, setEditTagline] = useState(siteTagline);
   const [editLogoUrl, setEditLogoUrl] = useState(logoUrl);
+  const [editTheme, setEditTheme] = useState(colorTheme);
   const logoFileRef = useRef<HTMLInputElement>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
@@ -120,6 +121,7 @@ const SiteSettingsSection = () => {
     setEditName(siteName);
     setEditTagline(siteTagline);
     setEditLogoUrl(logoUrl);
+    setEditTheme(colorTheme);
   });
 
   const handleSaveSettings = async () => {
@@ -132,6 +134,9 @@ const SiteSettingsSection = () => {
       }
       if (editLogoUrl !== logoUrl) {
         updateSetting({ key: 'logo_url', value: editLogoUrl });
+      }
+      if (editTheme !== colorTheme) {
+        updateSetting({ key: 'color_theme', value: editTheme });
       }
       toast.success('Site settings saved!');
     } catch (error) {
@@ -180,6 +185,57 @@ const SiteSettingsSection = () => {
         <CardDescription>Configure your portal's branding and appearance</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Color Theme Selector */}
+        <div className="space-y-3">
+          <Label>Color Theme</Label>
+          <div className="grid grid-cols-2 gap-4 max-w-md">
+            <button
+              onClick={() => setEditTheme('enterprise_life')}
+              className={`relative p-4 rounded-xl border-2 transition-all ${
+                editTheme === 'enterprise_life' 
+                  ? 'border-emerald-500 bg-emerald-500/10' 
+                  : 'border-border hover:border-emerald-500/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <img src="/logos/enterprise-life.png" alt="Enterprise Life" className="h-10 w-10 rounded-lg object-contain bg-emerald-600 p-1" />
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Enterprise Life</p>
+                  <p className="text-xs text-muted-foreground">Green theme</p>
+                </div>
+              </div>
+              {editTheme === 'enterprise_life' && (
+                <div className="absolute top-2 right-2">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                </div>
+              )}
+            </button>
+            <button
+              onClick={() => setEditTheme('enterprise_group')}
+              className={`relative p-4 rounded-xl border-2 transition-all ${
+                editTheme === 'enterprise_group' 
+                  ? 'border-rose-700 bg-rose-700/10' 
+                  : 'border-border hover:border-rose-700/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <img src="/logos/enterprise-group.jpg" alt="Enterprise Group" className="h-10 w-10 rounded-lg object-contain bg-[#8B1538] p-1" />
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Enterprise Group</p>
+                  <p className="text-xs text-muted-foreground">Maroon theme</p>
+                </div>
+              </div>
+              {editTheme === 'enterprise_group' && (
+                <div className="absolute top-2 right-2">
+                  <Check className="h-4 w-4 text-rose-700" />
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Logo Preview & Upload */}
         <div className="space-y-3">
           <Label>Site Logo</Label>

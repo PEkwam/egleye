@@ -55,6 +55,7 @@ export function useSiteSettings() {
     siteName: getSetting('site_name') || 'InsuraWatch',
     siteTagline: getSetting('site_tagline') || 'Ghana Insurance Intelligence',
     logoUrl: getSetting('logo_url') || '/enterprise-life-logo.png',
+    colorTheme: getSetting('color_theme') || 'enterprise_life',
     updateSetting: updateSettingMutation.mutate,
     isUpdating: updateSettingMutation.isPending,
   };
