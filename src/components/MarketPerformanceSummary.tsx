@@ -62,19 +62,30 @@ export function MarketPerformanceSummary({
 
   // Calculate market performance metrics
   const performance = useMemo(() => {
-    const currentTotal = currentData.reduce((sum, m) => sum + (m.gross_premium || 0), 0);
-    const previousTotal = previousData.reduce((sum, m) => sum + (m.gross_premium || 0), 0);
+    // Filter out records with zero or null gross_premium for calculations
+    const validCurrentData = currentData.filter(m => m.gross_premium && m.gross_premium > 0);
+    const validPreviousData = previousData.filter(m => m.gross_premium && m.gross_premium > 0);
+    
+    const currentTotal = validCurrentData.reduce((sum, m) => sum + (m.gross_premium || 0), 0);
+    const previousTotal = validPreviousData.reduce((sum, m) => sum + (m.gross_premium || 0), 0);
     const premiumGrowth = previousTotal > 0 ? ((currentTotal - previousTotal) / previousTotal) * 100 : 0;
 
-    // Top performer
-    const topPerformer = currentData[0];
+    // Top performer - use filtered data and calculate market share dynamically
+    const sortedByPremium = [...validCurrentData].sort((a, b) => (b.gross_premium || 0) - (a.gross_premium || 0));
+    const topPerformer = sortedByPremium[0] ? {
+      ...sortedByPremium[0],
+      // Calculate market share dynamically: (insurer premium / total) * 100
+      calculatedMarketShare: currentTotal > 0 
+        ? ((sortedByPremium[0].gross_premium || 0) / currentTotal) * 100 
+        : 0
+    } : null;
     
     // Most improved (biggest QoQ growth)
     let mostImproved = null;
     let highestGrowth = -Infinity;
     
-    currentData.forEach(curr => {
-      const prev = previousData.find(p => 
+    validCurrentData.forEach(curr => {
+      const prev = validPreviousData.find(p => 
         p.insurer_name.toLowerCase() === curr.insurer_name.toLowerCase()
       );
       if (prev && prev.gross_premium && curr.gross_premium) {
@@ -86,18 +97,18 @@ export function MarketPerformanceSummary({
       }
     });
 
-    // Highest claims ratio (potential concern)
-    const highestClaimsRatio = [...currentData]
+    // Highest claims ratio (potential concern) - filter for valid ratios
+    const highestClaimsRatio = [...validCurrentData]
       .filter(m => m.claims_ratio && m.claims_ratio > 0)
       .sort((a, b) => (b.claims_ratio || 0) - (a.claims_ratio || 0))[0];
 
     // Highest solvency (strongest financially)
-    const strongestSolvency = [...currentData]
+    const strongestSolvency = [...validCurrentData]
       .filter(m => m.solvency_ratio && m.solvency_ratio > 0)
       .sort((a, b) => (b.solvency_ratio || 0) - (a.solvency_ratio || 0))[0];
 
     // Best expense ratio (most efficient)
-    const mostEfficient = [...currentData]
+    const mostEfficient = [...validCurrentData]
       .filter(m => m.expense_ratio && m.expense_ratio > 0)
       .sort((a, b) => (a.expense_ratio || 0) - (b.expense_ratio || 0))[0];
 
@@ -110,7 +121,7 @@ export function MarketPerformanceSummary({
       highestClaimsRatio,
       strongestSolvency,
       mostEfficient,
-      companiesCount: currentData.length,
+      companiesCount: validCurrentData.length,
     };
   }, [currentData, previousData]);
 
@@ -162,7 +173,7 @@ export function MarketPerformanceSummary({
       <CardContent className="pt-6">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Market Leader */}
-          {performance.topPerformer && (
+          {performance.topPerformer && performance.topPerformer.gross_premium > 0 && (
             <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200/50 dark:border-amber-800/50">
               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 mb-3">
                 <Crown className="h-4 w-4" />
@@ -176,7 +187,7 @@ export function MarketPerformanceSummary({
                   {formatCurrency(performance.topPerformer.gross_premium || 0)}
                 </span>
                 <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/30">
-                  {((performance.topPerformer.market_share || 0) * 100).toFixed(1)}% share
+                  {performance.topPerformer.calculatedMarketShare.toFixed(1)}% share
                 </Badge>
               </div>
             </div>
