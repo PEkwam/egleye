@@ -118,6 +118,22 @@
     --sidebar-border: 150 12% 15%;
     --sidebar-ring: 145 75% 45%;
   }
+
+  /* Enterprise Group Maroon Theme */
+  .theme-enterprise-group {
+    --primary: 340 80% 35%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 340 80% 35%;
+    --enterprise: 340 80% 35%;
+    --shadow-glow: 0 0 40px rgba(139, 21, 56, 0.15);
+  }
+
+  .dark .theme-enterprise-group {
+    --primary: 340 75% 45%;
+    --primary-foreground: 340 20% 6%;
+    --ring: 340 75% 45%;
+    --shadow-glow: 0 0 40px rgba(139, 21, 56, 0.25);
+  }
 }
 
 @layer base {
