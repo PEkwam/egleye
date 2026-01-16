@@ -195,8 +195,8 @@ export function MarketPerformanceSummary({
 
           {/* Most Improved */}
           {performance.mostImproved && (
-            <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-800/50">
-              <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-3">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border border-primary/20 dark:border-primary/30">
+              <div className="flex items-center gap-2 text-primary mb-3">
                 <TrendingUp className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-wide">Most Improved</span>
               </div>
@@ -204,10 +204,10 @@ export function MarketPerformanceSummary({
                 {formatName(performance.mostImproved.insurer_name)}
               </h3>
               <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <span className="text-2xl font-bold text-primary">
                   +{performance.mostImproved.growthRate.toFixed(1)}%
                 </span>
-                <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-500/30">
+                <Badge className="bg-primary/20 text-primary hover:bg-primary/30">
                   QoQ Growth
                 </Badge>
               </div>
