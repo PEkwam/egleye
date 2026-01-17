@@ -2,9 +2,16 @@ import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Layers, ChevronDown, ChevronUp } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface ProductMixTreemapProps {
   metrics: Array<{
@@ -24,21 +31,22 @@ interface InsurerProductMix {
   insurer_id: string;
   insurer_name: string;
   totalPremium: number;
-  products: {
-    name: string;
-    value: number;
-    percentage: number;
-    color: string;
-  }[];
+  termLife: number;
+  wholeLife: number;
+  endowment: number;
+  creditLife: number;
+  universalLife: number;
+  groupPolicies: number;
+  topProduct: string;
 }
 
-const PRODUCT_CONFIG = {
-  'Term Life': { color: 'bg-blue-500', textColor: 'text-blue-600' },
-  'Whole Life': { color: 'bg-emerald-500', textColor: 'text-emerald-600' },
-  'Endowment': { color: 'bg-purple-500', textColor: 'text-purple-600' },
-  'Credit Life': { color: 'bg-amber-500', textColor: 'text-amber-600' },
-  'Universal Life': { color: 'bg-rose-500', textColor: 'text-rose-600' },
-  'Group Policies': { color: 'bg-cyan-500', textColor: 'text-cyan-600' },
+const PRODUCT_COLORS = {
+  'Term Life': 'bg-blue-500/20 text-blue-700 dark:text-blue-400',
+  'Whole Life': 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400',
+  'Endowment': 'bg-purple-500/20 text-purple-700 dark:text-purple-400',
+  'Credit Life': 'bg-amber-500/20 text-amber-700 dark:text-amber-400',
+  'Universal Life': 'bg-rose-500/20 text-rose-700 dark:text-rose-400',
+  'Group Policies': 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-400',
 };
 
 export function ProductMixTreemap({ metrics }: ProductMixTreemapProps) {
@@ -55,37 +63,40 @@ export function ProductMixTreemap({ metrics }: ProductMixTreemapProps) {
           { name: 'Credit Life', value: m.credit_life || 0 },
           { name: 'Universal Life', value: m.universal_life || 0 },
           { name: 'Group Policies', value: m.group_policies || 0 },
-        ].filter(p => p.value > 0);
+        ];
 
-        const totalProducts = products.reduce((sum, p) => sum + p.value, 0);
+        const topProduct = products.reduce((max, p) => p.value > max.value ? p : max, products[0]);
 
         return {
           insurer_id: m.insurer_id,
           insurer_name: m.insurer_name,
           totalPremium: m.gross_premium || 0,
-          products: products
-            .map(p => ({
-              ...p,
-              percentage: totalProducts > 0 ? (p.value / totalProducts) * 100 : 0,
-              color: PRODUCT_CONFIG[p.name as keyof typeof PRODUCT_CONFIG]?.color || 'bg-gray-500',
-            }))
-            .sort((a, b) => b.percentage - a.percentage),
+          termLife: m.term_premium || 0,
+          wholeLife: m.whole_life || 0,
+          endowment: m.endowment || 0,
+          creditLife: m.credit_life || 0,
+          universalLife: m.universal_life || 0,
+          groupPolicies: m.group_policies || 0,
+          topProduct: topProduct.value > 0 ? topProduct.name : '-',
         };
       })
       .sort((a, b) => b.totalPremium - a.totalPremium);
   }, [metrics]);
 
   const formatCurrency = (value: number) => {
-    if (value >= 1e9) return `GH₵${(value / 1e9).toFixed(2)}B`;
-    if (value >= 1e6) return `GH₵${(value / 1e6).toFixed(1)}M`;
-    if (value >= 1e3) return `GH₵${(value / 1e3).toFixed(0)}K`;
-    return `GH₵${value.toLocaleString()}`;
+    if (value === 0) return '-';
+    if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+    if (value >= 1e3) return `${(value / 1e3).toFixed(0)}K`;
+    return value.toLocaleString();
   };
 
-  // Get top product for each insurer
-  const getTopProduct = (products: InsurerProductMix['products']) => {
-    if (products.length === 0) return null;
-    return products[0];
+  const getCellStyle = (value: number, total: number) => {
+    if (value === 0) return '';
+    const percentage = (value / total) * 100;
+    if (percentage >= 40) return 'font-bold';
+    if (percentage >= 20) return 'font-semibold';
+    return '';
   };
 
   return (
@@ -99,7 +110,7 @@ export function ProductMixTreemap({ metrics }: ProductMixTreemapProps) {
                   <Layers className="h-5 w-5 text-purple-500" />
                   Product Mix by Insurer
                 </CardTitle>
-                <CardDescription>Premium breakdown by product type for each insurer</CardDescription>
+                <CardDescription>Premium breakdown by product type (GH₵ millions)</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="font-mono">
@@ -114,80 +125,118 @@ export function ProductMixTreemap({ metrics }: ProductMixTreemapProps) {
         <CollapsibleContent>
           <CardContent className="pt-0">
             {insurerProductData.length > 0 ? (
-              <>
-                {/* Legend */}
-                <div className="flex flex-wrap gap-3 mb-4 pb-4 border-b">
-                  {Object.entries(PRODUCT_CONFIG).map(([name, config]) => (
-                    <div key={name} className="flex items-center gap-1.5">
-                      <div className={cn("w-3 h-3 rounded-sm", config.color)} />
-                      <span className="text-xs text-muted-foreground">{name}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Insurer List */}
-                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                  {insurerProductData.map((insurer, index) => {
-                    const topProduct = getTopProduct(insurer.products);
-                    
-                    return (
-                      <div 
-                        key={insurer.insurer_id} 
-                        className="p-3 rounded-lg border bg-card hover:bg-muted/20 transition-colors"
-                      >
-                        {/* Insurer Header */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-muted-foreground w-5">
-                              #{index + 1}
-                            </span>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-8 text-center">#</TableHead>
+                      <TableHead className="min-w-[150px]">Insurer</TableHead>
+                      <TableHead className="text-right">
+                        <span className="text-blue-600 dark:text-blue-400">Term</span>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <span className="text-emerald-600 dark:text-emerald-400">Whole</span>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <span className="text-purple-600 dark:text-purple-400">Endow</span>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <span className="text-amber-600 dark:text-amber-400">Credit</span>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <span className="text-rose-600 dark:text-rose-400">Univ</span>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <span className="text-cyan-600 dark:text-cyan-400">Group</span>
+                      </TableHead>
+                      <TableHead className="text-center">Top Product</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {insurerProductData.map((insurer, index) => {
+                      const productTotal = insurer.termLife + insurer.wholeLife + insurer.endowment + 
+                        insurer.creditLife + insurer.universalLife + insurer.groupPolicies;
+                      
+                      return (
+                        <TableRow key={insurer.insurer_id} className="hover:bg-muted/50">
+                          <TableCell className="text-center text-xs text-muted-foreground font-medium">
+                            {index + 1}
+                          </TableCell>
+                          <TableCell>
                             <div>
-                              <h4 className="font-semibold text-sm leading-tight">
-                                {insurer.insurer_name}
-                              </h4>
-                              <p className="text-xs text-muted-foreground">
-                                {formatCurrency(insurer.totalPremium)} gross premium
-                              </p>
-                            </div>
-                          </div>
-                          {topProduct && (
-                            <Badge variant="outline" className="text-xs">
-                              Top: {topProduct.name} ({topProduct.percentage.toFixed(0)}%)
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Stacked Progress Bar */}
-                        <div className="h-3 w-full rounded-full overflow-hidden flex bg-muted mb-2">
-                          {insurer.products.map((product) => (
-                            <div
-                              key={product.name}
-                              className={cn("h-full transition-all", product.color)}
-                              style={{ width: `${product.percentage}%` }}
-                              title={`${product.name}: ${product.percentage.toFixed(1)}%`}
-                            />
-                          ))}
-                        </div>
-
-                        {/* Product Breakdown */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
-                          {insurer.products.map((product) => (
-                            <div key={product.name} className="flex items-center justify-between text-xs">
-                              <span className="flex items-center gap-1.5">
-                                <div className={cn("w-2 h-2 rounded-sm", product.color)} />
-                                <span className="text-muted-foreground truncate">{product.name}</span>
+                              <span className="font-medium text-sm block truncate max-w-[140px]">
+                                {insurer.insurer_name.length > 18 
+                                  ? insurer.insurer_name.slice(0, 18) + '...' 
+                                  : insurer.insurer_name}
                               </span>
-                              <span className="font-medium ml-1">
-                                {product.percentage.toFixed(0)}%
+                              <span className="text-[10px] text-muted-foreground">
+                                GH₵{formatCurrency(insurer.totalPremium)} total
                               </span>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
+                          </TableCell>
+                          <TableCell className={cn(
+                            "text-right text-xs font-mono",
+                            getCellStyle(insurer.termLife, productTotal),
+                            insurer.termLife > 0 && "text-blue-600 dark:text-blue-400"
+                          )}>
+                            {formatCurrency(insurer.termLife)}
+                          </TableCell>
+                          <TableCell className={cn(
+                            "text-right text-xs font-mono",
+                            getCellStyle(insurer.wholeLife, productTotal),
+                            insurer.wholeLife > 0 && "text-emerald-600 dark:text-emerald-400"
+                          )}>
+                            {formatCurrency(insurer.wholeLife)}
+                          </TableCell>
+                          <TableCell className={cn(
+                            "text-right text-xs font-mono",
+                            getCellStyle(insurer.endowment, productTotal),
+                            insurer.endowment > 0 && "text-purple-600 dark:text-purple-400"
+                          )}>
+                            {formatCurrency(insurer.endowment)}
+                          </TableCell>
+                          <TableCell className={cn(
+                            "text-right text-xs font-mono",
+                            getCellStyle(insurer.creditLife, productTotal),
+                            insurer.creditLife > 0 && "text-amber-600 dark:text-amber-400"
+                          )}>
+                            {formatCurrency(insurer.creditLife)}
+                          </TableCell>
+                          <TableCell className={cn(
+                            "text-right text-xs font-mono",
+                            getCellStyle(insurer.universalLife, productTotal),
+                            insurer.universalLife > 0 && "text-rose-600 dark:text-rose-400"
+                          )}>
+                            {formatCurrency(insurer.universalLife)}
+                          </TableCell>
+                          <TableCell className={cn(
+                            "text-right text-xs font-mono",
+                            getCellStyle(insurer.groupPolicies, productTotal),
+                            insurer.groupPolicies > 0 && "text-cyan-600 dark:text-cyan-400"
+                          )}>
+                            {formatCurrency(insurer.groupPolicies)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {insurer.topProduct !== '-' ? (
+                              <Badge 
+                                variant="secondary" 
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0",
+                                  PRODUCT_COLORS[insurer.topProduct as keyof typeof PRODUCT_COLORS]
+                                )}
+                              >
+                                {insurer.topProduct.replace(' Life', '').replace(' Policies', '')}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
                 <Layers className="h-8 w-8 mb-2 opacity-50" />
