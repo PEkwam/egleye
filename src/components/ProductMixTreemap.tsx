@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Layers, ChevronDown, ChevronUp } from 'lucide-react';
+import { Layers, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -47,6 +48,15 @@ const PRODUCT_COLORS = {
   'Credit Life': 'bg-amber-500/20 text-amber-700 dark:text-amber-400',
   'Universal Life': 'bg-rose-500/20 text-rose-700 dark:text-rose-400',
   'Group Policies': 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-400',
+};
+
+const PRODUCT_TOOLTIPS = {
+  'Term': 'Term Life: Coverage for a specific period (e.g., 10, 20, 30 years). Pays out only if death occurs during the term.',
+  'Whole': 'Whole Life: Permanent coverage with a savings component. Builds cash value over time.',
+  'Endow': 'Endowment: Combines insurance with savings. Pays lump sum at maturity or on death.',
+  'Credit': 'Credit Life: Pays off outstanding debt (loans, mortgages) if the borrower dies.',
+  'Univ': 'Universal Life: Flexible permanent insurance with adjustable premiums and death benefits.',
+  'Group': 'Group Policies: Coverage for groups (employers, associations) under a single policy.',
 };
 
 export function ProductMixTreemap({ metrics }: ProductMixTreemapProps) {
@@ -109,6 +119,29 @@ export function ProductMixTreemap({ metrics }: ProductMixTreemapProps) {
                 <CardTitle className="flex items-center gap-2">
                   <Layers className="h-5 w-5 text-purple-500" />
                   Product Mix by Insurer
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[300px]">
+                        <div className="space-y-2 text-xs">
+                          <p className="font-semibold">What does this show?</p>
+                          <p>Breaks down each insurer's <strong>Gross Written Premium</strong> by product category.</p>
+                          <div className="space-y-1 pt-1 border-t">
+                            <p className="font-semibold">Product Types:</p>
+                            <p>• <strong>Term:</strong> Fixed-period coverage</p>
+                            <p>• <strong>Whole:</strong> Lifetime coverage + savings</p>
+                            <p>• <strong>Endowment:</strong> Insurance + investment</p>
+                            <p>• <strong>Credit:</strong> Loan protection</p>
+                            <p>• <strong>Universal:</strong> Flexible permanent</p>
+                            <p>• <strong>Group:</strong> Employer/association plans</p>
+                          </div>
+                          <p className="text-muted-foreground pt-1">Values in GH₵ millions. Bold = dominant product.</p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </CardTitle>
                 <CardDescription>Premium breakdown by product type (GH₵ millions)</CardDescription>
               </div>
@@ -126,116 +159,167 @@ export function ProductMixTreemap({ metrics }: ProductMixTreemapProps) {
           <CardContent className="pt-0">
             {insurerProductData.length > 0 ? (
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-8 text-center">#</TableHead>
-                      <TableHead className="min-w-[150px]">Insurer</TableHead>
-                      <TableHead className="text-right">
-                        <span className="text-blue-600 dark:text-blue-400">Term</span>
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <span className="text-emerald-600 dark:text-emerald-400">Whole</span>
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <span className="text-purple-600 dark:text-purple-400">Endow</span>
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <span className="text-amber-600 dark:text-amber-400">Credit</span>
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <span className="text-rose-600 dark:text-rose-400">Univ</span>
-                      </TableHead>
-                      <TableHead className="text-right">
-                        <span className="text-cyan-600 dark:text-cyan-400">Group</span>
-                      </TableHead>
-                      <TableHead className="text-center">Top Product</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {insurerProductData.map((insurer, index) => {
-                      const productTotal = insurer.termLife + insurer.wholeLife + insurer.endowment + 
-                        insurer.creditLife + insurer.universalLife + insurer.groupPolicies;
-                      
-                      return (
-                        <TableRow key={insurer.insurer_id} className="hover:bg-muted/50">
-                          <TableCell className="text-center text-xs text-muted-foreground font-medium">
-                            {index + 1}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <span className="font-medium text-sm block truncate max-w-[140px]">
-                                {insurer.insurer_name.length > 18 
-                                  ? insurer.insurer_name.slice(0, 18) + '...' 
-                                  : insurer.insurer_name}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">
-                                GH₵{formatCurrency(insurer.totalPremium)} total
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right text-xs font-mono",
-                            getCellStyle(insurer.termLife, productTotal),
-                            insurer.termLife > 0 && "text-blue-600 dark:text-blue-400"
-                          )}>
-                            {formatCurrency(insurer.termLife)}
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right text-xs font-mono",
-                            getCellStyle(insurer.wholeLife, productTotal),
-                            insurer.wholeLife > 0 && "text-emerald-600 dark:text-emerald-400"
-                          )}>
-                            {formatCurrency(insurer.wholeLife)}
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right text-xs font-mono",
-                            getCellStyle(insurer.endowment, productTotal),
-                            insurer.endowment > 0 && "text-purple-600 dark:text-purple-400"
-                          )}>
-                            {formatCurrency(insurer.endowment)}
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right text-xs font-mono",
-                            getCellStyle(insurer.creditLife, productTotal),
-                            insurer.creditLife > 0 && "text-amber-600 dark:text-amber-400"
-                          )}>
-                            {formatCurrency(insurer.creditLife)}
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right text-xs font-mono",
-                            getCellStyle(insurer.universalLife, productTotal),
-                            insurer.universalLife > 0 && "text-rose-600 dark:text-rose-400"
-                          )}>
-                            {formatCurrency(insurer.universalLife)}
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right text-xs font-mono",
-                            getCellStyle(insurer.groupPolicies, productTotal),
-                            insurer.groupPolicies > 0 && "text-cyan-600 dark:text-cyan-400"
-                          )}>
-                            {formatCurrency(insurer.groupPolicies)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {insurer.topProduct !== '-' ? (
-                              <Badge 
-                                variant="secondary" 
-                                className={cn(
-                                  "text-[10px] px-1.5 py-0",
-                                  PRODUCT_COLORS[insurer.topProduct as keyof typeof PRODUCT_COLORS]
-                                )}
-                              >
-                                {insurer.topProduct.replace(' Life', '').replace(' Policies', '')}
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">-</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <TooltipProvider>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-8 text-center">#</TableHead>
+                        <TableHead className="min-w-[150px]">Insurer</TableHead>
+                        <TableHead className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-help underline decoration-dotted text-blue-600 dark:text-blue-400">
+                              Term
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">{PRODUCT_TOOLTIPS['Term']}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-help underline decoration-dotted text-emerald-600 dark:text-emerald-400">
+                              Whole
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">{PRODUCT_TOOLTIPS['Whole']}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-help underline decoration-dotted text-purple-600 dark:text-purple-400">
+                              Endow
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">{PRODUCT_TOOLTIPS['Endow']}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-help underline decoration-dotted text-amber-600 dark:text-amber-400">
+                              Credit
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">{PRODUCT_TOOLTIPS['Credit']}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-help underline decoration-dotted text-rose-600 dark:text-rose-400">
+                              Univ
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">{PRODUCT_TOOLTIPS['Univ']}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-help underline decoration-dotted text-cyan-600 dark:text-cyan-400">
+                              Group
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px]">
+                              <p className="text-xs">{PRODUCT_TOOLTIPS['Group']}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableHead>
+                        <TableHead className="text-center">Top Product</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {insurerProductData.map((insurer, index) => {
+                        const productTotal = insurer.termLife + insurer.wholeLife + insurer.endowment + 
+                          insurer.creditLife + insurer.universalLife + insurer.groupPolicies;
+                        
+                        return (
+                          <TableRow key={insurer.insurer_id} className="hover:bg-muted/50">
+                            <TableCell className="text-center text-xs text-muted-foreground font-medium">
+                              {index + 1}
+                            </TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="cursor-help">
+                                    <span className="font-medium text-sm block truncate max-w-[140px]">
+                                      {insurer.insurer_name.length > 18 
+                                        ? insurer.insurer_name.slice(0, 18) + '...' 
+                                        : insurer.insurer_name}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      GH₵{formatCurrency(insurer.totalPremium)} total
+                                    </span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-semibold text-sm">{insurer.insurer_name}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right text-xs font-mono",
+                              getCellStyle(insurer.termLife, productTotal),
+                              insurer.termLife > 0 && "text-blue-600 dark:text-blue-400"
+                            )}>
+                              {formatCurrency(insurer.termLife)}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right text-xs font-mono",
+                              getCellStyle(insurer.wholeLife, productTotal),
+                              insurer.wholeLife > 0 && "text-emerald-600 dark:text-emerald-400"
+                            )}>
+                              {formatCurrency(insurer.wholeLife)}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right text-xs font-mono",
+                              getCellStyle(insurer.endowment, productTotal),
+                              insurer.endowment > 0 && "text-purple-600 dark:text-purple-400"
+                            )}>
+                              {formatCurrency(insurer.endowment)}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right text-xs font-mono",
+                              getCellStyle(insurer.creditLife, productTotal),
+                              insurer.creditLife > 0 && "text-amber-600 dark:text-amber-400"
+                            )}>
+                              {formatCurrency(insurer.creditLife)}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right text-xs font-mono",
+                              getCellStyle(insurer.universalLife, productTotal),
+                              insurer.universalLife > 0 && "text-rose-600 dark:text-rose-400"
+                            )}>
+                              {formatCurrency(insurer.universalLife)}
+                            </TableCell>
+                            <TableCell className={cn(
+                              "text-right text-xs font-mono",
+                              getCellStyle(insurer.groupPolicies, productTotal),
+                              insurer.groupPolicies > 0 && "text-cyan-600 dark:text-cyan-400"
+                            )}>
+                              {formatCurrency(insurer.groupPolicies)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {insurer.topProduct !== '-' ? (
+                                <Badge 
+                                  variant="secondary" 
+                                  className={cn(
+                                    "text-[10px] px-1.5 py-0",
+                                    PRODUCT_COLORS[insurer.topProduct as keyof typeof PRODUCT_COLORS]
+                                  )}
+                                >
+                                  {insurer.topProduct.replace(' Life', '').replace(' Policies', '')}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TooltipProvider>
               </div>
             ) : (
               <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
