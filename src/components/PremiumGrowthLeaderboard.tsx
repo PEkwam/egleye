@@ -162,22 +162,22 @@ export function PremiumGrowthLeaderboard({
                   <TooltipTrigger asChild>
                     <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[280px]">
-                    <div className="space-y-2 text-xs">
-                      <p className="font-semibold">What does this show?</p>
-                      <p>Ranks insurers by their <strong>Gross Premium growth rate</strong> compared to previous periods.</p>
-                      <div className="space-y-1 pt-1 border-t">
-                        <p><strong>QoQ (Quarter-over-Quarter):</strong> Growth vs {prevQuarterLabel}</p>
-                        <p><strong>YoY (Year-over-Year):</strong> Growth vs {prevYearLabel}</p>
+                    <TooltipContent side="right" className="max-w-[300px]">
+                      <div className="space-y-2 text-xs">
+                        <p className="font-semibold">How is ranking determined?</p>
+                        <p>Insurers are <strong>ranked by QoQ Growth %</strong>, not by absolute premium value. Higher percentage growth = higher rank.</p>
+                        <div className="space-y-1 pt-1 border-t">
+                          <p><strong>QoQ (Quarter-over-Quarter):</strong> ((Current − {prevQuarterLabel}) ÷ {prevQuarterLabel}) × 100</p>
+                          <p><strong>YoY (Year-over-Year):</strong> ((Current − {prevYearLabel}) ÷ {prevYearLabel}) × 100</p>
+                        </div>
+                        <p className="text-muted-foreground pt-1">N/A = no comparison data available.</p>
                       </div>
-                      <p className="text-muted-foreground pt-1">N/A means no data available for comparison period.</p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardTitle>
-            <CardDescription>Top performers by quarterly growth</CardDescription>
-          </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
+              <CardDescription>Ranked by QoQ growth rate (not premium size)</CardDescription>
+            </div>
           <Badge variant="outline" className="text-xs">
             Q{selectedQuarter} {selectedYear}
           </Badge>
