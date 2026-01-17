@@ -27,6 +27,9 @@ import { AIInsightsPanel } from '@/components/AIInsightsPanel';
 import { Footer } from '@/components/Footer';
 import { DashboardNavigation } from '@/components/DashboardNavigation';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
+import { PremiumGrowthLeaderboard } from '@/components/PremiumGrowthLeaderboard';
+import { ProductMixTreemap } from '@/components/ProductMixTreemap';
+import { ProfitabilityHeatmap } from '@/components/ProfitabilityHeatmap';
 import { useInsurerMetrics } from '@/hooks/useInsurerMetrics';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
@@ -594,7 +597,25 @@ export default function ExecutiveDashboardPage() {
           </Card>
         )}
 
-        {/* Market Performance Summary - Replaces Quarterly Growth Trends */}
+        {/* New Analytics Section */}
+        <section className="grid lg:grid-cols-2 gap-6">
+          {/* Premium Growth Leaderboard */}
+          <PremiumGrowthLeaderboard 
+            category={selectedCategory}
+            selectedYear={selectedYear}
+            selectedQuarter={selectedQuarter}
+          />
+
+          {/* Profitability Heatmap */}
+          <ProfitabilityHeatmap metrics={metrics} />
+        </section>
+
+        {/* Product Mix Treemap */}
+        <section>
+          <ProductMixTreemap metrics={metrics} />
+        </section>
+
+        {/* Market Performance Summary */}
         <section>
           <MarketPerformanceSummary 
             category={selectedCategory}
