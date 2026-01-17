@@ -34,6 +34,7 @@ export interface PensionFundMetric {
   investment_expense_ratio: number | null;
   market_share: number | null;
   rank_by_aum: number | null;
+  years_in_ghana: number | null;
   report_year: number;
   report_quarter: number | null;
   report_source: string | null;

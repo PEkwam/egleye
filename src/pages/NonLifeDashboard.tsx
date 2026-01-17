@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Car, TrendingUp, Award, BarChart3, PieChart, Calendar, Sparkles, Flame, Shield, Ship, Users } from 'lucide-react';
+import { ArrowLeft, Car, TrendingUp, Award, BarChart3, PieChart, Calendar, Sparkles, Flame, Shield, Ship, Users, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -99,6 +99,13 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const totalRevenue = metrics.reduce((sum, m) => sum + (m.insurance_service_revenue || 0), 0);
   const totalMotor = metrics.reduce((sum, m) => sum + (m.motor_comprehensive || 0) + (m.motor_third_party || 0), 0);
   const topInsurer = metrics[0];
+  
+  // Calculate average years in Ghana
+  const avgYearsInGhana = useMemo(() => {
+    const withYears = metrics.filter(m => m.years_in_ghana && m.years_in_ghana > 0);
+    if (withYears.length === 0) return 0;
+    return withYears.reduce((sum, m) => sum + (m.years_in_ghana || 0), 0) / withYears.length;
+  }, [metrics]);
 
   // Calculate the number of items to show based on filter
   const chartFilterCount = useMemo(() => {
@@ -302,7 +309,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
         />
 
         {/* Key Metrics Cards with Trend Indicators */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -386,7 +393,25 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                     size="sm"
                   />
                 )}
-                <Badge variant="secondary" className="text-xs">Non-Life Sector</Badge>
+              <Badge variant="secondary" className="text-xs">Non-Life Sector</Badge>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Years in Ghana */}
+          <Card className="bg-gradient-to-br from-cyan-500/5 to-cyan-500/10 border-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Avg Years in Ghana</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana.toFixed(0)} yrs</p>
+                </div>
+                <div className="h-11 w-11 rounded-xl bg-cyan-500/15 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-cyan-500" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <Badge variant="secondary" className="text-xs">Industry Experience</Badge>
               </div>
             </CardContent>
           </Card>

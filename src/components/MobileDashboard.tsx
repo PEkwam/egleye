@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Heart, Car, Landmark, Building2, TrendingUp, TrendingDown, 
   DollarSign, Users, ArrowRight, ChevronLeft, ChevronRight,
-  Percent, Shield, Activity
+  Percent, Shield, Activity, Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -125,6 +125,9 @@ export const MobileDashboard = () => {
 
   const nonLifeTotalRevenue = latestNonLifeData.reduce((sum, d) => sum + (d.insurance_service_revenue || 0), 0);
   const nonLifeTopPlayer = latestNonLifeData.sort((a, b) => (b.insurance_service_revenue || 0) - (a.insurance_service_revenue || 0))[0];
+  const nonLifeAvgYears = latestNonLifeData.filter(d => d.years_in_ghana && d.years_in_ghana > 0).length > 0
+    ? latestNonLifeData.filter(d => d.years_in_ghana && d.years_in_ghana > 0).reduce((sum, d) => sum + (d.years_in_ghana || 0), 0) / latestNonLifeData.filter(d => d.years_in_ghana && d.years_in_ghana > 0).length
+    : 0;
 
   const pensionAggregates = pensionData?.reduce((acc, curr) => {
     if (!acc.year || curr.report_year > acc.year) {
@@ -140,6 +143,9 @@ export const MobileDashboard = () => {
 
   const pensionTotalAUM = latestPensionData.reduce((sum, d) => sum + (d.aum || 0), 0);
   const pensionTopPlayer = latestPensionData.sort((a, b) => (b.aum || 0) - (a.aum || 0))[0];
+  const pensionAvgYears = latestPensionData.filter(d => d.years_in_ghana && d.years_in_ghana > 0).length > 0
+    ? latestPensionData.filter(d => d.years_in_ghana && d.years_in_ghana > 0).reduce((sum, d) => sum + (d.years_in_ghana || 0), 0) / latestPensionData.filter(d => d.years_in_ghana && d.years_in_ghana > 0).length
+    : 0;
 
   const brokerAggregates = brokerData?.reduce((acc, curr) => {
     if (!acc.year || curr.report_year > acc.year) {
@@ -180,7 +186,7 @@ export const MobileDashboard = () => {
       metrics: [
         { label: 'Service Revenue', value: formatCurrency(nonLifeTotalRevenue), icon: DollarSign },
         { label: 'Companies', value: String(latestNonLifeData.length), icon: Building2 },
-        { label: 'Avg Claims Ratio', value: `${(latestNonLifeData.reduce((s, d) => s + (d.claims_ratio || 0), 0) / latestNonLifeData.length || 0).toFixed(1)}%`, icon: Percent },
+        { label: 'Avg Years', value: nonLifeAvgYears > 0 ? `${nonLifeAvgYears.toFixed(0)} yrs` : 'N/A', icon: Clock },
       ],
       topPlayer: nonLifeTopPlayer?.insurer_name || 'N/A',
       marketSize: formatCurrency(nonLifeTotalRevenue),
@@ -194,7 +200,7 @@ export const MobileDashboard = () => {
       metrics: [
         { label: 'Total AUM', value: formatCurrency(pensionTotalAUM), icon: DollarSign },
         { label: 'Schemes', value: String(latestPensionData.length), icon: Shield },
-        { label: 'Avg Return', value: `${(latestPensionData.reduce((s, d) => s + (d.investment_return || 0), 0) / latestPensionData.length || 0).toFixed(1)}%`, icon: Activity },
+        { label: 'Avg Years', value: pensionAvgYears > 0 ? `${pensionAvgYears.toFixed(0)} yrs` : 'N/A', icon: Clock },
       ],
       topPlayer: pensionTopPlayer?.fund_name || 'N/A',
       marketSize: formatCurrency(pensionTotalAUM),

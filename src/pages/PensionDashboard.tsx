@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   ArrowLeft, Calendar, Landmark, TrendingUp, Users, 
   DollarSign, PieChart, BarChart3, Building2, 
-  ChevronRight, ExternalLink, Wallet
+  ChevronRight, ExternalLink, Wallet, Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,19 +72,27 @@ export default function PensionDashboard() {
   };
 
   // Industry totals
-  const industryTotals = useMemo(() => ({
-    totalAUM: metrics.reduce((sum, m) => sum + (m.aum || 0), 0),
-    totalContributors: metrics.reduce((sum, m) => sum + (m.total_contributors || 0), 0),
-    totalContributions: metrics.reduce((sum, m) => sum + (m.total_contributions || 0), 0),
-    totalBenefits: metrics.reduce((sum, m) => sum + (m.total_benefits_paid || 0), 0),
-    avgReturn: metrics.filter(m => m.investment_return).length > 0
-      ? metrics.reduce((sum, m) => sum + (m.investment_return || 0), 0) / metrics.filter(m => m.investment_return).length
-      : 0,
-    avgExpenseRatio: metrics.filter(m => m.expense_ratio).length > 0
-      ? metrics.reduce((sum, m) => sum + (m.expense_ratio || 0), 0) / metrics.filter(m => m.expense_ratio).length
-      : 0,
-    fundsCount: metrics.length,
-  }), [metrics]);
+  const industryTotals = useMemo(() => {
+    const withYears = metrics.filter(m => m.years_in_ghana && m.years_in_ghana > 0);
+    const avgYearsInGhana = withYears.length > 0
+      ? withYears.reduce((sum, m) => sum + (m.years_in_ghana || 0), 0) / withYears.length
+      : 0;
+    
+    return {
+      totalAUM: metrics.reduce((sum, m) => sum + (m.aum || 0), 0),
+      totalContributors: metrics.reduce((sum, m) => sum + (m.total_contributors || 0), 0),
+      totalContributions: metrics.reduce((sum, m) => sum + (m.total_contributions || 0), 0),
+      totalBenefits: metrics.reduce((sum, m) => sum + (m.total_benefits_paid || 0), 0),
+      avgReturn: metrics.filter(m => m.investment_return).length > 0
+        ? metrics.reduce((sum, m) => sum + (m.investment_return || 0), 0) / metrics.filter(m => m.investment_return).length
+        : 0,
+      avgExpenseRatio: metrics.filter(m => m.expense_ratio).length > 0
+        ? metrics.reduce((sum, m) => sum + (m.expense_ratio || 0), 0) / metrics.filter(m => m.expense_ratio).length
+        : 0,
+      avgYearsInGhana,
+      fundsCount: metrics.length,
+    };
+  }, [metrics]);
 
   // Top funds by AUM
   const topFundsByAUM = useMemo(() => 
@@ -257,7 +265,7 @@ export default function PensionDashboard() {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {/* Total AUM */}
             <Card className="relative overflow-hidden bg-gradient-to-br from-amber-500/15 via-amber-400/10 to-orange-600/5 border-2 border-amber-500/30 hover:border-amber-500/50 transition-all hover:scale-[1.02]">
               <CardContent className="p-4 relative">
@@ -344,6 +352,21 @@ export default function PensionDashboard() {
                 </div>
                 <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
                   {industryTotals.avgExpenseRatio.toFixed(2)}%
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Avg Years in Ghana */}
+            <Card className="relative overflow-hidden bg-gradient-to-br from-slate-500/15 via-slate-400/10 to-gray-600/5 border-2 border-slate-500/30 hover:border-slate-500/50 transition-all hover:scale-[1.02]">
+              <CardContent className="p-4 relative">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-slate-500 to-gray-600 shadow-lg">
+                    <Clock className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">Avg Years</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-600 dark:text-slate-400">
+                  {industryTotals.avgYearsInGhana > 0 ? `${industryTotals.avgYearsInGhana.toFixed(0)} yrs` : 'N/A'}
                 </p>
               </CardContent>
             </Card>
