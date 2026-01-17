@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Minus, Crown, Medal, Award, Trophy } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Crown, Medal, Award, Trophy, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PremiumGrowthLeaderboardProps {
   category: string;
@@ -142,6 +143,12 @@ export function PremiumGrowthLeaderboard({
     return `GH₵${value.toLocaleString()}`;
   };
 
+  // Calculate previous quarter/year labels
+  const prevQuarterLabel = selectedQuarter === 1 
+    ? `Q4 ${(selectedYear || 0) - 1}` 
+    : `Q${selectedQuarter - 1} ${selectedYear}`;
+  const prevYearLabel = `Q${selectedQuarter} ${(selectedYear || 0) - 1}`;
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
@@ -150,6 +157,24 @@ export function PremiumGrowthLeaderboard({
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-amber-500" />
               Premium Growth Leaderboard
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[280px]">
+                    <div className="space-y-2 text-xs">
+                      <p className="font-semibold">What does this show?</p>
+                      <p>Ranks insurers by their <strong>Gross Premium growth rate</strong> compared to previous periods.</p>
+                      <div className="space-y-1 pt-1 border-t">
+                        <p><strong>QoQ (Quarter-over-Quarter):</strong> Growth vs {prevQuarterLabel}</p>
+                        <p><strong>YoY (Year-over-Year):</strong> Growth vs {prevYearLabel}</p>
+                      </div>
+                      <p className="text-muted-foreground pt-1">N/A means no data available for comparison period.</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </CardTitle>
             <CardDescription>Top performers by quarterly growth</CardDescription>
           </div>
@@ -166,8 +191,30 @@ export function PremiumGrowthLeaderboard({
                 <th className="px-4 py-3 text-left font-medium">#</th>
                 <th className="px-4 py-3 text-left font-medium">Insurer</th>
                 <th className="px-4 py-3 text-right font-medium">Premium</th>
-                <th className="px-4 py-3 text-right font-medium">QoQ Growth</th>
-                <th className="px-4 py-3 text-right font-medium">YoY Growth</th>
+                <th className="px-4 py-3 text-right font-medium">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help underline decoration-dotted">
+                        QoQ
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Quarter-over-Quarter growth vs {prevQuarterLabel}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </th>
+                <th className="px-4 py-3 text-right font-medium">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help underline decoration-dotted">
+                        YoY
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Year-over-Year growth vs {prevYearLabel}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -185,11 +232,28 @@ export function PremiumGrowthLeaderboard({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-medium truncate max-w-[150px] block">
-                      {item.insurer_name.length > 20 
-                        ? item.insurer_name.slice(0, 20) + '...' 
-                        : item.insurer_name}
-                    </span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="font-medium truncate max-w-[150px] block cursor-help">
+                            {item.insurer_name.length > 20 
+                              ? item.insurer_name.slice(0, 20) + '...' 
+                              : item.insurer_name}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="text-xs space-y-1">
+                            <p className="font-semibold">{item.insurer_name}</p>
+                            {item.previousQuarterPremium > 0 && (
+                              <p>Prev Qtr: {formatCurrency(item.previousQuarterPremium)}</p>
+                            )}
+                            {item.previousYearPremium > 0 && (
+                              <p>Same Qtr Last Year: {formatCurrency(item.previousYearPremium)}</p>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-xs">
                     {formatCurrency(item.currentPremium)}

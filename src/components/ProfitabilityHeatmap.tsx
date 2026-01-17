@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Flame, TrendingUp, TrendingDown } from 'lucide-react';
+import { Flame, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +22,7 @@ interface HeatmapCell {
   profitMargin: number;
   profit: number;
   premium: number;
-  intensity: number; // 0-1 scale for color intensity
+  intensity: number;
 }
 
 export function ProfitabilityHeatmap({ metrics }: ProfitabilityHeatmapProps) {
@@ -45,7 +45,6 @@ export function ProfitabilityHeatmap({ metrics }: ProfitabilityHeatmapProps) {
       })
       .sort((a, b) => b.profitMargin - a.profitMargin);
 
-    // Calculate intensity (0-1) based on min/max margins
     if (calculated.length > 0) {
       const margins = calculated.map(c => c.profitMargin);
       const minMargin = Math.min(...margins);
@@ -66,7 +65,7 @@ export function ProfitabilityHeatmap({ metrics }: ProfitabilityHeatmapProps) {
     return `GH₵${value.toLocaleString()}`;
   };
 
-  const getHeatColor = (margin: number, intensity: number) => {
+  const getHeatColor = (margin: number) => {
     if (margin > 15) return 'bg-emerald-500/90 text-white';
     if (margin > 10) return 'bg-emerald-400/80 text-white';
     if (margin > 5) return 'bg-green-400/70 text-white';
@@ -83,7 +82,6 @@ export function ProfitabilityHeatmap({ metrics }: ProfitabilityHeatmapProps) {
   const profitable = heatmapData.filter(d => d.profitMargin > 0).length;
   const unprofitable = heatmapData.filter(d => d.profitMargin <= 0).length;
 
-  // Create a grid layout (4 columns)
   const gridCols = 4;
 
   return (
@@ -94,6 +92,29 @@ export function ProfitabilityHeatmap({ metrics }: ProfitabilityHeatmapProps) {
             <CardTitle className="flex items-center gap-2">
               <Flame className="h-5 w-5 text-orange-500" />
               Profitability Heatmap
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[280px]">
+                    <div className="space-y-2 text-xs">
+                      <p className="font-semibold">What does this show?</p>
+                      <p>Visualizes each insurer's <strong>Profit Margin</strong> as a color-coded heatmap.</p>
+                      <div className="space-y-1 pt-1 border-t">
+                        <p><strong>Profit Margin Formula:</strong></p>
+                        <p className="font-mono bg-muted px-1 rounded">(Profit After Tax ÷ Gross Premium) × 100</p>
+                      </div>
+                      <div className="space-y-1 pt-1 border-t">
+                        <p><strong>Color Scale:</strong></p>
+                        <p>🟢 Green = High profit margin ({">"} 5%)</p>
+                        <p>🟡 Yellow/Amber = Low or break-even</p>
+                        <p>🔴 Red = Operating at a loss</p>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </CardTitle>
             <CardDescription>Profit margins by insurer</CardDescription>
           </div>
@@ -152,7 +173,7 @@ export function ProfitabilityHeatmap({ metrics }: ProfitabilityHeatmapProps) {
                         className={cn(
                           "aspect-square rounded-md flex flex-col items-center justify-center cursor-pointer",
                           "transition-all duration-200 hover:scale-105 hover:shadow-lg",
-                          getHeatColor(cell.profitMargin, cell.intensity)
+                          getHeatColor(cell.profitMargin)
                         )}
                       >
                         <span className="text-[10px] font-medium text-center px-0.5 leading-tight truncate w-full">
@@ -163,20 +184,20 @@ export function ProfitabilityHeatmap({ metrics }: ProfitabilityHeatmapProps) {
                         </span>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-[200px]">
+                    <TooltipContent side="top" className="max-w-[220px]">
                       <div className="space-y-1.5">
                         <p className="font-semibold text-sm">{cell.insurer_name}</p>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                          <span className="text-muted-foreground">Margin:</span>
+                          <span className="text-muted-foreground">Profit Margin:</span>
                           <span className={cn(
                             "font-medium text-right",
                             cell.profitMargin >= 0 ? "text-emerald-600" : "text-red-600"
                           )}>
                             {cell.profitMargin >= 0 ? '+' : ''}{cell.profitMargin.toFixed(1)}%
                           </span>
-                          <span className="text-muted-foreground">Profit:</span>
+                          <span className="text-muted-foreground">Profit After Tax:</span>
                           <span className="font-medium text-right">{formatCurrency(cell.profit)}</span>
-                          <span className="text-muted-foreground">Premium:</span>
+                          <span className="text-muted-foreground">Gross Premium:</span>
                           <span className="font-medium text-right">{formatCurrency(cell.premium)}</span>
                         </div>
                       </div>
