@@ -297,6 +297,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         { key: 'claims_ratio', label: 'Claims Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
         { key: 'expense_ratio', label: 'Expense Ratio', icon: TrendingDown, format: formatPercent, highlight: 'min' as const, unit: '%' },
         { key: 'profit_after_tax', label: 'Profit After Tax', icon: TrendingUp, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
+        { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'N/A', highlight: 'max' as const, unit: 'years' },
       ];
     } else if (insuranceType === 'pension') {
       return [
@@ -306,6 +307,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         { key: 'investment_return', label: 'Investment Return', icon: TrendingUp, format: formatPercent, highlight: 'max' as const, unit: '%' },
         { key: 'expense_ratio', label: 'Expense Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
         { key: 'total_contributors', label: 'Total Contributors', icon: Users, format: (v: number | null) => v ? v.toLocaleString() : 'N/A', highlight: 'max' as const, unit: '' },
+        { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'N/A', highlight: 'max' as const, unit: 'years' },
       ];
     }
     // Life insurance (default)
