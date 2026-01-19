@@ -363,7 +363,7 @@ export default function PensionDashboard() {
                   <div className="p-2 rounded-xl bg-gradient-to-br from-slate-500 to-gray-600 shadow-lg">
                     <Clock className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">Avg Years</span>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">Years in Ghana</span>
                 </div>
                 <p className="text-2xl font-bold text-slate-600 dark:text-slate-400">
                   {industryTotals.avgYearsInGhana > 0 ? `${industryTotals.avgYearsInGhana.toFixed(0)} yrs` : 'N/A'}

@@ -403,7 +403,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Avg Years in Ghana</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years in Ghana</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana.toFixed(0)} yrs</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-cyan-500/15 flex items-center justify-center">
