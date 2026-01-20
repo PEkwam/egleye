@@ -105,7 +105,7 @@ export default function PensionDashboard() {
         fullName: m.fund_name,
         aum: m.aum || 0,
         aumFormatted: formatCurrency(m.aum || 0),
-        marketShare: (m.market_share || 0) * 100, // Convert decimal to percentage
+        marketShare: m.market_share || 0, // Already stored as percentage (e.g., 22 = 22%)
         fill: CHART_COLORS[index % CHART_COLORS.length],
       })),
     [metrics, topCount]
