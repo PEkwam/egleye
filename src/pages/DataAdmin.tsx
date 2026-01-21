@@ -5,6 +5,7 @@ import {
   FileUp, X, Trash2, Newspaper, Building2, Landmark, Image, ImagePlus,
   BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save
 } from 'lucide-react';
+import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -2084,71 +2085,79 @@ const DataAdmin = () => {
 
             {/* News Section */}
             {activeSection === 'news' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Newspaper className="h-5 w-5 text-green-500" />
-                    News Management
-                  </CardTitle>
-                  <CardDescription>Crawl RSS feeds for insurance news and manage articles</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="bg-muted/30">
-                      <CardContent className="p-4 text-center">
-                        <Newspaper className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                        <p className="text-2xl font-bold">{newsCount}</p>
-                        <p className="text-xs text-muted-foreground">Total Articles</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-muted/30">
-                      <CardContent className="p-4 text-center">
-                        <RefreshCw className="h-8 w-8 mx-auto mb-2 text-blue-500" />
-                        <p className="text-lg font-bold">40+</p>
-                        <p className="text-xs text-muted-foreground">RSS Feeds</p>
-                      </CardContent>
-                    </Card>
-                    <Card className="bg-muted/30">
-                      <CardContent className="p-4 text-center">
-                        <Zap className="h-8 w-8 mx-auto mb-2 text-amber-500" />
-                        <p className="text-lg font-bold">8AM/6PM</p>
-                        <p className="text-xs text-muted-foreground">Auto Sync</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Manual Crawl</h4>
-                    <div className="flex flex-wrap gap-3">
-                      <Button onClick={() => handleCrawlNews()} disabled={isCrawlingNews}>
-                        {isCrawlingNews ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                        Crawl All News
-                      </Button>
-                      <Button variant="outline" onClick={() => handleCrawlNews('nic_only')} disabled={isCrawlingNews}>
-                        NIC News Only
-                      </Button>
-                      <Button variant="outline" onClick={() => handleCrawlNews('pension_only')} disabled={isCrawlingNews}>
-                        Pension News Only
-                      </Button>
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Newspaper className="h-5 w-5 text-green-500" />
+                      News Management
+                    </CardTitle>
+                    <CardDescription>Crawl RSS feeds for insurance news and manage articles</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="bg-muted/30">
+                        <CardContent className="p-4 text-center">
+                          <Newspaper className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                          <p className="text-2xl font-bold">{newsCount}</p>
+                          <p className="text-xs text-muted-foreground">Total Articles</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-muted/30">
+                        <CardContent className="p-4 text-center">
+                          <RefreshCw className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                          <p className="text-lg font-bold">40+</p>
+                          <p className="text-xs text-muted-foreground">RSS Feeds</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-muted/30">
+                        <CardContent className="p-4 text-center">
+                          <Zap className="h-8 w-8 mx-auto mb-2 text-amber-500" />
+                          <p className="text-lg font-bold">8AM/6PM</p>
+                          <p className="text-xs text-muted-foreground">Auto Sync</p>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </div>
 
-                  <Separator />
+                    <Separator />
 
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Cleanup</h4>
-                    <div className="flex items-center gap-4">
-                      <Button variant="destructive" onClick={handleCleanupNews} disabled={isCleaningNews}>
-                        {isCleaningNews ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                        Remove Non-Insurance Articles
-                      </Button>
-                      <p className="text-sm text-muted-foreground">Remove sports, entertainment, crypto articles</p>
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Manual Crawl</h4>
+                      <div className="flex flex-wrap gap-3">
+                        <Button onClick={() => handleCrawlNews()} disabled={isCrawlingNews}>
+                          {isCrawlingNews ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                          Crawl All News
+                        </Button>
+                        <Button variant="outline" onClick={() => handleCrawlNews('nic_only')} disabled={isCrawlingNews}>
+                          NIC News Only
+                        </Button>
+                        <Button variant="outline" onClick={() => handleCrawlNews('pension_only')} disabled={isCrawlingNews}>
+                          Pension News Only
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+
+                    <Separator />
+
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Cleanup</h4>
+                      <div className="flex items-center gap-4">
+                        <Button variant="destructive" onClick={handleCleanupNews} disabled={isCleaningNews}>
+                          {isCleaningNews ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                          Remove Non-Insurance Articles
+                        </Button>
+                        <p className="text-sm text-muted-foreground">Remove sports, entertainment, crypto articles</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* News Filters Section */}
+                <NewsFiltersSection 
+                  onTriggerCrawl={handleCrawlNews}
+                  isCrawling={isCrawlingNews}
+                />
+              </div>
             )}
 
             {/* Insurers Section */}
