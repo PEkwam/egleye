@@ -18,7 +18,7 @@ interface NewsArticle {
 }
 
 // Ghana-specific keywords for filtering - COMPREHENSIVE
-const GHANA_KEYWORDS = [
+const DEFAULT_GHANA_KEYWORDS = [
   // Country & cities
   'ghana', 'accra', 'kumasi', 'tema', 'takoradi', 'cape coast',
   // Regulatory
@@ -58,8 +58,8 @@ const BLOCKED_DOMAINS = [
   'jobgurus.com', 'jobberman.com', 'glassdoor.com', 'indeed.com'
 ];
 
-// BLOCKED KEYWORDS - Irrelevant content
-const BLOCKED_KEYWORDS = [
+// DEFAULT BLOCKED KEYWORDS - Irrelevant content (used as fallback)
+const DEFAULT_BLOCKED_KEYWORDS = [
   // Classifieds and commerce
   'for sale', 'buy now', 'apartment for rent', 'house for sale', 'land for sale',
   'property for sale', 'car for sale', 'job vacancy', 'hiring', 'we are recruiting',
@@ -83,8 +83,8 @@ const BLOCKED_KEYWORDS = [
   'entertainment news', 'music video', 'new album', 'movie premiere',
 ];
 
-// INSURANCE-SPECIFIC KEYWORDS - Article must contain at least one
-const INSURANCE_KEYWORDS = [
+// DEFAULT INSURANCE-SPECIFIC KEYWORDS - Article must contain at least one (used as fallback)
+const DEFAULT_INSURANCE_KEYWORDS = [
   // Core insurance terms
   'insurance', 'insurer', 'insurers', 'insured', 'assurance', 'underwriting', 'underwriter',
   'policy', 'policies', 'policyholder', 'premium', 'premiums', 'claims', 'claim',
@@ -150,53 +150,46 @@ const LOCAL_GHANA_FEEDS = [
   // Adom Online
   { url: 'https://www.adomonline.com/feed/', category: 'general', source: 'Adom Online' },
   // Class FM
-  { url: 'https://www.classfmonline.com/rss/news.xml', category: 'general', source: 'Class FM' },
+  { url: 'https://classfmonline.com/feed', category: 'general', source: 'Class FM' },
+  // Ghana Business News
+  { url: 'https://www.ghanabusinessnews.com/feed/', category: 'general', source: 'Ghana Business News' },
 ];
 
-// Google News RSS Feeds for Ghana Insurance (Free, no API key needed)
+// GOOGLE NEWS RSS FEEDS - Insurance-specific searches (No API key required!)
 const GOOGLE_NEWS_RSS_FEEDS = [
   // General Ghana Insurance
   { url: 'https://news.google.com/rss/search?q=ghana+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=ghana+life+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+industry&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=ghana+insurance+claims&hl=en-GH&gl=GH&ceid=GH:en', category: 'claims', source: 'Google News' },
-  
-  // NIC Regulator
-  { url: 'https://news.google.com/rss/search?q=NIC+ghana+insurance+regulator&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=National+Insurance+Commission+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
-  
-  // Enterprise Group & Subsidiaries
-  { url: 'https://news.google.com/rss/search?q=Enterprise+Group+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  // Specific Companies
   { url: 'https://news.google.com/rss/search?q=Enterprise+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Enterprise+Insurance+Company+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Enterprise+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Enterprise+Group+Ghana+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Enterprise+Trustees+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Acacia+Health+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Enterprise+Properties+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Enterprise+Funeral+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=Transitions+Funeral+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Funeral+People+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'enterprise_group', source: 'Google News' },
-  
-  // Life Insurance Companies
-  { url: 'https://news.google.com/rss/search?q=ghana+life+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=SIC+Life+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=StarLife+Assurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=GLICO+Life+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Prudential+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Metropolitan+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Hollard+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Old+Mutual+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'life_insurance', source: 'Google News' },
-  
-  // Non-Life Insurance Companies
-  { url: 'https://news.google.com/rss/search?q=ghana+non+life+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=SIC+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Hollard+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=GLICO+General+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=Star+Assurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'nonlife', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=SIC+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Starlife+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=GLICO+Ghana+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Prudential+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Hollard+Insurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Old+Mutual+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Star+Assurance+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=Metropolitan+Life+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  // Regulator news
+  { url: 'https://news.google.com/rss/search?q=National+Insurance+Commission+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=NIC+Ghana+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=site:nicgh.org&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'NIC Ghana' },
+  { url: 'https://news.google.com/rss/search?q=ghana+insurance+regulation&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=ghana+insurance+circular+directive&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=ghana+insurance+license+compliance&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
 ];
 
-// NIC-specific RSS queries
+// NIC-specific RSS feeds (for nic_only mode)
 const NIC_RSS_FEEDS = [
-  { url: 'https://news.google.com/rss/search?q=NIC+ghana+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=National+Insurance+Commission+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=NIC+Ghana+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=site:nicgh.org&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'NIC Ghana' },
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+regulation&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+circular+directive&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
@@ -220,9 +213,52 @@ const PENSION_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=Axis+Pension+Trust+Ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'pensions', source: 'Google News' },
 ];
 
+// Fetch dynamic keywords from database
+async function fetchDynamicKeywords(supabaseClient: any): Promise<{
+  includeKeywords: string[];
+  excludeKeywords: string[];
+}> {
+  try {
+    const { data: settings, error } = await supabaseClient
+      .from('site_settings')
+      .select('setting_key, setting_value')
+      .in('setting_key', ['news_include_keywords', 'news_exclude_keywords']);
+
+    if (error) {
+      console.error('Error fetching keywords from database:', error);
+      return {
+        includeKeywords: DEFAULT_INSURANCE_KEYWORDS,
+        excludeKeywords: DEFAULT_BLOCKED_KEYWORDS,
+      };
+    }
+
+    const settingsArray = settings as Array<{ setting_key: string; setting_value: string | null }> || [];
+    const includeRow = settingsArray.find(s => s.setting_key === 'news_include_keywords');
+    const excludeRow = settingsArray.find(s => s.setting_key === 'news_exclude_keywords');
+
+    const includeKeywords = includeRow?.setting_value
+      ? includeRow.setting_value.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean)
+      : DEFAULT_INSURANCE_KEYWORDS;
+
+    const excludeKeywords = excludeRow?.setting_value
+      ? excludeRow.setting_value.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean)
+      : DEFAULT_BLOCKED_KEYWORDS;
+
+    console.log(`Loaded ${includeKeywords.length} include keywords and ${excludeKeywords.length} exclude keywords from database`);
+
+    return { includeKeywords, excludeKeywords };
+  } catch (err) {
+    console.error('Error loading keywords:', err);
+    return {
+      includeKeywords: DEFAULT_INSURANCE_KEYWORDS,
+      excludeKeywords: DEFAULT_BLOCKED_KEYWORDS,
+    };
+  }
+}
+
 function isGhanaRelevant(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return GHANA_KEYWORDS.some(keyword => lowerText.includes(keyword));
+  return DEFAULT_GHANA_KEYWORDS.some(keyword => lowerText.includes(keyword));
 }
 
 function isBlockedDomain(url: string): boolean {
@@ -230,32 +266,15 @@ function isBlockedDomain(url: string): boolean {
   return BLOCKED_DOMAINS.some(domain => lowerUrl.includes(domain));
 }
 
-function isBlockedContent(text: string): boolean {
+function isBlockedContent(text: string, excludeKeywords: string[]): boolean {
   const lowerText = text.toLowerCase();
-  return BLOCKED_KEYWORDS.some(keyword => lowerText.includes(keyword));
+  return excludeKeywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
 }
 
 // Article should be about insurance/pensions
-function isInsuranceRelated(text: string): boolean {
+function isInsuranceRelated(text: string, includeKeywords: string[]): boolean {
   const lowerText = text.toLowerCase();
-  
-  // Strong keywords - if any of these appear, the article is relevant
-  const strongKeywords = [
-    'insurance', 'insurer', 'insurers', 'assurance', 'underwriting', 'underwriter',
-    'premium', 'premiums', 'policyholder', 'claims', 'claim',
-    'enterprise life', 'enterprise insurance', 'enterprise group', 'enterprise trustees',
-    'enterprise properties', 'enterprise property', 'enterprise funeral', 'acacia health',
-    'transitions funeral', 'funeral people', 'transitions ghana',
-    'sic life', 'sic insurance', 'starlife', 'star life', 'star assurance',
-    'glico', 'prudential', 'hollard', 'old mutual', 'allianz', 'metropolitan life',
-    'national insurance commission', 'nicgh', 'nic ghana',
-    'pension', 'pensions', 'pensioner', 'ssnit', 'npra', 'trustee', 'trustees',
-    'reinsurance', 'bancassurance', 'microinsurance',
-    'motor third party', 'comprehensive cover', 'fire insurance', 'marine insurance',
-    'best assurance', 'vanguard assurance', 'donewell', 'quality life', 'beige assure'
-  ];
-  
-  return strongKeywords.some(keyword => lowerText.includes(keyword));
+  return includeKeywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
 }
 
 function isRegulatorNews(text: string): boolean {
@@ -282,7 +301,13 @@ function extractDomain(url: string): string {
 }
 
 // Parse RSS XML using regex
-function parseRSS(xml: string, defaultCategory: string, sourceName: string): NewsArticle[] {
+function parseRSS(
+  xml: string, 
+  defaultCategory: string, 
+  sourceName: string,
+  includeKeywords: string[],
+  excludeKeywords: string[]
+): NewsArticle[] {
   const articles: NewsArticle[] = [];
   
   try {
@@ -323,14 +348,14 @@ function parseRSS(xml: string, defaultCategory: string, sourceName: string): New
         return;
       }
 
-      // BLOCK irrelevant content
-      if (isBlockedContent(fullText)) {
+      // BLOCK irrelevant content using dynamic exclude keywords
+      if (isBlockedContent(fullText, excludeKeywords)) {
         console.log(`Blocking irrelevant content: ${title.slice(0, 50)}...`);
         return;
       }
       
-      // STRICT: Must be insurance/pension related
-      if (!isInsuranceRelated(fullText)) {
+      // STRICT: Must be insurance/pension related using dynamic include keywords
+      if (!isInsuranceRelated(fullText, includeKeywords)) {
         console.log(`Skipping non-insurance article: ${title.slice(0, 50)}...`);
         return;
       }
@@ -348,74 +373,81 @@ function parseRSS(xml: string, defaultCategory: string, sourceName: string): New
       // Pension news takes priority
       if (lowerText.includes('pension') || lowerText.includes('pensioner') || 
           lowerText.includes('ssnit') || lowerText.includes('npra') ||
-          lowerText.includes('national pensions regulatory') ||
-          lowerText.includes('tier 1') || lowerText.includes('tier 2') || lowerText.includes('tier 3') ||
-          lowerText.includes('provident fund') || lowerText.includes('retirement benefit') ||
-          lowerText.includes('enterprise trustees') || lowerText.includes('petra trust') ||
-          lowerText.includes('axis pension') || lowerText.includes('pensions alliance') ||
-          lowerText.includes('dalex pension') || lowerText.includes('ecobank pension') ||
-          lowerText.includes('stanbic pension') || lowerText.includes('glico pension')) {
+          lowerText.includes('tier 2') || lowerText.includes('tier 3') ||
+          lowerText.includes('provident fund')) {
         category = 'pensions';
-      } else if (isRegulatorNews(fullText)) {
-        category = 'regulator';
-      } else if (lowerText.includes('enterprise group') || lowerText.includes('enterprise life') || 
-                 lowerText.includes('enterprise insurance') || lowerText.includes('enterprise trustees') ||
-                 lowerText.includes('enterprise properties') || lowerText.includes('enterprise funeral') ||
-                 lowerText.includes('acacia health') || lowerText.includes('acacia insurance') ||
-                 lowerText.includes('transitions ghana') || lowerText.includes('egl') || lowerText.includes('eic')) {
-        category = 'enterprise_group';
-      } else if (lowerText.includes('claim') || lowerText.includes('payout') || lowerText.includes('settlement')) {
-        category = 'claims';
-      } else if (lowerText.includes('motor') || lowerText.includes('vehicle') || 
-                 lowerText.includes('car insurance') || lowerText.includes('third party') ||
-                 lowerText.includes('property insurance') || lowerText.includes('marine') ||
-                 lowerText.includes('non-life') || lowerText.includes('general insurance')) {
-        category = 'nonlife';
-      } else if (lowerText.includes('life insurance') || lowerText.includes('life assurance') ||
-                 lowerText.includes('term life') || lowerText.includes('whole life')) {
-        category = 'life_insurance';
       }
+      // Enterprise Group news
+      else if (lowerText.includes('enterprise life') || lowerText.includes('enterprise insurance') ||
+               lowerText.includes('enterprise group') || lowerText.includes('enterprise trustees') ||
+               lowerText.includes('enterprise properties') || lowerText.includes('enterprise property') ||
+               lowerText.includes('acacia health') || lowerText.includes('transitions funeral') ||
+               lowerText.includes('funeral people') || lowerText.includes('transitions ghana') ||
+               lowerText.includes('enterprise funeral')) {
+        category = 'enterprise_group';
+      }
+      // Regulator news
+      else if (isRegulatorNews(fullText)) {
+        category = 'regulator';
+      }
+
+      // Format pubDate
+      let formattedDate: string;
+      try {
+        const parsedDate = new Date(pubDate);
+        formattedDate = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+      } catch {
+        formattedDate = new Date().toISOString();
+      }
+
+      // Determine source name
+      const finalSourceName = sourceName || extractDomain(link);
 
       articles.push({
         title: title.slice(0, 500),
         description: description || null,
         content: null,
         source_url: link,
-        source_name: sourceName,
+        source_name: finalSourceName,
         image_url: imageUrl,
         category,
-        is_featured: category === 'regulator' || category === 'enterprise_group',
-        published_at: new Date(pubDate).toISOString() || new Date().toISOString(),
+        is_featured: false,
+        published_at: formattedDate,
       });
     });
-  } catch (error) {
-    console.error('Error parsing RSS:', error);
+  } catch (parseError) {
+    console.error('Error parsing RSS:', parseError);
   }
 
   return articles;
 }
 
-// Fetch RSS feed
-async function fetchRSSFeed(feedUrl: string, category: string, sourceName: string): Promise<NewsArticle[]> {
+async function fetchRSSFeed(
+  feedUrl: string, 
+  category: string, 
+  sourceName: string,
+  includeKeywords: string[],
+  excludeKeywords: string[]
+): Promise<NewsArticle[]> {
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
     
     const response = await fetch(feedUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; GhanaInsureWatch/1.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; GhanaInsuranceNewsBot/1.0)',
         'Accept': 'application/rss+xml, application/xml, text/xml, */*',
       },
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch RSS: ${response.status}`);
+      console.error(`RSS fetch failed for ${sourceName}: ${response.status}`);
       return [];
     }
 
     const xml = await response.text();
-    return parseRSS(xml, category, sourceName);
+    return parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
   } catch (error) {
-    console.error(`Error fetching RSS:`, error);
+    console.error(`Error fetching RSS from ${sourceName}:`, error);
     return [];
   }
 }
@@ -430,12 +462,16 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch dynamic keywords from database
+    const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
+
     // Check mode from query params
     const url = new URL(req.url);
     const nicOnly = url.searchParams.get('nic_only') === 'true';
     const pensionOnly = url.searchParams.get('pension_only') === 'true';
 
     console.log(`Starting Ghana insurance news crawl... Mode: ${nicOnly ? 'NIC-only' : pensionOnly ? 'Pension-only' : 'Full'} (RSS-only)`);
+    console.log(`Using ${includeKeywords.length} include keywords and ${excludeKeywords.length} exclude keywords`);
 
     const allArticles: NewsArticle[] = [];
     let feedsToProcess: typeof LOCAL_GHANA_FEEDS = [];
@@ -454,7 +490,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < feedsToProcess.length; i += batchSize) {
       const batch = feedsToProcess.slice(i, i + batchSize);
       const results = await Promise.all(
-        batch.map(feed => fetchRSSFeed(feed.url, feed.category, feed.source))
+        batch.map(feed => fetchRSSFeed(feed.url, feed.category, feed.source, includeKeywords, excludeKeywords))
       );
       results.forEach(articles => allArticles.push(...articles));
       
@@ -506,6 +542,10 @@ Deno.serve(async (req) => {
         feedsProcessed: feedsToProcess.length,
         mode: modeLabel,
         sources: 'RSS only (Local Ghana feeds + Google News RSS)',
+        filters: {
+          includeKeywords: includeKeywords.length,
+          excludeKeywords: excludeKeywords.length,
+        },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, X, Search, Filter, Tag, Ban, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, X, Search, Filter, Tag, Ban, RefreshCw, Download, Upload, FileJson, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -16,12 +17,20 @@ interface NewsFiltersSectionProps {
   isCrawling?: boolean;
 }
 
+interface KeywordsExport {
+  version: string;
+  exportedAt: string;
+  includeKeywords: string[];
+  excludeKeywords: string[];
+}
+
 export function NewsFiltersSection({ onTriggerCrawl, isCrawling }: NewsFiltersSectionProps) {
   const queryClient = useQueryClient();
   const [newIncludeKeyword, setNewIncludeKeyword] = useState('');
   const [newExcludeKeyword, setNewExcludeKeyword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch include keywords from database
   const { data: includeKeywordsData } = useQuery({
@@ -133,6 +142,97 @@ export function NewsFiltersSection({ onTriggerCrawl, isCrawling }: NewsFiltersSe
     }
   };
 
+  // Export to JSON
+  const handleExportJSON = () => {
+    const exportData: KeywordsExport = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      includeKeywords,
+      excludeKeywords,
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `news-filters-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Keywords exported as JSON');
+  };
+
+  // Export to CSV
+  const handleExportCSV = () => {
+    const csvRows = [
+      'type,keyword',
+      ...includeKeywords.map(k => `include,"${k}"`),
+      ...excludeKeywords.map(k => `exclude,"${k}"`),
+    ];
+    
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `news-filters-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Keywords exported as CSV');
+  };
+
+  // Import from file
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      let newInclude: string[] = [];
+      let newExclude: string[] = [];
+
+      if (file.name.endsWith('.json')) {
+        // Parse JSON
+        const data = JSON.parse(text) as KeywordsExport;
+        if (data.includeKeywords) newInclude = data.includeKeywords;
+        if (data.excludeKeywords) newExclude = data.excludeKeywords;
+      } else if (file.name.endsWith('.csv')) {
+        // Parse CSV
+        const lines = text.split('\n').slice(1); // Skip header
+        lines.forEach(line => {
+          const match = line.match(/^(include|exclude),"?([^"]*)"?$/);
+          if (match) {
+            const [, type, keyword] = match;
+            if (type === 'include') newInclude.push(keyword.trim().toLowerCase());
+            else if (type === 'exclude') newExclude.push(keyword.trim().toLowerCase());
+          }
+        });
+      } else {
+        throw new Error('Unsupported file format. Use JSON or CSV.');
+      }
+
+      // Merge with existing (avoiding duplicates)
+      const mergedInclude = [...new Set([...includeKeywords, ...newInclude])];
+      const mergedExclude = [...new Set([...excludeKeywords, ...newExclude])];
+
+      setIncludeKeywords(mergedInclude);
+      setExcludeKeywords(mergedExclude);
+      
+      await saveKeywords('include', mergedInclude);
+      await saveKeywords('exclude', mergedExclude);
+
+      toast.success(`Imported ${newInclude.length} include and ${newExclude.length} exclude keywords`);
+    } catch (err) {
+      console.error('Import error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to import keywords');
+    }
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const filteredIncludeKeywords = includeKeywords.filter(k => 
     k.toLowerCase().includes(searchFilter.toLowerCase())
   );
@@ -151,13 +251,54 @@ export function NewsFiltersSection({ onTriggerCrawl, isCrawling }: NewsFiltersSe
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-primary" />
-          News Filters & Keywords
-        </CardTitle>
-        <CardDescription>
-          Manage keywords to include or exclude from news search. Click on a keyword to add it and search for relevant news.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-primary" />
+              News Filters & Keywords
+            </CardTitle>
+            <CardDescription>
+              Manage keywords to include or exclude from news search. Changes are synced with the news crawler.
+            </CardDescription>
+          </div>
+          
+          {/* Import/Export Dropdown */}
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.csv"
+              onChange={handleImport}
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              Import
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportJSON}>
+                  <FileJson className="h-4 w-4 mr-2" />
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Quick Search Filter */}
