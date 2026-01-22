@@ -6,6 +6,7 @@ import {
   BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save
 } from 'lucide-react';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
+import { PensionDataManager } from '@/components/admin/PensionDataManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -2453,87 +2454,7 @@ const DataAdmin = () => {
 
             {/* Pension Section */}
             {activeSection === 'pension' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Landmark className="h-5 w-5 text-amber-500" />
-                    Import NPRA Pension Data
-                  </CardTitle>
-                  <CardDescription>Import pension fund metrics from NPRA Annual Reports</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Current Status */}
-                  <div className="p-4 bg-amber-500/5 rounded-lg border border-amber-500/20">
-                    <h4 className="font-medium flex items-center gap-2 mb-3">
-                      <Database className="h-4 w-4 text-amber-500" />
-                      Current Pension Data
-                    </h4>
-                    {pensionMetrics.length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="p-3 bg-background rounded-md border text-center">
-                          <p className="text-lg font-bold">{pensionMetrics.length}</p>
-                          <p className="text-xs text-muted-foreground">Total Funds</p>
-                        </div>
-                        <div className="p-3 bg-background rounded-md border text-center">
-                          <p className="text-lg font-bold">{pensionMetrics.filter(p => p.fund_type === 'Tier 1').length}</p>
-                          <p className="text-xs text-muted-foreground">Tier 1</p>
-                        </div>
-                        <div className="p-3 bg-background rounded-md border text-center">
-                          <p className="text-lg font-bold">{pensionMetrics.filter(p => p.fund_type === 'Tier 2').length}</p>
-                          <p className="text-xs text-muted-foreground">Tier 2</p>
-                        </div>
-                        <div className="p-3 bg-background rounded-md border text-center">
-                          <p className="text-lg font-bold">{pensionMetrics.filter(p => p.fund_type === 'Tier 3').length}</p>
-                          <p className="text-xs text-muted-foreground">Tier 3</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-amber-600">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="text-sm">No pension data imported yet</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* File Upload */}
-                  <div className="space-y-2">
-                    <Label>Upload NPRA PDF or Excel File</Label>
-                    <div className="flex items-center gap-4">
-                      <input ref={pensionFileInputRef} type="file" accept=".pdf,.xlsx,.xls" onChange={handlePensionFileChange} className="hidden" />
-                      <Button variant="outline" onClick={() => pensionFileInputRef.current?.click()} disabled={isParsingPensionFile} className="flex-1 border-amber-500/30 hover:bg-amber-500/10">
-                        {isParsingPensionFile ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Parsing...</> : <><FileUp className="h-4 w-4 mr-2" />Choose NPRA File</>}
-                      </Button>
-                      {pensionUploadedFileName && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 rounded-md">
-                          <FileSpreadsheet className="h-4 w-4 text-amber-500" />
-                          <span className="text-sm truncate max-w-[200px]">{pensionUploadedFileName}</span>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={clearPensionFile}><X className="h-3 w-3" /></Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Import from pre-extracted data */}
-                  <div className="flex items-center gap-4">
-                    <div className="space-y-2 flex-1">
-                      <Label>Report Year</Label>
-                      <Select value={pensionImportYear} onValueChange={setPensionImportYear}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="2024">2024</SelectItem>
-                          <SelectItem value="2023">2023</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex-1">
-                      <Label className="invisible">Action</Label>
-                      <Button onClick={handleImportPensionData} disabled={isImportingPension} className="w-full bg-amber-600 hover:bg-amber-700">
-                        {isImportingPension ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Importing...</> : <><Upload className="h-4 w-4 mr-2" />Import {pensionImportYear} Data</>}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <PensionDataManager />
             )}
 
             {/* Site Settings Section */}
