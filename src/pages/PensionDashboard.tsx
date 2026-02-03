@@ -38,11 +38,10 @@ const CHART_COLORS = [
 ];
 
 const FUND_TYPE_LABELS: Record<string, string> = {
-  tier1_ssnit: 'Tier 1 (SSNIT)',
-  tier2: 'Tier 2 (Occupational)',
-  tier3_provident: 'Tier 3 (Provident)',
-  tier3_personal: 'Tier 3 (Personal)',
-  all: 'All Fund Types',
+  'Tier 1': 'Tier 1 (SSNIT)',
+  'Tier 2': 'Tier 2 (Occupational)',
+  'Tier 3': 'Tier 3 (Voluntary)',
+  'all': 'All Fund Types',
 };
 
 export default function PensionDashboard() {
@@ -184,10 +183,9 @@ export default function PensionDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="tier1_ssnit">Tier 1</SelectItem>
-                  <SelectItem value="tier2">Tier 2</SelectItem>
-                  <SelectItem value="tier3_provident">Tier 3 Prov</SelectItem>
-                  <SelectItem value="tier3_personal">Tier 3 Pers</SelectItem>
+                  <SelectItem value="Tier 1">Tier 1</SelectItem>
+                  <SelectItem value="Tier 2">Tier 2</SelectItem>
+                  <SelectItem value="Tier 3">Tier 3</SelectItem>
                 </SelectContent>
               </Select>
 
