@@ -57,6 +57,8 @@ export function PrivatePensionSection({ metrics = [] }: PrivatePensionSectionPro
       .sort((a, b) => (b.aum || 0) - (a.aum || 0))
       .slice(0, 8);
     
+    const tier2Total = tier2Funds.reduce((sum, m) => sum + (m.aum || 0), 0);
+    
     if (tier2Funds.length === 0) {
       // Fallback static data
       return [
@@ -69,15 +71,20 @@ export function PrivatePensionSection({ metrics = [] }: PrivatePensionSectionPro
       ];
     }
     
-    return tier2Funds.map((t, i) => ({
-      name: (t.trustee_name || t.fund_name).length > 15 
-        ? (t.trustee_name || t.fund_name).slice(0, 15) + '...' 
-        : (t.trustee_name || t.fund_name),
-      fullName: t.trustee_name || t.fund_name,
-      aum: (t.aum || 0) / 1e9,
-      marketShare: t.market_share || 0,
-      fill: CHART_COLORS[i % CHART_COLORS.length],
-    }));
+    return tier2Funds.map((t, i) => {
+      // Calculate tier-specific market share
+      const tierMarketShare = tier2Total > 0 ? ((t.aum || 0) / tier2Total) * 100 : 0;
+      
+      return {
+        name: (t.trustee_name || t.fund_name).length > 15 
+          ? (t.trustee_name || t.fund_name).slice(0, 15) + '...' 
+          : (t.trustee_name || t.fund_name),
+        fullName: t.trustee_name || t.fund_name,
+        aum: (t.aum || 0) / 1e9,
+        marketShare: Math.round(tierMarketShare * 10) / 10, // Calculated tier-specific share
+        fill: CHART_COLORS[i % CHART_COLORS.length],
+      };
+    });
   }, [metrics]);
 
   // Tier split data from database
