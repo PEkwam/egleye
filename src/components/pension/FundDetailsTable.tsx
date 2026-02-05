@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Building2, TrendingUp, TrendingDown } from 'lucide-react';
+ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+ import { Building2, TrendingUp, TrendingDown } from 'lucide-react';
+ import { ScrollArea } from '@/components/ui/scroll-area';
 import { PensionFundMetric } from '@/hooks/usePensionMetrics';
 
 interface FundDetailsTableProps {
@@ -35,13 +36,14 @@ export function FundDetailsTable({ metrics }: FundDetailsTableProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <ScrollArea className="w-full">
+          <div className="min-w-[600px]">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Fund Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Trustee</TableHead>
+                <TableHead className="min-w-[140px] sm:min-w-[200px]">Fund Name</TableHead>
+                <TableHead className="min-w-[60px]">Type</TableHead>
+                <TableHead className="min-w-[100px] hidden sm:table-cell">Trustee</TableHead>
                 <TableHead className="text-right">AUM</TableHead>
                 <TableHead className="text-right">Market Share</TableHead>
                 <TableHead className="text-right">Return</TableHead>
@@ -52,7 +54,7 @@ export function FundDetailsTable({ metrics }: FundDetailsTableProps) {
               {sortedMetrics.map((fund) => (
                 <TableRow key={fund.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">
-                    <div className="max-w-[200px] truncate" title={fund.fund_name}>
+                    <div className="max-w-[140px] sm:max-w-[200px] truncate text-xs sm:text-sm" title={fund.fund_name}>
                       {fund.fund_name}
                     </div>
                   </TableCell>
@@ -68,10 +70,10 @@ export function FundDetailsTable({ metrics }: FundDetailsTableProps) {
                       {FUND_TYPE_LABELS[fund.fund_type] || fund.fund_type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground text-xs sm:text-sm hidden sm:table-cell">
                     {fund.trustee_name || '-'}
                   </TableCell>
-                  <TableCell className="text-right font-medium">
+                  <TableCell className="text-right font-medium text-xs sm:text-sm">
                     {fund.aum ? formatCurrency(fund.aum) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
@@ -104,7 +106,8 @@ export function FundDetailsTable({ metrics }: FundDetailsTableProps) {
               ))}
             </TableBody>
           </Table>
-        </div>
+          </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );

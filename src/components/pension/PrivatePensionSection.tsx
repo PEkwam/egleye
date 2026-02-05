@@ -1,22 +1,22 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  DollarSign, Building2, Users, TrendingUp, Landmark, 
-  PieChart, BarChart3, Wallet
-} from 'lucide-react';
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
-  CartesianGrid, Tooltip, Cell, Legend
-} from 'recharts';
-import { PieChart as RechartsPie, Pie } from 'recharts';
-import { 
-  PRIVATE_PENSION_2024, 
-  CORPORATE_TRUSTEES, 
-  FUND_CUSTODIANS, 
-  ASSET_ALLOCATION,
-  TIER_SPLIT 
-} from './data';
-import { CHART_COLORS } from './types';
+ import { useMemo } from 'react';
+ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+ import { Badge } from '@/components/ui/badge';
+ import { 
+   DollarSign, Building2, Users, TrendingUp, Landmark, 
+   PieChart, BarChart3, Wallet
+ } from 'lucide-react';
+ import {
+   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
+   CartesianGrid, Tooltip, Cell, Legend
+ } from 'recharts';
+ import { PieChart as RechartsPie, Pie } from 'recharts';
+ import { PensionFundMetric } from '@/hooks/usePensionMetrics';
+ import { FUND_CUSTODIANS, ASSET_ALLOCATION } from './data';
+ import { CHART_COLORS } from './types';
+
+interface PrivatePensionSectionProps {
+  metrics?: PensionFundMetric[];
+}
 
 const formatCurrency = (value: number) => {
   if (value >= 1e9) return `GH₵${(value / 1e9).toFixed(2)}B`;
@@ -24,15 +24,67 @@ const formatCurrency = (value: number) => {
   return `GH₵${value.toLocaleString()}`;
 };
 
-export function PrivatePensionSection() {
-  // Prepare chart data
-  const trusteesChartData = CORPORATE_TRUSTEES.map((t, i) => ({
-    name: t.name.length > 15 ? t.name.slice(0, 15) + '...' : t.name,
-    fullName: t.name,
-    aum: t.aum,
-    marketShare: t.marketShare,
-    fill: CHART_COLORS[i % CHART_COLORS.length],
-  }));
+export function PrivatePensionSection({ metrics = [] }: PrivatePensionSectionProps) {
+  // Calculate totals from database
+  const totals = useMemo(() => {
+    const tier2Funds = metrics.filter(m => m.fund_type === 'Tier 2');
+    const tier3Funds = metrics.filter(m => m.fund_type === 'Tier 3');
+    
+    const tier2AUM = tier2Funds.reduce((sum, m) => sum + (m.aum || 0), 0);
+    const tier3AUM = tier3Funds.reduce((sum, m) => sum + (m.aum || 0), 0);
+    const totalAUM = tier2AUM + tier3AUM;
+    
+    return {
+      totalAssets: totalAUM || 63880000000, // Fallback to NPRA 2024
+      tier2AUM,
+      tier3AUM,
+      tier2Share: totalAUM > 0 ? (tier2AUM / totalAUM) * 100 : 28,
+      tier3Share: totalAUM > 0 ? (tier3AUM / totalAUM) * 100 : 72,
+      tier2Count: tier2Funds.length || 12,
+      tier3Count: tier3Funds.length || 6,
+      corporateTrustees: 23,
+      fundCustodians: 18,
+      pensionFundManagers: 37,
+      registeredSchemes: 218,
+      benefitsPaid: 1300000000,
+    };
+  }, [metrics]);
+
+  // Get trustees from database
+  const trusteesChartData = useMemo(() => {
+    const tier2Funds = metrics
+      .filter(m => m.fund_type === 'Tier 2' && m.aum)
+      .sort((a, b) => (b.aum || 0) - (a.aum || 0))
+      .slice(0, 8);
+    
+    if (tier2Funds.length === 0) {
+      // Fallback static data
+      return [
+        { name: 'Enterprise Trustees', fullName: 'Enterprise Trustees', aum: 3.98, marketShare: 22.23, fill: CHART_COLORS[0] },
+        { name: 'GLICO Pensions', fullName: 'GLICO Pensions', aum: 3.22, marketShare: 18.01, fill: CHART_COLORS[1] },
+        { name: 'Pensions Alliance', fullName: 'Pensions Alliance Trust', aum: 2.69, marketShare: 15.01, fill: CHART_COLORS[2] },
+        { name: 'Petra Trust', fullName: 'Petra Trust Company', aum: 2.15, marketShare: 12.01, fill: CHART_COLORS[3] },
+        { name: 'Axis Pension', fullName: 'Axis Pension Trust', aum: 1.79, marketShare: 10.01, fill: CHART_COLORS[4] },
+        { name: 'Metropolitan', fullName: 'Metropolitan Pensions Trust', aum: 1.43, marketShare: 8.01, fill: CHART_COLORS[5] },
+      ];
+    }
+    
+    return tier2Funds.map((t, i) => ({
+      name: (t.trustee_name || t.fund_name).length > 15 
+        ? (t.trustee_name || t.fund_name).slice(0, 15) + '...' 
+        : (t.trustee_name || t.fund_name),
+      fullName: t.trustee_name || t.fund_name,
+      aum: (t.aum || 0) / 1e9,
+      marketShare: t.market_share || 0,
+      fill: CHART_COLORS[i % CHART_COLORS.length],
+    }));
+  }, [metrics]);
+
+  // Tier split data from database
+  const tierSplitData = useMemo(() => [
+    { name: 'Tier 2 (Occupational)', value: Math.round(totals.tier2Share), fill: CHART_COLORS[1] },
+    { name: 'Tier 3 (Voluntary)', value: Math.round(totals.tier3Share), fill: CHART_COLORS[2] },
+  ], [totals]);
 
   const custodiansChartData = FUND_CUSTODIANS.map((c, i) => ({
     ...c,
@@ -42,7 +94,7 @@ export function PrivatePensionSection() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             Private Pension Funds - Tier 2 & 3
@@ -53,20 +105,20 @@ export function PrivatePensionSection() {
         </div>
         <Badge variant="outline" className="gap-1">
           <Landmark className="h-3 w-3" />
-          GH₵63.88B Total AUM
+          {formatCurrency(totals.totalAssets)} Total AUM
         </Badge>
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <Card className="bg-gradient-to-br from-amber-500/15 to-orange-500/5 border-amber-500/30">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-medium text-muted-foreground">Total Assets</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Total Assets</span>
             </div>
             <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
-              {formatCurrency(PRIVATE_PENSION_2024.totalAssets)}
+              {formatCurrency(totals.totalAssets)}
             </p>
           </CardContent>
         </Card>
@@ -75,10 +127,10 @@ export function PrivatePensionSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Building2 className="h-4 w-4 text-blue-500" />
-              <span className="text-xs font-medium text-muted-foreground">Corporate Trustees</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Trustees</span>
             </div>
             <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-              {PRIVATE_PENSION_2024.corporateTrustees}
+              {totals.corporateTrustees}
             </p>
           </CardContent>
         </Card>
@@ -87,10 +139,10 @@ export function PrivatePensionSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Landmark className="h-4 w-4 text-emerald-500" />
-              <span className="text-xs font-medium text-muted-foreground">Fund Custodians</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Custodians</span>
             </div>
             <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {PRIVATE_PENSION_2024.fundCustodians}
+              {totals.fundCustodians}
             </p>
           </CardContent>
         </Card>
@@ -99,10 +151,10 @@ export function PrivatePensionSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-4 w-4 text-purple-500" />
-              <span className="text-xs font-medium text-muted-foreground">Fund Managers</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Managers</span>
             </div>
             <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-              {PRIVATE_PENSION_2024.pensionFundManagers}
+              {totals.pensionFundManagers}
             </p>
           </CardContent>
         </Card>
@@ -111,10 +163,10 @@ export function PrivatePensionSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Wallet className="h-4 w-4 text-rose-500" />
-              <span className="text-xs font-medium text-muted-foreground">Benefits Paid</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Benefits</span>
             </div>
             <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
-              {formatCurrency(PRIVATE_PENSION_2024.benefitsPaid)}
+              {formatCurrency(totals.benefitsPaid)}
             </p>
           </CardContent>
         </Card>
@@ -123,17 +175,17 @@ export function PrivatePensionSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-cyan-500" />
-              <span className="text-xs font-medium text-muted-foreground">Registered Schemes</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Schemes</span>
             </div>
             <p className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
-              {PRIVATE_PENSION_2024.registeredSchemes}
+              {totals.registeredSchemes}
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tier Split & Asset Allocation */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
         {/* Tier 2 vs Tier 3 Split */}
         <Card>
           <CardHeader>
@@ -144,11 +196,11 @@ export function PrivatePensionSection() {
             <CardDescription>Tier 2 (Occupational) vs Tier 3 (Voluntary)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <ResponsiveContainer width="50%" height={220}>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <ResponsiveContainer width="100%" height={180} className="sm:max-w-[200px]">
                 <RechartsPie>
                   <Pie
-                    data={TIER_SPLIT}
+                    data={tierSplitData}
                     cx="50%"
                     cy="50%"
                     innerRadius={50}
@@ -156,15 +208,15 @@ export function PrivatePensionSection() {
                     paddingAngle={3}
                     dataKey="value"
                   >
-                    {TIER_SPLIT.map((entry, index) => (
+                    {tierSplitData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => `${value}%`} />
                 </RechartsPie>
               </ResponsiveContainer>
-              <div className="flex-1 space-y-4">
-                {TIER_SPLIT.map((item) => (
+              <div className="flex-1 space-y-3 w-full sm:w-auto">
+                {tierSplitData.map((item) => (
                   <div key={item.name} className="flex items-center gap-3">
                     <div 
                       className="w-4 h-4 rounded-full shrink-0" 
@@ -191,7 +243,7 @@ export function PrivatePensionSection() {
             <CardDescription>Investment distribution of private pension funds</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={200}>
               <RechartsPie>
                 <Pie
                   data={ASSET_ALLOCATION}
@@ -221,7 +273,7 @@ export function PrivatePensionSection() {
       </div>
 
       {/* Corporate Trustees & Fund Custodians */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
         {/* Corporate Trustees by AUM */}
         <Card>
           <CardHeader>
@@ -232,15 +284,15 @@ export function PrivatePensionSection() {
             <CardDescription>Master Trust Schemes (GH₵ Billions)</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={trusteesChartData} layout="vertical" margin={{ left: 10 }}>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={trusteesChartData} layout="vertical" margin={{ left: 5, right: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" tickFormatter={(v) => `${v}B`} tick={{ fontSize: 11 }} />
                 <YAxis 
                   type="category" 
                   dataKey="name" 
-                  width={100} 
-                  tick={{ fontSize: 10 }} 
+                  width={80} 
+                  tick={{ fontSize: 9 }} 
                 />
                 <Tooltip
                   formatter={(value: number, name: string) => {
@@ -273,7 +325,7 @@ export function PrivatePensionSection() {
             <CardDescription>Market share of custodian banks</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={280}>
               <RechartsPie>
                 <Pie
                   data={custodiansChartData}

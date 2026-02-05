@@ -170,12 +170,12 @@ export default function PensionDashboard() {
 
           {/* SSNIT Tab */}
           <TabsContent value="ssnit" className="space-y-6">
-            <SSNITSection />
+            <SSNITSection metrics={metrics} />
           </TabsContent>
 
           {/* Private Pension Tab */}
           <TabsContent value="private" className="space-y-6">
-            <PrivatePensionSection />
+            <PrivatePensionSection metrics={metrics} />
           </TabsContent>
 
           {/* Details Tab */}

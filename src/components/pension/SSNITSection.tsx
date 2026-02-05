@@ -1,15 +1,21 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  DollarSign, Users, TrendingUp, Activity, Building2, 
-  Wallet, Target, Calendar
-} from 'lucide-react';
-import {
-  ResponsiveContainer, AreaChart, Area, LineChart, Line, 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
-} from 'recharts';
-import { SSNIT_2024, SSNIT_HISTORICAL, SSNIT_ASSET_ALLOCATION } from './data';
-import { PieChart as RechartsPie, Pie, Cell } from 'recharts';
+ import { useMemo } from 'react';
+ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+ import { Badge } from '@/components/ui/badge';
+ import { 
+   DollarSign, Users, TrendingUp, Activity, Building2, 
+   Wallet, Target, Calendar
+ } from 'lucide-react';
+ import {
+   ResponsiveContainer, AreaChart, Area, LineChart, Line, 
+   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
+ } from 'recharts';
+ import { PieChart as RechartsPie, Pie, Cell } from 'recharts';
+ import { PensionFundMetric } from '@/hooks/usePensionMetrics';
+ import { SSNIT_HISTORICAL, SSNIT_ASSET_ALLOCATION } from './data';
+
+interface SSNITSectionProps {
+  metrics?: PensionFundMetric[];
+}
 
 const formatCurrency = (value: number) => {
   if (value >= 1e9) return `GH₵${(value / 1e9).toFixed(2)}B`;
@@ -17,7 +23,39 @@ const formatCurrency = (value: number) => {
   return `GH₵${value.toLocaleString()}`;
 };
 
-export function SSNITSection() {
+export function SSNITSection({ metrics = [] }: SSNITSectionProps) {
+  // Get SSNIT data from database or use fallback
+  const ssnitData = useMemo(() => {
+    const ssnitFund = metrics.find(m => m.fund_type === 'Tier 1' || m.fund_name?.includes('SSNIT'));
+    
+    if (ssnitFund) {
+      return {
+        totalAssets: ssnitFund.aum || 22500000000,
+        activeContributors: ssnitFund.total_contributors || 2007411,
+        activePensioners: 254056,
+        dependencyRatio: 8.06,
+        returnOnInvestment: ssnitFund.investment_return || 17.07,
+        employers: 89899,
+        contributionsReceived: 8800000000,
+        benefitsPaid: ssnitFund.total_benefits_paid || 6500000000,
+        minimumPension: 300,
+      };
+    }
+    
+    // Fallback to NPRA 2024 Report figures
+    return {
+      totalAssets: 22500000000,
+      activeContributors: 2007411,
+      activePensioners: 254056,
+      dependencyRatio: 8.06,
+      returnOnInvestment: 17.07,
+      employers: 89899,
+      contributionsReceived: 8800000000,
+      benefitsPaid: 6500000000,
+      minimumPension: 300,
+    };
+  }, [metrics]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -37,15 +75,15 @@ export function SSNITSection() {
       </div>
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card className="bg-gradient-to-br from-amber-500/15 to-orange-500/5 border-amber-500/30">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-medium text-muted-foreground">Total Assets</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Total Assets</span>
             </div>
-            <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
-              {formatCurrency(SSNIT_2024.totalAssets)}
+            <p className="text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400">
+              {formatCurrency(ssnitData.totalAssets)}
             </p>
           </CardContent>
         </Card>
@@ -54,10 +92,10 @@ export function SSNITSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-4 w-4 text-blue-500" />
-              <span className="text-xs font-medium text-muted-foreground">Active Contributors</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Contributors</span>
             </div>
-            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              {SSNIT_2024.activeContributors.toLocaleString()}
+            <p className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">
+              {(ssnitData.activeContributors / 1e6).toFixed(2)}M
             </p>
           </CardContent>
         </Card>
@@ -66,10 +104,10 @@ export function SSNITSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
-              <span className="text-xs font-medium text-muted-foreground">ROI</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">ROI</span>
             </div>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-              {SSNIT_2024.returnOnInvestment}%
+            <p className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">
+              {ssnitData.returnOnInvestment.toFixed(1)}%
             </p>
           </CardContent>
         </Card>
@@ -78,10 +116,10 @@ export function SSNITSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Activity className="h-4 w-4 text-purple-500" />
-              <span className="text-xs font-medium text-muted-foreground">Dependency Ratio</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Dependency</span>
             </div>
-            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-              1:{SSNIT_2024.dependencyRatio}
+            <p className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">
+              1:{ssnitData.dependencyRatio}
             </p>
           </CardContent>
         </Card>
@@ -90,17 +128,17 @@ export function SSNITSection() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Building2 className="h-4 w-4 text-cyan-500" />
-              <span className="text-xs font-medium text-muted-foreground">Employers</span>
+              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Employers</span>
             </div>
-            <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
-              {SSNIT_2024.employers.toLocaleString()}
+            <p className="text-lg sm:text-xl font-bold text-cyan-600 dark:text-cyan-400">
+              {(ssnitData.employers / 1000).toFixed(1)}K
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts Grid */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
         {/* Assets Growth */}
         <Card>
           <CardHeader>
@@ -111,7 +149,7 @@ export function SSNITSection() {
             <CardDescription>Total assets trend (GH₵ Billions) • 2020-2024</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={220}>
               <LineChart data={SSNIT_HISTORICAL.assets}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="year" tick={{ fontSize: 12 }} />
@@ -146,7 +184,7 @@ export function SSNITSection() {
             <CardDescription>Active contributors trend • 2020-2024</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={SSNIT_HISTORICAL.contributors}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="year" tick={{ fontSize: 12 }} />
@@ -181,7 +219,7 @@ export function SSNITSection() {
             <CardDescription>Growth comparison • 2020-2024</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={SSNIT_HISTORICAL.pensioners.map((p, i) => ({
                 year: p.year,
                 pensioners: p.value,
@@ -220,30 +258,30 @@ export function SSNITSection() {
               <div className="p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2 mb-1">
                   <Wallet className="h-3 w-3 text-emerald-500" />
-                  <p className="text-xs text-muted-foreground">Contributions Received</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Contributions</p>
                 </div>
-                <p className="text-lg font-bold">GH₵8.8B</p>
+                <p className="text-base sm:text-lg font-bold">{formatCurrency(ssnitData.contributionsReceived)}</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2 mb-1">
                   <DollarSign className="h-3 w-3 text-rose-500" />
-                  <p className="text-xs text-muted-foreground">Benefits Paid</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Benefits Paid</p>
                 </div>
-                <p className="text-lg font-bold">GH₵6.5B</p>
+                <p className="text-base sm:text-lg font-bold">{formatCurrency(ssnitData.benefitsPaid)}</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="h-3 w-3 text-blue-500" />
-                  <p className="text-xs text-muted-foreground">Active Pensioners</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Pensioners</p>
                 </div>
-                <p className="text-lg font-bold">{SSNIT_2024.activePensioners.toLocaleString()}</p>
+                <p className="text-base sm:text-lg font-bold">{(ssnitData.activePensioners / 1000).toFixed(0)}K</p>
               </div>
               <div className="p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2 mb-1">
                   <Calendar className="h-3 w-3 text-amber-500" />
-                  <p className="text-xs text-muted-foreground">Minimum Pension</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Min. Pension</p>
                 </div>
-                <p className="text-lg font-bold">GH₵{SSNIT_2024.minimumPension}</p>
+                <p className="text-base sm:text-lg font-bold">GH₵{ssnitData.minimumPension}</p>
               </div>
             </div>
 
