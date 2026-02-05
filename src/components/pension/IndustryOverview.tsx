@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { PieChart as RechartsPie, Pie } from 'recharts';
 import { PensionFundMetric } from '@/hooks/usePensionMetrics';
-import { SSNIT_2024, PRIVATE_PENSION_2024, INDUSTRY_GROWTH } from './data';
+ import { SSNIT_HISTORICAL } from './data';
 import { CHART_COLORS } from './types';
 
 interface IndustryOverviewProps {
@@ -28,27 +28,43 @@ const formatCurrency = (value: number) => {
 export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProps) {
   // Calculate industry totals combining database + static data
   const industryTotals = useMemo(() => {
-    // Use static NPRA 2024 data as base
-    const ssnitAUM = SSNIT_2024.totalAssets;
-    const privateAUM = PRIVATE_PENSION_2024.totalAssets;
+    // Get SSNIT from database
+    const ssnitFund = metrics.find(m => m.fund_type === 'Tier 1');
+    const ssnitAUM = ssnitFund?.aum || 22500000000; // Fallback NPRA 2024
     
-    // If we have database metrics, use those for private pension
-    const dbPrivateAUM = metrics
+    // Get private pension from database
+    const privateFunds = metrics.filter(m => m.fund_type !== 'Tier 1');
+    const privateAUM = privateFunds.reduce((sum, m) => sum + (m.aum || 0), 0);
+    
+    // Calculate tier breakdown
+    const tier2AUM = metrics
+      .filter(m => m.fund_type === 'Tier 2')
+      .reduce((sum, m) => sum + (m.aum || 0), 0);
+    const tier3AUM = metrics
       .filter(m => m.fund_type !== 'Tier 1')
       .reduce((sum, m) => sum + (m.aum || 0), 0);
     
-    const effectivePrivateAUM = dbPrivateAUM > 0 ? dbPrivateAUM : privateAUM;
+    const totalAUM = ssnitAUM + privateAUM;
+    
+    // Calculate YoY growth from historical data
+    const currentYear = SSNIT_HISTORICAL.assets.find(a => a.year === 2024)?.value || 63.88;
+    const prevYear = SSNIT_HISTORICAL.assets.find(a => a.year === 2023)?.value || 46.5;
+    const aumGrowth = prevYear > 0 ? ((currentYear - prevYear) / prevYear * 100) : 37.4;
     
     return {
-      totalAUM: ssnitAUM + effectivePrivateAUM,
+      totalAUM: totalAUM || 86380000000, // Fallback
       ssnitAUM,
-      privateAUM: effectivePrivateAUM,
-      totalContributors: SSNIT_2024.activeContributors + metrics.reduce((sum, m) => sum + (m.total_contributors || 0), 0),
-      totalBenefits: SSNIT_2024.benefitsPaid + PRIVATE_PENSION_2024.benefitsPaid,
-      fundsCount: PRIVATE_PENSION_2024.registeredSchemes,
-      corporateTrustees: PRIVATE_PENSION_2024.corporateTrustees,
-      fundCustodians: PRIVATE_PENSION_2024.fundCustodians,
-      aumGrowth: INDUSTRY_GROWTH.aumGrowth,
+      privateAUM: privateAUM || 63880000000,
+      tier2AUM,
+      tier3AUM,
+      totalContributors: (ssnitFund?.total_contributors || 2007411) + 
+        privateFunds.reduce((sum, m) => sum + (m.total_contributors || 0), 0),
+      totalBenefits: (ssnitFund?.total_benefits_paid || 6500000000) + 
+        privateFunds.reduce((sum, m) => sum + (m.total_benefits_paid || 0), 0) || 7800000000,
+      fundsCount: privateFunds.length || 218,
+      corporateTrustees: 23,
+      fundCustodians: 18,
+      aumGrowth: Math.round(aumGrowth * 10) / 10,
     };
   }, [metrics]);
 
@@ -89,16 +105,16 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
   return (
     <div className="space-y-6">
       {/* Key Industry Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <Card className="relative overflow-hidden bg-gradient-to-br from-amber-500/15 via-amber-400/10 to-orange-600/5 border-2 border-amber-500/30 hover:border-amber-500/50 transition-all">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600">
                 <DollarSign className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Total AUM</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400">Total AUM</span>
             </div>
-            <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+            <p className="text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400">
               {formatCurrency(industryTotals.totalAUM)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -113,9 +129,9 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
                 <DollarSign className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">SSNIT AUM</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-400">SSNIT AUM</span>
             </div>
-            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+            <p className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">
               {formatCurrency(industryTotals.ssnitAUM)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Tier 1</p>
@@ -128,9 +144,9 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600">
                 <Wallet className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Private AUM</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-emerald-700 dark:text-emerald-400">Private AUM</span>
             </div>
-            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+            <p className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">
               {formatCurrency(industryTotals.privateAUM)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Tier 2 & 3</p>
@@ -143,9 +159,9 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600">
                 <Users className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xs font-semibold text-purple-700 dark:text-purple-400">Contributors</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-purple-700 dark:text-purple-400">Contributors</span>
             </div>
-            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+            <p className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">
               {(industryTotals.totalContributors / 1e6).toFixed(2)}M
             </p>
           </CardContent>
@@ -157,9 +173,9 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600">
                 <Building2 className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">Trustees</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-rose-700 dark:text-rose-400">Trustees</span>
             </div>
-            <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
+            <p className="text-lg sm:text-xl font-bold text-rose-600 dark:text-rose-400">
               {industryTotals.corporateTrustees}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Corporate</p>
@@ -172,9 +188,9 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600">
                 <TrendingUp className="h-4 w-4 text-white" />
               </div>
-              <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-400">Benefits Paid</span>
+              <span className="text-[10px] sm:text-xs font-semibold text-cyan-700 dark:text-cyan-400">Benefits</span>
             </div>
-            <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
+            <p className="text-lg sm:text-xl font-bold text-cyan-600 dark:text-cyan-400">
               {formatCurrency(industryTotals.totalBenefits)}
             </p>
           </CardContent>
@@ -183,7 +199,7 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
 
       {/* Charts */}
       {topFundsByAUM.length > 0 && (
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
           {/* Top Funds by AUM */}
           <Card>
             <CardHeader>
@@ -194,11 +210,11 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
               <CardDescription>Assets Under Management (GH₵ Billions)</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={topFundsByAUM} layout="vertical" margin={{ left: 10 }}>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={topFundsByAUM} layout="vertical" margin={{ left: 5, right: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" tickFormatter={(v) => `${v.toFixed(1)}B`} tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 9 }} />
                   <Tooltip
                     formatter={(value: number) => [`GH₵${value.toFixed(2)}B`, 'AUM']}
                     contentStyle={{
@@ -227,7 +243,7 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
               <CardDescription>Private pension funds market share</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={260}>
                 <RechartsPie>
                   <Pie
                     data={marketShareData}
