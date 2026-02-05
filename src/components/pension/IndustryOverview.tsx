@@ -69,21 +69,27 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
   }, [metrics]);
 
   // Top funds by AUM from database
-  const topFundsByAUM = useMemo(() => 
-    [...metrics]
+  const topFundsByAUM = useMemo(() => {
+    const privateFunds = [...metrics]
       .filter(m => m.aum && m.fund_type !== 'Tier 1')
-      .sort((a, b) => (b.aum || 0) - (a.aum || 0))
-      .slice(0, 8)
-      .map((m, index) => ({
+      .sort((a, b) => (b.aum || 0) - (a.aum || 0));
+    
+    const privateTotal = privateFunds.reduce((sum, m) => sum + (m.aum || 0), 0);
+    
+    return privateFunds.slice(0, 8).map((m, index) => {
+      // Calculate private pension market share (not overall)
+      const privateMarketShare = privateTotal > 0 ? ((m.aum || 0) / privateTotal) * 100 : 0;
+      
+      return {
         name: m.fund_name.length > 18 ? m.fund_name.slice(0, 18) + '...' : m.fund_name,
         fullName: m.fund_name,
         aum: (m.aum || 0) / 1e9,
-        marketShare: m.market_share || 0,
+        marketShare: Math.round(privateMarketShare * 10) / 10,
         type: m.fund_type,
         fill: CHART_COLORS[index % CHART_COLORS.length],
-      })),
-    [metrics]
-  );
+      };
+    });
+  }, [metrics]);
 
   // Market share for pie chart
   const marketShareData = useMemo(() => {
