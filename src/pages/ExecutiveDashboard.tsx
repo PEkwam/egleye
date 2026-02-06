@@ -476,10 +476,11 @@ export default function ExecutiveDashboardPage() {
                       ]}
                     />
                     <Legend 
-                      layout="vertical" 
-                      align="right" 
-                      verticalAlign="middle"
-                      formatter={(value) => <span className="text-xs">{value}</span>}
+                      layout="horizontal" 
+                      align="center" 
+                      verticalAlign="bottom"
+                      wrapperStyle={{ paddingTop: '10px' }}
+                      formatter={(value) => <span className="text-[10px] sm:text-xs">{value}</span>}
                     />
                   </RechartsPie>
                 </ResponsiveContainer>

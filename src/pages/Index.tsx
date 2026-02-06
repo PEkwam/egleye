@@ -145,7 +145,8 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
       </div>
 
       <main>
-        {/* Mobile Dashboard with Swipeable Cards - removed Market Overview cards */}
+        {/* Mobile Dashboard with Swipeable Cards */}
+        {showSections && <MobileDashboard />}
 
         {/* Executive Dashboard - Desktop */}
         {showSections && (
