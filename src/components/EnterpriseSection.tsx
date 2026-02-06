@@ -31,7 +31,7 @@ export function EnterpriseSection({ articles, onViewAll, isLoading }: Enterprise
   }
 
   return (
-    <section className="py-16 relative overflow-hidden">
+    <section className="py-8 sm:py-16 relative overflow-hidden">
       {/* Background decoration - Gold/Yellow theme for Enterprise Group */}
       <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-amber-500/5" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl" />
@@ -42,14 +42,14 @@ export function EnterpriseSection({ articles, onViewAll, isLoading }: Enterprise
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-14 h-14 rounded-xl bg-[#8B1A4A] shadow-lg flex items-center justify-center overflow-hidden border border-yellow-500/30">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-[#8B1A4A] shadow-lg flex items-center justify-center overflow-hidden border border-yellow-500/30">
                 <img 
                   src="/logos/enterprise-group-logo.jpg" 
                   alt="Enterprise Group Logo" 
                   className="w-full h-full object-cover"
                 />
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold font-display">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display">
                 <span className="text-yellow-600">Enterprise</span> Group
               </h2>
             </div>

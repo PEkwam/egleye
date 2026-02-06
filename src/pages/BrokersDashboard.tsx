@@ -353,7 +353,7 @@ const [selectedYear, setSelectedYear] = useState<string>('');
             />
 
             {/* Modern Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 mt-6">
               <Card className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
@@ -512,7 +512,7 @@ const [selectedYear, setSelectedYear] = useState<string>('');
                         cx="50%"
                         cy="45%"
                         innerRadius={0}
-                        outerRadius={110}
+                        outerRadius={80}
                         paddingAngle={1}
                         dataKey="value"
                         label={({ cx, cy, midAngle, innerRadius, outerRadius, value }) => {

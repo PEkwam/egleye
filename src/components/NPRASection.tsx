@@ -123,7 +123,7 @@ export function NPRASection({ articles, isLoading, onViewAll }: NPRASectionProps
               />
             )}
             
-            <div className="relative p-8 h-full min-h-[320px] flex flex-col justify-end">
+            <div className="relative p-4 sm:p-8 h-full min-h-[280px] sm:min-h-[320px] flex flex-col justify-end">
               {/* Decorative */}
               <div className="absolute top-6 right-6 flex gap-2">
                 <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">
@@ -149,7 +149,7 @@ export function NPRASection({ articles, isLoading, onViewAll }: NPRASectionProps
                 <span className="text-amber-100 text-sm font-medium">Pension Industry Update</span>
               </div>
               
-              <h3 className="text-2xl md:text-3xl font-bold text-white font-display mb-4 group-hover:text-amber-100 transition-colors">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white font-display mb-3 sm:mb-4 group-hover:text-amber-100 transition-colors">
                 {featuredArticle.title}
               </h3>
               

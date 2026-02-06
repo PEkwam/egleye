@@ -309,7 +309,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
         />
 
         {/* Key Metrics Cards with Trend Indicators */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
@@ -419,36 +419,45 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
         {/* Tabbed Content */}
         <Tabs defaultValue="overview">
-          <TabsList className="mb-6 flex-wrap bg-muted/50">
-            <TabsTrigger value="overview" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="motor" className="gap-2">
-              <Car className="h-4 w-4" />
-              Motor Breakdown
-            </TabsTrigger>
-            <TabsTrigger value="property" className="gap-2">
-              <Flame className="h-4 w-4" />
-              Property & Fire
-            </TabsTrigger>
-            <TabsTrigger value="accident" className="gap-2">
-              <Shield className="h-4 w-4" />
-              Accident & Liability
-            </TabsTrigger>
-            <TabsTrigger value="marine" className="gap-2">
-              <Ship className="h-4 w-4" />
-              Marine & Aviation
-            </TabsTrigger>
-            <TabsTrigger value="trends" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Quarterly Trends
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              AI Insights
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="mb-6 bg-muted/50 inline-flex w-auto min-w-full md:min-w-0">
+              <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm">
+                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Overview</span>
+                <span className="sm:hidden">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="motor" className="gap-1.5 text-xs sm:text-sm">
+                <Car className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Motor Breakdown</span>
+                <span className="sm:hidden">Motor</span>
+              </TabsTrigger>
+              <TabsTrigger value="property" className="gap-1.5 text-xs sm:text-sm">
+                <Flame className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Property & Fire</span>
+                <span className="sm:hidden">Property</span>
+              </TabsTrigger>
+              <TabsTrigger value="accident" className="gap-1.5 text-xs sm:text-sm">
+                <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Accident & Liability</span>
+                <span className="sm:hidden">Accident</span>
+              </TabsTrigger>
+              <TabsTrigger value="marine" className="gap-1.5 text-xs sm:text-sm">
+                <Ship className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Marine & Aviation</span>
+                <span className="sm:hidden">Marine</span>
+              </TabsTrigger>
+              <TabsTrigger value="trends" className="gap-1.5 text-xs sm:text-sm">
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Quarterly Trends</span>
+                <span className="sm:hidden">Trends</span>
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="gap-1.5 text-xs sm:text-sm">
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">AI Insights</span>
+                <span className="sm:hidden">AI</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             {/* Charts */}
@@ -461,10 +470,10 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={chartData} layout="vertical">
-                      <XAxis type="number" tickFormatter={v => `₵${v}M`} />
-                      <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
+                      <XAxis type="number" tickFormatter={v => `₵${v}M`} tick={{ fontSize: 10 }} />
+                      <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 10 }} />
                       <Tooltip formatter={(v: number) => `₵${v.toFixed(1)}M`} />
                       <Bar dataKey="revenue" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} />
                     </BarChart>
@@ -480,15 +489,15 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={350}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <RechartsPie>
                       <Pie 
                         data={marketShareData} 
                         dataKey="value" 
                         nameKey="name" 
                         cx="50%" 
-                        cy="50%" 
-                        outerRadius={130}
+                        cy="45%" 
+                        outerRadius={90}
                         labelLine={false}
                         label={renderCustomLabel}
                       >
