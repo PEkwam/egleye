@@ -134,7 +134,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
         href={article.source_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative block h-[320px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden"
+        className="group relative block h-[260px] xs:h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
         {article.image_url ? (
@@ -153,8 +153,8 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
           </div>
         </div>
         
-        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 z-20">
-          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4 flex-wrap">
+        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 md:p-8 z-20">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 mb-2 sm:mb-3 md:mb-4 flex-wrap">
             {article.is_featured && <span className="featured-badge text-[10px] md:text-xs">Featured</span>}
             <span className={`px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wide rounded-lg shadow-md ${categoryColors[article.category]}`}>
               {categoryLabels[article.category]}
@@ -165,7 +165,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
             </span>
           </div>
           
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white font-display mb-2 md:mb-4 group-hover:text-accent transition-colors leading-tight line-clamp-3 md:line-clamp-none">
+          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white font-display mb-2 md:mb-4 group-hover:text-accent transition-colors leading-tight line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
             {article.title}
           </h2>
           
