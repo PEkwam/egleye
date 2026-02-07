@@ -147,16 +147,14 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
       <main>
         {/* Mobile Dashboard removed - Market Overview cards taken off home */}
 
-        {/* Executive Dashboard - Desktop */}
+        {/* Executive Dashboard */}
         {showSections && (
-          <div className="hidden md:block">
-            <ExecutiveDashboard
-              articles={articles}
-              regulatorArticles={regulatorArticles}
-              enterpriseArticles={enterpriseArticles}
-              isLoading={isLoading}
-            />
-          </div>
+          <ExecutiveDashboard
+            articles={articles}
+            regulatorArticles={regulatorArticles}
+            enterpriseArticles={enterpriseArticles}
+            isLoading={isLoading}
+          />
         )}
 
 
