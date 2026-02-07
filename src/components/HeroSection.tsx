@@ -1,7 +1,11 @@
+import { Link } from 'react-router-dom';
 import { NewsCard } from './NewsCard';
 import type { NewsArticle } from '@/types/news';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Newspaper, MapPin } from 'lucide-react';
+import { Newspaper, MapPin, Clock, ExternalLink, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
+import { categoryLabels, categoryColors } from '@/types/news';
 
 interface HeroSectionProps {
   featuredArticle: NewsArticle | null;
@@ -15,7 +19,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
       <section className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Skeleton className="w-full h-[500px] rounded-2xl" />
+            <Skeleton className="w-full h-[280px] sm:h-[500px] rounded-2xl" />
           </div>
           <div className="space-y-4">
             <Skeleton className="w-40 h-8" />
@@ -55,17 +59,78 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
   }
 
   const sidebarArticles = latestArticles.slice(0, 4);
+  const hero = featuredArticle || latestArticles[0];
 
   return (
     <section className="container mx-auto px-4 py-6 md:py-8">
       <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Featured Article */}
+        {/* Featured Article - NIC-style card on mobile, full hero on desktop */}
         <div className="lg:col-span-2 animate-fade-in">
-          {featuredArticle ? (
-            <NewsCard article={featuredArticle} variant="featured" />
-          ) : latestArticles[0] ? (
-            <NewsCard article={latestArticles[0]} variant="featured" />
-          ) : null}
+          {hero && (
+            <>
+              {/* Mobile: NIC-style compact card */}
+              <a
+                href={hero.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sm:hidden group relative block rounded-2xl overflow-hidden border border-primary/20 hover:border-primary/40 transition-all duration-500"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-primary/70" />
+                {hero.image_url && (
+                  <img
+                    src={hero.image_url}
+                    alt={hero.title}
+                    className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+                  />
+                )}
+                <div className="relative p-4 min-h-[220px] flex flex-col justify-end">
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm text-[10px]">
+                      <TrendingUp className="h-3 w-3 mr-1" />
+                      Featured
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md ${categoryColors[hero.category]}`}>
+                      {categoryLabels[hero.category]}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-white font-display mb-3 group-hover:text-white/90 transition-colors leading-tight line-clamp-3">
+                    {hero.title}
+                  </h3>
+
+                  {hero.description && (
+                    <p className="text-white/70 text-sm line-clamp-2 mb-4">
+                      {hero.description}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-white/60">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>
+                        {hero.published_at
+                          ? formatDistanceToNow(new Date(hero.published_at), { addSuffix: true })
+                          : 'Recently'}
+                      </span>
+                    </div>
+                    {hero.source_name && (
+                      <span className="text-xs text-white/50 truncate max-w-[100px]">
+                        {hero.source_name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </a>
+
+              {/* Desktop: Original full-size hero card */}
+              <div className="hidden sm:block">
+                <NewsCard article={hero} variant="featured" />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Latest News Sidebar */}
