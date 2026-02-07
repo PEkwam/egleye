@@ -87,19 +87,18 @@ export function ExecutiveDashboard({
       </div>
 
       {/* Key Metrics Grid - Linkable Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-6 md:mb-8">
         <Link to="/?time=today" className="group">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-all hover:-translate-y-0.5 hover:shadow-lg h-full">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                <div className="p-2 bg-primary/20 rounded-lg w-fit group-hover:scale-110 transition-transform">
-                  <Clock className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-primary/20 rounded-lg w-fit group-hover:scale-110 transition-transform">
+                  <Clock className="h-4 w-4 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.todayCount}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Today's News</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{stats.todayCount}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate">Today's News</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all hidden sm:block" />
               </div>
             </CardContent>
           </Card>
@@ -107,16 +106,15 @@ export function ExecutiveDashboard({
 
         <Link to="/?category=regulator" className="group">
           <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20 hover:border-destructive/40 transition-all hover:-translate-y-0.5 hover:shadow-lg h-full">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                <div className="p-2 bg-destructive/20 rounded-lg w-fit group-hover:scale-110 transition-transform">
-                  <Shield className="h-4 w-4 md:h-5 md:w-5 text-destructive" />
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-destructive/20 rounded-lg w-fit group-hover:scale-110 transition-transform">
+                  <Shield className="h-4 w-4 text-destructive" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.regulatorCount}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">NIC Updates</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{stats.regulatorCount}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate">NIC Updates</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-destructive group-hover:translate-x-1 transition-all hidden sm:block" />
               </div>
             </CardContent>
           </Card>
@@ -124,16 +122,15 @@ export function ExecutiveDashboard({
 
         <Link to="/?category=enterprise_group" className="group">
           <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20 hover:border-accent/40 transition-all hover:-translate-y-0.5 hover:shadow-lg h-full">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                <div className="p-2 bg-accent/20 rounded-lg w-fit group-hover:scale-110 transition-transform">
-                  <Building2 className="h-4 w-4 md:h-5 md:w-5 text-accent-foreground" />
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-accent/20 rounded-lg w-fit group-hover:scale-110 transition-transform">
+                  <Building2 className="h-4 w-4 text-accent-foreground" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.enterpriseCount}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Enterprise</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{stats.enterpriseCount}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate">Enterprise</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-accent-foreground group-hover:translate-x-1 transition-all hidden sm:block" />
               </div>
             </CardContent>
           </Card>
@@ -141,16 +138,15 @@ export function ExecutiveDashboard({
 
         <Link to="/?time=week" className="group">
           <Card className="bg-gradient-to-br from-secondary/30 to-secondary/10 border-secondary/30 hover:border-primary/30 transition-all hover:-translate-y-0.5 hover:shadow-lg h-full">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                <div className="p-2 bg-secondary rounded-lg w-fit group-hover:scale-110 transition-transform">
-                  <FileText className="h-4 w-4 md:h-5 md:w-5 text-secondary-foreground" />
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-secondary rounded-lg w-fit group-hover:scale-110 transition-transform">
+                  <FileText className="h-4 w-4 text-secondary-foreground" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.weekCount}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">This Week</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{stats.weekCount}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate">This Week</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all hidden sm:block" />
               </div>
             </CardContent>
           </Card>
