@@ -1074,13 +1074,13 @@ const DataAdmin = () => {
         if (h.includes('total assets')) columnMap['total_assets'] = index;
         if (h.includes('market share')) columnMap['market_share'] = index;
         if (h === 'expense ratio %' || (h.includes('expense ratio') && !h.includes('non') && !h.includes('attributable'))) columnMap['expense_ratio'] = index;
-        if (h.includes('profit after tax')) columnMap['profit_after_tax'] = index;
+        if (h.includes('profit after tax') || h.includes('profit for the year')) columnMap['profit_after_tax'] = index;
         if (h.includes('claims ratio')) columnMap['claims_ratio'] = index;
         
         if (dataType === 'life') {
-          if (h.includes('insurance service revenue') && !h.includes('net')) columnMap['gross_premium'] = index;
-          if (h.includes('investment income') && !h.includes('finance')) columnMap['investment_income'] = index;
-          if (h.includes('claims') && (h.includes('paid') || h.includes('incurred') || h.includes('benefits'))) {
+          if ((h.includes('insurance service revenue') || h === 'insurance revenue' || (h.includes('insurance revenue') && !h.includes('net'))) && !h.includes('net')) columnMap['gross_premium'] = index;
+          if ((h.includes('investment income') || h.includes('net investment income')) && !h.includes('finance')) columnMap['investment_income'] = index;
+          if (h.includes('claims') && (h.includes('paid') || h.includes('incurred') || h.includes('benefits') || h.includes('total'))) {
             columnMap['total_claims_paid'] = index;
           }
           if (h.includes('group policies')) columnMap['group_policies'] = index;
@@ -1575,9 +1575,15 @@ const DataAdmin = () => {
                 category: 'life',
                 gross_premium: lifeItem.gross_premium ?? null,
                 total_assets: lifeItem.total_assets ?? null,
-                market_share: lifeItem.market_share ?? null,
-                expense_ratio: lifeItem.expense_ratio ?? null,
-                claims_ratio: lifeItem.claims_ratio ?? null,
+                market_share: lifeItem.market_share != null && lifeItem.market_share > 1 
+                  ? lifeItem.market_share / 100 
+                  : lifeItem.market_share ?? null,
+                expense_ratio: lifeItem.expense_ratio != null && lifeItem.expense_ratio > 1
+                  ? lifeItem.expense_ratio / 100
+                  : lifeItem.expense_ratio ?? null,
+                claims_ratio: lifeItem.claims_ratio != null && lifeItem.claims_ratio > 1
+                  ? lifeItem.claims_ratio / 100
+                  : lifeItem.claims_ratio ?? null,
                 profit_after_tax: lifeItem.profit_after_tax ?? null,
                 investment_income: lifeItem.investment_income ?? null,
                 total_claims_paid: lifeItem.total_claims_paid ?? null,
