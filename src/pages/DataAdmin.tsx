@@ -1026,7 +1026,8 @@ const DataAdmin = () => {
         
         const firstCellValue = String(row[0] || '').trim().toLowerCase();
         
-        if (firstCellValue === 'life insurers' || firstCellValue === 'non-life insurer') {
+        // Match variations: "life insurers", "life insurer", "non-life insurer", "non-life insurers", "non life insurer"
+        if (firstCellValue.match(/^(non[- ]?life\s+insurer|life\s+insurer)s?$/)) {
           headerRowIndex = i;
           headerRow = row.map(cell => String(cell || '').trim());
           break;
@@ -1034,22 +1035,27 @@ const DataAdmin = () => {
       }
       
       if (headerRowIndex === -1) {
-        for (let i = 0; i < Math.min(rawData.length, 20); i++) {
+        for (let i = 0; i < Math.min(rawData.length, 25); i++) {
           const row = rawData[i] as unknown[];
           if (!row) continue;
           
           const nonEmptyCells = row.filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '').length;
-          if (nonEmptyCells < 10) continue;
+          if (nonEmptyCells < 5) continue;
           
           const rowStr = row.join(' ').toLowerCase();
-          const hasFinancialColumns = 
-            rowStr.includes('insurance service revenue') && 
-            rowStr.includes('profit after tax') &&
-            rowStr.includes('total assets');
+          // More flexible: require at least 2 of the 3 key financial columns
+          const hasRevenue = rowStr.includes('insurance service revenue') || rowStr.includes('gross premium') || rowStr.includes('revenue');
+          const hasProfit = rowStr.includes('profit after tax') || rowStr.includes('profit') || rowStr.includes('pat');
+          const hasAssets = rowStr.includes('total assets') || rowStr.includes('assets');
+          const hasClaims = rowStr.includes('claims') || rowStr.includes('incurred claims');
+          const hasMarketShare = rowStr.includes('market share');
           
-          if (hasFinancialColumns) {
+          const matchCount = [hasRevenue, hasProfit, hasAssets, hasClaims, hasMarketShare].filter(Boolean).length;
+          
+          if (matchCount >= 2) {
             headerRowIndex = i;
             headerRow = row.map(cell => String(cell || '').trim());
+            console.log(`[DataAdmin] Found header row at index ${i} in sheet "${sheetName}":`, headerRow.slice(0, 5).join(', '), '...');
             break;
           }
         }
