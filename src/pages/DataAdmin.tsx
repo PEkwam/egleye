@@ -74,6 +74,11 @@ interface ParsedNonLifeInsurer {
   market_share?: number;
   claims_ratio?: number;
   expense_ratio?: number;
+  investment_income?: number;
+  total_incurred_claims?: number;
+  insurance_service_results?: number;
+  non_attributable_expenses?: number;
+  total_liabilities?: number;
 }
 
 type ParsedInsurer = ParsedLifeInsurer | ParsedNonLifeInsurer;
@@ -1090,7 +1095,12 @@ const DataAdmin = () => {
           if (h.includes('endowment')) columnMap['endowment'] = index;
           if (h.includes('universal life')) columnMap['universal_life'] = index;
         } else {
-          if (h.includes('insurance service revenue') && !h.includes('net')) columnMap['insurance_service_revenue'] = index;
+          if ((h.includes('insurance service revenue') || h === 'insurance revenue' || (h.includes('insurance revenue') && !h.includes('net') && !h.includes('finance'))) && !h.includes('net')) columnMap['insurance_service_revenue'] = index;
+          if ((h.includes('investment income') || h.includes('net investment income')) && !h.includes('finance')) columnMap['investment_income'] = index;
+          if (h.includes('incurred claims') || (h.includes('claims') && h.includes('total'))) columnMap['total_incurred_claims'] = index;
+          if (h.includes('insurance service result') && !h.includes('share')) columnMap['insurance_service_results'] = index;
+          if (h.includes('non-attributable expense') || h.includes('non attributable expense')) columnMap['non_attributable_expenses'] = index;
+          if (h.includes('total liabilities')) columnMap['total_liabilities'] = index;
           if (h.includes('motor comprehensive')) columnMap['motor_comprehensive'] = index;
           if (h.includes('motor third party') && !h.includes('fire')) columnMap['motor_third_party'] = index;
           if ((h.includes('motor third party') && h.includes('fire')) || h.includes('motor third party, fire')) columnMap['motor_third_party_fire_theft'] = index;
@@ -1186,6 +1196,11 @@ const DataAdmin = () => {
             market_share: parseNumber(row[columnMap['market_share']]),
             claims_ratio: parseNumber(row[columnMap['claims_ratio']]),
             expense_ratio: parseNumber(row[columnMap['expense_ratio']]),
+            investment_income: parseNumber(row[columnMap['investment_income']]),
+            total_incurred_claims: parseNumber(row[columnMap['total_incurred_claims']]),
+            insurance_service_results: parseNumber(row[columnMap['insurance_service_results']]),
+            non_attributable_expenses: parseNumber(row[columnMap['non_attributable_expenses']]),
+            total_liabilities: parseNumber(row[columnMap['total_liabilities']]),
           } as ParsedNonLifeInsurer;
         }
         
@@ -1651,9 +1666,20 @@ const DataAdmin = () => {
                 bonds: nonlifeItem.bonds ?? null,
                 profit_after_tax: nonlifeItem.profit_after_tax ?? null,
                 total_assets: nonlifeItem.total_assets ?? null,
-                market_share: nonlifeItem.market_share ?? null,
-                claims_ratio: nonlifeItem.claims_ratio ?? null,
-                expense_ratio: nonlifeItem.expense_ratio ?? null,
+                market_share: nonlifeItem.market_share != null && nonlifeItem.market_share > 1
+                  ? nonlifeItem.market_share / 100
+                  : nonlifeItem.market_share ?? null,
+                claims_ratio: nonlifeItem.claims_ratio != null && nonlifeItem.claims_ratio > 1
+                  ? nonlifeItem.claims_ratio / 100
+                  : nonlifeItem.claims_ratio ?? null,
+                expense_ratio: nonlifeItem.expense_ratio != null && nonlifeItem.expense_ratio > 1
+                  ? nonlifeItem.expense_ratio / 100
+                  : nonlifeItem.expense_ratio ?? null,
+                investment_income: nonlifeItem.investment_income ?? null,
+                total_incurred_claims: nonlifeItem.total_incurred_claims ?? null,
+                insurance_service_results: nonlifeItem.insurance_service_results ?? null,
+                non_attributable_expenses: nonlifeItem.non_attributable_expenses ?? null,
+                total_liabilities: nonlifeItem.total_liabilities ?? null,
                 report_year: sheet.year,
                 report_quarter: sheet.quarter,
                 report_source: 'NIC Quarterly Report',
