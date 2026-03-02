@@ -150,6 +150,7 @@ export type Database = {
           combined_ratio: number | null
           created_at: string
           credit_life: number | null
+          csm: number | null
           customer_rating: number | null
           employees: number | null
           endowment: number | null
@@ -184,6 +185,7 @@ export type Database = {
           combined_ratio?: number | null
           created_at?: string
           credit_life?: number | null
+          csm?: number | null
           customer_rating?: number | null
           employees?: number | null
           endowment?: number | null
@@ -218,6 +220,7 @@ export type Database = {
           combined_ratio?: number | null
           created_at?: string
           credit_life?: number | null
+          csm?: number | null
           customer_rating?: number | null
           employees?: number | null
           endowment?: number | null

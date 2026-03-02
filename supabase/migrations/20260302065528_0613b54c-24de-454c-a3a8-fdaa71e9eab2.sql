@@ -1,0 +1,1 @@
+ALTER TABLE public.insurer_metrics ADD COLUMN IF NOT EXISTS csm numeric;

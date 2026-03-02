@@ -12,7 +12,7 @@ interface InsurerMetricButtonsProps {
   selectedQuarter: number;
 }
 
-type MetricKey = 'gross_premium' | 'total_assets' | 'profit_after_tax' | 'market_share' | 
+type MetricKey = 'csm' | 'gross_premium' | 'total_assets' | 'profit_after_tax' | 'market_share' | 
                  'total_claims_paid' | 'investment_income';
 
 interface MetricConfig {
@@ -26,6 +26,15 @@ interface MetricConfig {
 }
 
 const metrics: MetricConfig[] = [
+  {
+    key: 'csm',
+    label: 'CSM',
+    icon: TrendingUp,
+    format: (v) => v ? (Math.abs(v) >= 1e9 ? `GH₵${(v / 1e9).toFixed(2)}B` : `GH₵${(v / 1e6).toFixed(1)}M`) : '-',
+    color: 'text-violet-600',
+    bgColor: 'bg-violet-50 border-violet-200',
+    sortDesc: true,
+  },
   {
     key: 'gross_premium',
     label: 'Gross Premium',
@@ -108,7 +117,7 @@ export function InsurerMetricButtons({
   selectedQuarter,
 }: InsurerMetricButtonsProps) {
   const [topCount, setTopCount] = useState<TopCountOption>('all');
-  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('market_share');
+  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('csm');
 
   const { data: metricsData = [], isLoading } = useQuery({
     queryKey: ['insurer-metrics-buttons', category, selectedYear, selectedQuarter],
@@ -210,7 +219,7 @@ export function InsurerMetricButtons({
 
       <CardContent className="space-y-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
           {metrics.map((metric) => {
             const Icon = metric.icon;
             const isSelected = selectedMetric === metric.key;
@@ -308,7 +317,8 @@ export function InsurerMetricButtons({
                             className={`h-full rounded-full transition-all duration-500`}
                             style={{ 
                               width: `${percentage}%`,
-                              backgroundColor: currentMetric.color.includes('emerald') ? '#059669' :
+                              backgroundColor: currentMetric.color.includes('violet') ? '#7c3aed' :
+                                              currentMetric.color.includes('emerald') ? '#059669' :
                                               currentMetric.color.includes('amber') ? '#d97706' :
                                               currentMetric.color.includes('teal') ? '#0d9488' :
                                               currentMetric.color.includes('cyan') ? '#0891b2' :
