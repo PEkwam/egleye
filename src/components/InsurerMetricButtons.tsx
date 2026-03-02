@@ -37,7 +37,7 @@ const metrics: MetricConfig[] = [
   },
   {
     key: 'gross_premium',
-    label: 'Gross Premium',
+    label: 'Insurance Revenue',
     icon: DollarSign,
     format: (v) => v ? (v >= 1e9 ? `GH₵${(v / 1e9).toFixed(2)}B` : `GH₵${(v / 1e6).toFixed(1)}M`) : '-',
     color: 'text-emerald-600',

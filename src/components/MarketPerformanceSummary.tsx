@@ -112,6 +112,11 @@ export function MarketPerformanceSummary({
       .filter(m => m.expense_ratio && m.expense_ratio > 0)
       .sort((a, b) => (a.expense_ratio || 0) - (b.expense_ratio || 0))[0];
 
+    // Highest CSM (IFRS 17)
+    const highestCSM = [...validCurrentData]
+      .filter(m => m.csm && m.csm > 0)
+      .sort((a, b) => (b.csm || 0) - (a.csm || 0))[0];
+
     return {
       currentTotal,
       previousTotal,
@@ -121,6 +126,7 @@ export function MarketPerformanceSummary({
       highestClaimsRatio,
       strongestSolvency,
       mostEfficient,
+      highestCSM,
       companiesCount: validCurrentData.length,
     };
   }, [currentData, previousData]);
@@ -282,6 +288,27 @@ export function MarketPerformanceSummary({
               </Badge>
             </div>
           </div>
+
+          {/* Highest CSM (IFRS 17) */}
+          {performance.highestCSM && (
+            <div className="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200/50 dark:border-violet-800/50">
+              <div className="flex items-center gap-2 text-violet-700 dark:text-violet-400 mb-3">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Highest CSM</span>
+              </div>
+              <h3 className="font-bold text-lg text-foreground mb-1">
+                {formatName(performance.highestCSM.insurer_name)}
+              </h3>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-bold text-violet-600 dark:text-violet-400">
+                  {formatCurrency(performance.highestCSM.csm || 0)}
+                </span>
+                <Badge className="bg-violet-500/20 text-violet-700 dark:text-violet-400 hover:bg-violet-500/30">
+                  IFRS 17
+                </Badge>
+              </div>
+            </div>
+          )}
 
           {/* Highest Claims Ratio (Watch) */}
           {performance.highestClaimsRatio && (
