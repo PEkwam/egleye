@@ -105,6 +105,13 @@ export default function ExecutiveDashboardPage() {
         marketShare: totalPremium > 0 ? ((m.gross_premium || 0) / totalPremium) * 100 : 0,
       }));
 
+    // Calculate CSM totals from metrics
+    const totalClaims = metrics.reduce((sum, m) => sum + (m.total_claims_paid || 0), 0);
+    const totalCSM = metrics.reduce((sum, m) => sum + (m.csm || 0), 0);
+    const topCSMInsurer = [...metrics]
+      .filter(m => m.csm)
+      .sort((a, b) => (b.csm || 0) - (a.csm || 0))[0];
+
     return {
       totalPremium: industryTotals.totalPremium,
       totalAssets: industryTotals.totalAssets,
@@ -116,6 +123,10 @@ export default function ExecutiveDashboardPage() {
       category: selectedCategory,
       year: selectedYear,
       quarter: selectedQuarter,
+      totalClaims: totalClaims || undefined,
+      totalCSM: totalCSM || undefined,
+      topCSMInsurer: topCSMInsurer?.insurer_name || undefined,
+      topCSMValue: topCSMInsurer?.csm || undefined,
     };
   }, [metrics, industryTotals, selectedCategory, selectedYear, selectedQuarter]);
 

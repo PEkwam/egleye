@@ -37,6 +37,7 @@ export interface InsurerMetrics {
   universal_life: number | null;
   investment_income: number | null;
   profit_after_tax: number | null;
+  csm: number | null;
 }
 
 export function useInsurerMetrics(category?: InsuranceCategory, year?: number, quarter?: number) {
@@ -320,4 +321,5 @@ export const fallbackMetrics: Omit<InsurerMetrics, 'id' | 'insurer_id' | 'insure
   universal_life: null,
   investment_income: null,
   profit_after_tax: null,
+  csm: null,
 };
