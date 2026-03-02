@@ -40,6 +40,7 @@ interface ParsedLifeInsurer {
   whole_life?: number;
   endowment?: number;
   universal_life?: number;
+  csm?: number;
 }
 
 // Non-Life insurance fields
@@ -1094,6 +1095,7 @@ const DataAdmin = () => {
           if (h.includes('whole life')) columnMap['whole_life'] = index;
           if (h.includes('endowment')) columnMap['endowment'] = index;
           if (h.includes('universal life')) columnMap['universal_life'] = index;
+          if (h === 'csm' || h.includes('contractual service margin')) columnMap['csm'] = index;
         } else {
           if ((h.includes('insurance service revenue') || h === 'insurance revenue' || (h.includes('insurance revenue') && !h.includes('net') && !h.includes('finance'))) && !h.includes('net')) columnMap['insurance_service_revenue'] = index;
           if ((h.includes('investment income') || h.includes('net investment income')) && !h.includes('finance')) columnMap['investment_income'] = index;
@@ -1168,6 +1170,7 @@ const DataAdmin = () => {
             whole_life: parseNumber(row[columnMap['whole_life']]),
             endowment: parseNumber(row[columnMap['endowment']]),
             universal_life: parseNumber(row[columnMap['universal_life']]),
+            csm: parseNumber(row[columnMap['csm']]),
           } as ParsedLifeInsurer;
         } else {
           insurer = {
@@ -1608,6 +1611,7 @@ const DataAdmin = () => {
                 whole_life: lifeItem.whole_life ?? null,
                 endowment: lifeItem.endowment ?? null,
                 universal_life: lifeItem.universal_life ?? null,
+                csm: lifeItem.csm ?? null,
                 report_year: sheet.year,
                 report_quarter: sheet.quarter,
                 report_source: 'NIC Quarterly Report',
