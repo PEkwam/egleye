@@ -23,6 +23,9 @@ interface MetricsSummary {
   year: number;
   quarter: number;
   totalClaims?: number;
+  totalCSM?: number;
+  topCSMInsurer?: string;
+  topCSMValue?: number;
 }
 
 interface AIAnalysis {
@@ -30,6 +33,7 @@ interface AIAnalysis {
   summary: string;
   marketLeader?: { name: string; insight: string };
   emergingPlayers?: string[];
+  csmAnalysis?: string;
   claimsAnalysis?: string;
   keyMetrics: { label: string; value: string; trend: 'up' | 'down' | 'stable'; insight: string }[];
   opportunities: string[];
@@ -197,6 +201,17 @@ export function AIInsightsPanel({ metricsSummary }: AIInsightsPanelProps) {
             </div>
           )}
         </div>
+
+        {/* CSM Analysis (IFRS 17) */}
+        {analysis.csmAnalysis && (
+          <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-violet-600" />
+              <span className="font-semibold text-violet-700 dark:text-violet-400">CSM & IFRS 17 Analysis</span>
+            </div>
+            <p className="text-sm">{analysis.csmAnalysis}</p>
+          </div>
+        )}
 
         {/* Claims Analysis */}
         {analysis.claimsAnalysis && (

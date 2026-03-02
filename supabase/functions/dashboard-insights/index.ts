@@ -26,6 +26,9 @@ interface MetricsSummary {
   year: number;
   quarter: number;
   totalClaims?: number;
+  totalCSM?: number;
+  topCSMInsurer?: string;
+  topCSMValue?: number;
 }
 
 serve(async (req) => {
@@ -83,6 +86,12 @@ Your analysis should be:
 **Top Performers by Premium:**
 ${metricsSummary.topInsurers.map((ins, i) => `${i + 1}. ${ins.name}: ${formatCurrency(ins.premium)} (${ins.marketShare.toFixed(1)}% share)`).join('\n')}
 
+**IFRS 17 - Contractual Service Margin (CSM):**
+- Total Industry CSM: ${metricsSummary.totalCSM ? formatCurrency(metricsSummary.totalCSM) : 'N/A'}
+- Top CSM Insurer: ${metricsSummary.topCSMInsurer || 'N/A'} (${metricsSummary.topCSMValue ? formatCurrency(metricsSummary.topCSMValue) : 'N/A'})
+
+Note: CSM under IFRS 17 represents unearned profit from insurance contracts. Analyze CSM trends and their implications for future profitability.
+
 Provide a JSON response with:
 {
   "headline": "One powerful headline summarizing the quarter (max 10 words)",
@@ -95,6 +104,7 @@ Provide a JSON response with:
   "keyMetrics": [
     {"label": "metric name", "value": "formatted value", "trend": "up|down|stable", "insight": "brief insight"}
   ],
+  "csmAnalysis": "1-2 sentences analyzing CSM trends under IFRS 17 and implications for future earnings",
   "claimsAnalysis": "1-2 sentences analyzing claims efficiency and loss ratios",
   "opportunities": ["opportunity 1", "opportunity 2"],
   "risks": ["risk 1", "risk 2"],
