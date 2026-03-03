@@ -84,6 +84,30 @@ interface ParsedNonLifeInsurer {
 
 type ParsedInsurer = ParsedLifeInsurer | ParsedNonLifeInsurer;
 
+// File upload validation constants
+const ALLOWED_IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'];
+const ALLOWED_IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/gif'];
+const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_EXCEL_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
+const validateImageFile = (file: File): string | null => {
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+    return `Invalid file type ".${ext}". Allowed: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')}`;
+  }
+  if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type)) {
+    return `Invalid MIME type "${file.type}". Only image files are allowed.`;
+  }
+  if (file.size > MAX_IMAGE_FILE_SIZE) {
+    return `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max: 5MB.`;
+  }
+  return null;
+};
+
+const sanitizeFilename = (name: string): string => {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+};
+
 // Broker data fields
 interface ParsedBroker {
   broker_name: string;
@@ -156,9 +180,15 @@ const SiteSettingsSection = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     setIsUploadingLogo(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
       const filePath = `site-logo.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
@@ -636,6 +666,15 @@ const DataAdmin = () => {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+
+      // Validate each file
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        failedFiles.push(`${file.name} (${validationError})`);
+        setLogoUploadProgress({ uploaded: i + 1, total: files.length });
+        continue;
+      }
+
       const fileName = file.name.toLowerCase().replace(/\.[^.]+$/, ''); // Remove extension
       
       // Use the improved matching function
@@ -643,8 +682,8 @@ const DataAdmin = () => {
 
       if (matchedInsurer) {
         try {
-          const fileExt = file.name.split('.').pop();
-          const filePath = `${matchedInsurer.insurer_id}.${fileExt}`;
+          const fileExt = file.name.split('.').pop()?.toLowerCase();
+          const filePath = `${sanitizeFilename(matchedInsurer.insurer_id)}.${fileExt}`;
           
           const { error: uploadError } = await supabase.storage
             .from('insurer-logos')
