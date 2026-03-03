@@ -69,7 +69,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
         <div className="lg:col-span-2 animate-fade-in">
           {hero && (
             <>
-              {/* Mobile: NIC-style compact card */}
+              {/* Mobile: Clean featured card */}
               <a
                 href={hero.source_url}
                 target="_blank"
@@ -82,35 +82,30 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                     src={hero.image_url}
                     alt={hero.title}
                     className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+                    loading="lazy"
                   />
                 )}
-                <div className="relative p-4 min-h-[220px] flex flex-col justify-end">
-                  <div className="absolute top-4 right-4 flex gap-2">
+                <div className="relative p-4 min-h-[200px] flex flex-col justify-end">
+                  <div className="absolute top-3 right-3">
                     <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm text-[10px]">
                       <TrendingUp className="h-3 w-3 mr-1" />
                       Featured
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
                     <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md ${categoryColors[hero.category]}`}>
                       {categoryLabels[hero.category]}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-white font-display mb-3 group-hover:text-white/90 transition-colors leading-tight line-clamp-3">
+                  <h3 className="text-base font-bold text-white font-display mb-2 leading-tight line-clamp-3">
                     {hero.title}
                   </h3>
 
-                  {hero.description && (
-                    <p className="text-white/70 text-sm line-clamp-2 mb-4">
-                      {sanitizeText(hero.description)}
-                    </p>
-                  )}
-
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-xs text-white/60">
-                      <Clock className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1.5 text-[11px] text-white/60">
+                      <Clock className="h-3 w-3" />
                       <span>
                         {hero.published_at
                           ? formatDistanceToNow(new Date(hero.published_at), { addSuffix: true })
@@ -118,7 +113,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                       </span>
                     </div>
                     {hero.source_name && (
-                      <span className="text-xs text-white/50 truncate max-w-[100px]">
+                      <span className="text-[11px] text-white/50 truncate max-w-[100px]">
                         {hero.source_name}
                       </span>
                     )}
@@ -135,19 +130,19 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
         </div>
 
         {/* Latest News Sidebar */}
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base md:text-lg font-semibold font-display text-foreground flex items-center gap-2">
+            <h3 className="text-sm md:text-lg font-semibold font-display text-foreground flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               Latest from Ghana
             </h3>
           </div>
-          {/* Horizontal scroll on mobile, vertical on desktop */}
-          <div className="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x snap-mandatory lg:snap-none">
+          {/* Vertical stack on mobile, vertical on desktop */}
+          <div className="flex flex-col gap-2.5 lg:gap-3">
             {sidebarArticles.map((article, index) => (
               <div
                 key={article.id}
-                className="animate-slide-up min-w-[280px] lg:min-w-0 snap-start"
+                className="animate-slide-up"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <NewsCard article={article} variant="compact" />
