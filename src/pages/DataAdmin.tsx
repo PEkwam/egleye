@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, Database, RefreshCw, FileSpreadsheet, Check, AlertTriangle, 
@@ -401,6 +401,28 @@ const DataAdmin = () => {
   const [isClearingPension, setIsClearingPension] = useState(false);
   const [isClearingBrokers, setIsClearingBrokers] = useState(false);
   const [isSyncingYears, setIsSyncingYears] = useState(false);
+
+  // Session inactivity timeout (5 minutes)
+  const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    inactivityTimer.current = setTimeout(() => {
+      toast.warning('Session expired due to inactivity');
+      navigate('/');
+    }, INACTIVITY_TIMEOUT);
+  }, [navigate]);
+
+  useEffect(() => {
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(e => window.addEventListener(e, resetInactivityTimer));
+    resetInactivityTimer();
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetInactivityTimer));
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    };
+  }, [resetInactivityTimer]);
 
   const { metrics, refetch } = useInsurerMetrics();
   
