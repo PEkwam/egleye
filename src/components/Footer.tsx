@@ -1,7 +1,10 @@
 import { Twitter, Linkedin, Mail, Eye, Newspaper, Shield, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export function Footer() {
+  const { siteName, siteTagline } = useSiteSettings();
+
   return (
     <footer className="bg-card border-t border-border/50 mt-10 md:mt-16 relative overflow-hidden">
       {/* Background decoration */}
@@ -18,11 +21,11 @@ export function Footer() {
               </div>
               <div>
                 <h3 className="text-lg md:text-xl font-bold font-display text-foreground group-hover:text-primary transition-colors">
-                  Executive Eye
+                  {siteName}
                 </h3>
                 <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
                   <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  Ghana Insurance Intelligence
+                  {siteTagline}
                 </p>
               </div>
             </Link>
@@ -95,7 +98,7 @@ export function Footer() {
         <div className="border-t border-border/50 mt-6 md:mt-10 pt-6 md:pt-8 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
           <p className="flex items-center gap-2 text-center md:text-left">
             <Eye className="h-3 w-3 md:h-4 md:w-4" />
-            © {new Date().getFullYear()} Executive Eye
+            © {new Date().getFullYear()} {siteName}
           </p>
           <div className="flex items-center gap-4 md:gap-6">
             <a href="#" className="hover:text-foreground transition-colors">Privacy</a>

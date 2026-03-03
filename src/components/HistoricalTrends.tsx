@@ -72,7 +72,7 @@ export function HistoricalTrends({ category = 'life' }: HistoricalTrendsProps) {
   // Normalize insurer name to create a consistent key
   const normalizeInsurerKey = (name: string) => {
     return name.toLowerCase()
-      .replace(/\s+(insurance|life|assurance|company|limited|ltd|ghana)\s*/gi, ' ')
+      .replace(/\b(insurance|assurance|company|limited|ltd|ghana|plc)\b/gi, '')
       .replace(/\s+/g, ' ')
       .trim();
   };
