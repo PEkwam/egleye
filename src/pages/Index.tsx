@@ -3,6 +3,7 @@ import { Header } from '@/components/Header';
 import { BreakingTicker } from '@/components/BreakingTicker';
 import { HeroSection } from '@/components/HeroSection';
 import { NewsGrid } from '@/components/NewsGrid';
+import { NewsFilterBar } from '@/components/NewsFilterBar';
 import { EnterpriseSection } from '@/components/EnterpriseSection';
 import { NICSection } from '@/components/NICSection';
 import { NPRASection } from '@/components/NPRASection';
@@ -127,8 +128,17 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
         activeInsuranceCategory={activeInsuranceCategory}
       />
 
+      {/* News Filter Bar */}
+      <NewsFilterBar
+        activeCategory={activeCategory}
+        onCategoryChange={handleCategoryChange}
+        searchQuery={searchQuery}
+        onSearchChange={handleSearch}
+        articleCount={articles.length}
+      />
+
       {/* Filters Section - Mobile optimized */}
-      <div className="container mx-auto px-3 sm:px-4 py-2 md:py-4 border-b border-border/50">
+      <div className="container mx-auto px-3 sm:px-4 py-2 md:py-3 border-b border-border/50">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-1 overflow-x-auto scrollbar-hide">
             <TimeFilter selected={timeRange} onChange={handleTimeRangeChange} />
