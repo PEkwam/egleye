@@ -16,6 +16,7 @@ import NonLifeDashboard from "./pages/NonLifeDashboard";
 import BrokersDashboard from "./pages/BrokersDashboard";
 import NPRAPensions from "./pages/NPRAPensions";
 import PensionDashboard from "./pages/PensionDashboard";
+import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
