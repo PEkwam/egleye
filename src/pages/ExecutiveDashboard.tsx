@@ -232,14 +232,14 @@ export default function ExecutiveDashboardPage() {
               </Select>
 
               <Select 
-                value={selectedQuarter.toString()} 
+                value={selectedQuarter?.toString() || ''} 
                 onValueChange={(v) => setSelectedQuarter(Number(v))}
               >
                 <SelectTrigger className="w-[60px] sm:w-[80px] h-8 sm:h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="Qtr" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4].map(q => (
+                  {(availableQuarters.length > 0 ? availableQuarters : [1, 2, 3, 4]).map(q => (
                     <SelectItem key={q} value={q.toString()}>Q{q}</SelectItem>
                   ))}
                 </SelectContent>
