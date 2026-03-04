@@ -27,7 +27,7 @@ const COLORS = ['hsl(145, 75%, 40%)', 'hsl(221, 83%, 53%)', 'hsl(262, 83%, 58%)'
 
 export default function NonLifeDashboard() {
 const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+  const [selectedQuarter, setSelectedQuarter] = useState<number | null>(null);
   const [marketShareFilter, setMarketShareFilter] = useState<'all' | 'top5' | 'top10'>('top5');
   const queryClient = useQueryClient();
 
@@ -35,7 +35,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['nonlife-metrics'] });
     await queryClient.invalidateQueries({ queryKey: ['nonlife-metrics-previous'] });
-    await new Promise(resolve => setTimeout(resolve, 500)); // Minimum visual feedback
+    await new Promise(resolve => setTimeout(resolve, 500));
   };
 
   // Fetch available years
@@ -53,6 +53,23 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
     },
   });
 
+  // Fetch available quarters for selected year
+  const { data: availableQuarters = [] } = useQuery({
+    queryKey: ['nonlife-available-quarters', selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('report_quarter')
+        .eq('report_year', selectedYear!)
+        .order('report_quarter', { ascending: false });
+      
+      if (error) throw error;
+      const quarters = [...new Set(data?.map(d => d.report_quarter).filter(Boolean) || [])] as number[];
+      return quarters;
+    },
+    enabled: selectedYear !== null,
+  });
+
   // Set default year to highest available
   useEffect(() => {
     if (availableYears.length > 0 && selectedYear === null) {
@@ -60,10 +77,24 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
     }
   }, [availableYears, selectedYear]);
 
+  // Set default quarter to latest available
+  useEffect(() => {
+    if (availableQuarters.length > 0 && selectedQuarter === null) {
+      setSelectedQuarter(availableQuarters[0]);
+    }
+  }, [availableQuarters, selectedQuarter]);
+
+  // Scroll to top when filters change
+  useEffect(() => {
+    if (selectedYear !== null && selectedQuarter !== null) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedYear, selectedQuarter]);
+
   const { data: metrics = [], isLoading } = useQuery({
     queryKey: ['nonlife-metrics', selectedYear, selectedQuarter],
     queryFn: async () => {
-      if (!selectedYear) return [];
+      if (!selectedYear || !selectedQuarter) return [];
       const { data, error } = await supabase
         .from('nonlife_insurer_metrics')
         .select('*')
@@ -73,14 +104,14 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
       if (error) throw error;
       return data || [];
     },
-    enabled: selectedYear !== null,
+    enabled: selectedYear !== null && selectedQuarter !== null,
   });
 
   // Fetch previous quarter data for comparison
   const { data: previousMetrics = [] } = useQuery({
     queryKey: ['nonlife-metrics-previous', selectedYear, selectedQuarter],
     queryFn: async () => {
-      if (!selectedYear) return [];
+      if (!selectedYear || !selectedQuarter) return [];
       const prevQuarter = selectedQuarter === 1 ? 4 : selectedQuarter - 1;
       const prevYear = selectedQuarter === 1 ? selectedYear - 1 : selectedYear;
       
@@ -93,7 +124,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
       if (error) return [];
       return data || [];
     },
-    enabled: selectedYear !== null,
+    enabled: selectedYear !== null && selectedQuarter !== null,
   });
 
   const totalRevenue = metrics.reduce((sum, m) => sum + (m.insurance_service_revenue || 0), 0);
@@ -274,12 +305,12 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedQuarter.toString()} onValueChange={v => setSelectedQuarter(parseInt(v))}>
+            <Select value={selectedQuarter?.toString() || ''} onValueChange={v => setSelectedQuarter(parseInt(v))}>
               <SelectTrigger className="w-[80px] h-9 bg-background border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[1,2,3,4].map(q => <SelectItem key={q} value={q.toString()}>Q{q}</SelectItem>)}
+                {(availableQuarters.length > 0 ? availableQuarters : [1,2,3,4]).map(q => <SelectItem key={q} value={q.toString()}>Q{q}</SelectItem>)}
               </SelectContent>
             </Select>
             

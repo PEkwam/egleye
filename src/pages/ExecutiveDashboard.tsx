@@ -50,7 +50,7 @@ const CHART_COLORS = [
 
 export default function ExecutiveDashboardPage() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+  const [selectedQuarter, setSelectedQuarter] = useState<number | null>(null);
   const [marketShareTopCount, setMarketShareTopCount] = useState<5 | 10>(5);
   const [claimsTopCount, setClaimsTopCount] = useState<5 | 10>(5);
   const [selectedInsurers, setSelectedInsurers] = useState<string[]>([]);
@@ -60,15 +60,28 @@ export default function ExecutiveDashboardPage() {
   const { metrics: allMetrics, availableYears, availableQuarters, isLoading } = useInsurerMetrics(
     'life',
     selectedYear || 2024,
-    selectedQuarter
+    selectedQuarter || 1
   );
 
-  // Set default year to highest available
+  // Set default year and quarter to latest available
   useEffect(() => {
     if (availableYears.length > 0 && selectedYear === null) {
       setSelectedYear(availableYears[0]);
     }
   }, [availableYears, selectedYear]);
+
+  useEffect(() => {
+    if (availableQuarters.length > 0 && selectedQuarter === null) {
+      setSelectedQuarter(availableQuarters[0]); // availableQuarters sorted desc
+    }
+  }, [availableQuarters, selectedQuarter]);
+
+  // Scroll to top when filters change
+  useEffect(() => {
+    if (selectedYear !== null && selectedQuarter !== null) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedYear, selectedQuarter]);
 
   // Filter metrics based on selected insurers
   const metrics = useMemo(() => {
@@ -219,14 +232,14 @@ export default function ExecutiveDashboardPage() {
               </Select>
 
               <Select 
-                value={selectedQuarter.toString()} 
+                value={selectedQuarter?.toString() || ''} 
                 onValueChange={(v) => setSelectedQuarter(Number(v))}
               >
                 <SelectTrigger className="w-[60px] sm:w-[80px] h-8 sm:h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="Qtr" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4].map(q => (
+                  {(availableQuarters.length > 0 ? availableQuarters : [1, 2, 3, 4]).map(q => (
                     <SelectItem key={q} value={q.toString()}>Q{q}</SelectItem>
                   ))}
                 </SelectContent>
@@ -258,7 +271,7 @@ export default function ExecutiveDashboardPage() {
                 Industry Overview
               </h2>
               <p className="text-sm text-muted-foreground">
-                Ghana {getCategoryLabel()} • {selectedYear} Q{selectedQuarter} NIC Report
+                Ghana {getCategoryLabel()} • {selectedYear} Q{selectedQuarter || ''} NIC Report
               </p>
             </div>
             <Badge variant="outline" className="gap-1">
