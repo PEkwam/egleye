@@ -271,7 +271,7 @@ export default function ExecutiveDashboardPage() {
                 Industry Overview
               </h2>
               <p className="text-sm text-muted-foreground">
-                Ghana {getCategoryLabel()} • {selectedYear} Q{selectedQuarter} NIC Report
+                Ghana {getCategoryLabel()} • {selectedYear} Q{selectedQuarter || ''} NIC Report
               </p>
             </div>
             <Badge variant="outline" className="gap-1">
