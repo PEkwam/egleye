@@ -305,12 +305,12 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedQuarter.toString()} onValueChange={v => setSelectedQuarter(parseInt(v))}>
+            <Select value={selectedQuarter?.toString() || ''} onValueChange={v => setSelectedQuarter(parseInt(v))}>
               <SelectTrigger className="w-[80px] h-9 bg-background border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[1,2,3,4].map(q => <SelectItem key={q} value={q.toString()}>Q{q}</SelectItem>)}
+                {(availableQuarters.length > 0 ? availableQuarters : [1,2,3,4]).map(q => <SelectItem key={q} value={q.toString()}>Q{q}</SelectItem>)}
               </SelectContent>
             </Select>
             
