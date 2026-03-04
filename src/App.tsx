@@ -16,6 +16,7 @@ import NonLifeDashboard from "./pages/NonLifeDashboard";
 import BrokersDashboard from "./pages/BrokersDashboard";
 import NPRAPensions from "./pages/NPRAPensions";
 import PensionDashboard from "./pages/PensionDashboard";
+import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/insurance-ai" element={<InsuranceAI />} />
               <Route path="/article/:id" element={<ArticleDetail />} />
               <Route path="/data-admin" element={<DataAdmin />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/brokers-dashboard" element={<BrokersDashboard />} />
               <Route path="/npra-pensions" element={<NPRAPensions />} />
               <Route path="/pension-dashboard" element={<PensionDashboard />} />

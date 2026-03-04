@@ -402,6 +402,14 @@ const DataAdmin = () => {
   const [isClearingBrokers, setIsClearingBrokers] = useState(false);
   const [isSyncingYears, setIsSyncingYears] = useState(false);
 
+  // Check admin authentication
+  useEffect(() => {
+    const token = sessionStorage.getItem('admin_token');
+    if (!token) {
+      navigate('/admin-login', { replace: true });
+    }
+  }, [navigate]);
+
   // Session inactivity timeout (5 minutes)
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000;
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -409,8 +417,10 @@ const DataAdmin = () => {
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(() => {
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_login_time');
       toast.warning('Session expired due to inactivity');
-      navigate('/');
+      navigate('/admin-login', { replace: true });
     }, INACTIVITY_TIMEOUT);
   }, [navigate]);
 
