@@ -38,6 +38,7 @@ const App = () => (
               <Route path="/insurance-ai" element={<InsuranceAI />} />
               <Route path="/article/:id" element={<ArticleDetail />} />
               <Route path="/data-admin" element={<DataAdmin />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/brokers-dashboard" element={<BrokersDashboard />} />
               <Route path="/npra-pensions" element={<NPRAPensions />} />
               <Route path="/pension-dashboard" element={<PensionDashboard />} />
