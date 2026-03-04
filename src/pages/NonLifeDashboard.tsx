@@ -94,7 +94,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const { data: metrics = [], isLoading } = useQuery({
     queryKey: ['nonlife-metrics', selectedYear, selectedQuarter],
     queryFn: async () => {
-      if (!selectedYear) return [];
+      if (!selectedYear || !selectedQuarter) return [];
       const { data, error } = await supabase
         .from('nonlife_insurer_metrics')
         .select('*')
@@ -104,14 +104,14 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
       if (error) throw error;
       return data || [];
     },
-    enabled: selectedYear !== null,
+    enabled: selectedYear !== null && selectedQuarter !== null,
   });
 
   // Fetch previous quarter data for comparison
   const { data: previousMetrics = [] } = useQuery({
     queryKey: ['nonlife-metrics-previous', selectedYear, selectedQuarter],
     queryFn: async () => {
-      if (!selectedYear) return [];
+      if (!selectedYear || !selectedQuarter) return [];
       const prevQuarter = selectedQuarter === 1 ? 4 : selectedQuarter - 1;
       const prevYear = selectedQuarter === 1 ? selectedYear - 1 : selectedYear;
       
@@ -124,7 +124,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
       if (error) return [];
       return data || [];
     },
-    enabled: selectedYear !== null,
+    enabled: selectedYear !== null && selectedQuarter !== null,
   });
 
   const totalRevenue = metrics.reduce((sum, m) => sum + (m.insurance_service_revenue || 0), 0);
