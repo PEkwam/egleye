@@ -60,7 +60,7 @@ const formatPercent = (value: number | null) => {
 const BrokersDashboard = () => {
   const navigate = useNavigate();
 const [selectedYear, setSelectedYear] = useState<string>('');
-  const [selectedQuarter, setSelectedQuarter] = useState<string>('1');
+  const [selectedQuarter, setSelectedQuarter] = useState<string>('');
   const [selectedMetric, setSelectedMetric] = useState<'commission_income' | 'profit_loss_after_tax' | 'market_share'>('commission_income');
   const [displayFilter, setDisplayFilter] = useState<'all' | 'top5' | 'top10'>('all');
 
@@ -74,7 +74,7 @@ const [selectedYear, setSelectedYear] = useState<string>('');
         .eq('report_year', parseInt(selectedYear))
         .order('commission_income', { ascending: false, nullsFirst: false });
 
-      if (selectedQuarter !== 'all') {
+      if (selectedQuarter !== 'all' && selectedQuarter) {
         query = query.eq('report_quarter', parseInt(selectedQuarter));
       }
 
@@ -82,6 +82,7 @@ const [selectedYear, setSelectedYear] = useState<string>('');
       if (error) throw error;
       return (data || []) as BrokerMetric[];
     },
+    enabled: !!selectedYear && !!selectedQuarter,
   });
 
   // Get available years
@@ -99,12 +100,43 @@ const [selectedYear, setSelectedYear] = useState<string>('');
     },
   });
 
+  // Get available quarters for selected year
+  const { data: availableQuartersBroker = [] } = useQuery({
+    queryKey: ['broker-available-quarters', selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('broker_metrics')
+        .select('report_quarter')
+        .eq('report_year', parseInt(selectedYear))
+        .order('report_quarter', { ascending: false });
+      
+      if (error) throw error;
+      const quarters = [...new Set(data?.map(d => d.report_quarter).filter(Boolean) || [])] as number[];
+      return quarters;
+    },
+    enabled: !!selectedYear,
+  });
+
   // Set default year to highest available
   useEffect(() => {
     if (availableYears.length > 0 && !selectedYear) {
       setSelectedYear(availableYears[0].toString());
     }
   }, [availableYears, selectedYear]);
+
+  // Set default quarter to latest available
+  useEffect(() => {
+    if (availableQuartersBroker.length > 0 && !selectedQuarter) {
+      setSelectedQuarter(availableQuartersBroker[0].toString());
+    }
+  }, [availableQuartersBroker, selectedQuarter]);
+
+  // Scroll to top when filters change
+  useEffect(() => {
+    if (selectedYear && selectedQuarter) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedYear, selectedQuarter]);
 
   // Fetch previous quarter data for comparison
   const { data: previousBrokerMetrics = [] } = useQuery({

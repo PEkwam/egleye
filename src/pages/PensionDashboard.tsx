@@ -44,6 +44,20 @@ export default function PensionDashboard() {
     }
   }, [availableYears, selectedYear]);
 
+  // Set default quarter to latest available
+  useEffect(() => {
+    if (availableQuarters.length > 0 && selectedQuarter === 'all') {
+      setSelectedQuarter(availableQuarters[availableQuarters.length - 1]); // sorted asc, pick last
+    }
+  }, [availableQuarters, selectedQuarter]);
+
+  // Scroll to top when filters change
+  useEffect(() => {
+    if (selectedYear !== null) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedYear, selectedQuarter]);
+
   if (isLoading) {
     return <DashboardSkeleton variant="pension" />;
   }

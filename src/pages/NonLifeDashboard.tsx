@@ -27,7 +27,7 @@ const COLORS = ['hsl(145, 75%, 40%)', 'hsl(221, 83%, 53%)', 'hsl(262, 83%, 58%)'
 
 export default function NonLifeDashboard() {
 const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedQuarter, setSelectedQuarter] = useState<number>(1);
+  const [selectedQuarter, setSelectedQuarter] = useState<number | null>(null);
   const [marketShareFilter, setMarketShareFilter] = useState<'all' | 'top5' | 'top10'>('top5');
   const queryClient = useQueryClient();
 
@@ -35,7 +35,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const handleRefresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['nonlife-metrics'] });
     await queryClient.invalidateQueries({ queryKey: ['nonlife-metrics-previous'] });
-    await new Promise(resolve => setTimeout(resolve, 500)); // Minimum visual feedback
+    await new Promise(resolve => setTimeout(resolve, 500));
   };
 
   // Fetch available years
@@ -53,12 +53,43 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
     },
   });
 
+  // Fetch available quarters for selected year
+  const { data: availableQuarters = [] } = useQuery({
+    queryKey: ['nonlife-available-quarters', selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('report_quarter')
+        .eq('report_year', selectedYear!)
+        .order('report_quarter', { ascending: false });
+      
+      if (error) throw error;
+      const quarters = [...new Set(data?.map(d => d.report_quarter).filter(Boolean) || [])] as number[];
+      return quarters;
+    },
+    enabled: selectedYear !== null,
+  });
+
   // Set default year to highest available
   useEffect(() => {
     if (availableYears.length > 0 && selectedYear === null) {
       setSelectedYear(availableYears[0]);
     }
   }, [availableYears, selectedYear]);
+
+  // Set default quarter to latest available
+  useEffect(() => {
+    if (availableQuarters.length > 0 && selectedQuarter === null) {
+      setSelectedQuarter(availableQuarters[0]);
+    }
+  }, [availableQuarters, selectedQuarter]);
+
+  // Scroll to top when filters change
+  useEffect(() => {
+    if (selectedYear !== null && selectedQuarter !== null) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedYear, selectedQuarter]);
 
   const { data: metrics = [], isLoading } = useQuery({
     queryKey: ['nonlife-metrics', selectedYear, selectedQuarter],
