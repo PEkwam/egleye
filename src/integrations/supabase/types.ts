@@ -144,12 +144,17 @@ export type Database = {
       }
       insurer_metrics: {
         Row: {
+          acquisition_cashflow: number | null
+          annuities: number | null
+          attributable_expense_ratio: number | null
           branches: number | null
+          cash_balance: number | null
           category: string
           claims_ratio: number | null
           combined_ratio: number | null
           created_at: string
           credit_life: number | null
+          critical_illness: number | null
           csm: number | null
           customer_rating: number | null
           employees: number | null
@@ -158,33 +163,59 @@ export type Database = {
           gross_premium: number | null
           group_policies: number | null
           id: string
+          insurance_contract_assets: number | null
+          insurance_contract_liabilities: number | null
+          insurance_finance_income: number | null
+          insurance_service_expenses: number | null
+          insurance_service_result: number | null
           insurer_id: string
           insurer_name: string
           investment_income: number | null
+          investment_linked: number | null
           market_share: number | null
+          microinsurance: number | null
           net_premium: number | null
+          non_attributable_expense_ratio: number | null
+          non_attributable_expenses: number | null
+          other_income: number | null
+          other_products: number | null
+          ppe: number | null
           products_offered: number | null
           profit_after_tax: number | null
+          reinsurance_contract_assets: number | null
+          reinsurance_contract_liabilities: number | null
           report_quarter: number | null
           report_source: string | null
           report_year: number
+          share_insurance_service_results: number | null
           shareholders_funds: number | null
           solvency_ratio: number | null
+          technical_results_margin: number | null
           term_premium: number | null
           total_assets: number | null
+          total_attributable_expenses: number | null
           total_claims_paid: number | null
+          total_investments: number | null
+          total_liabilities: number | null
+          total_receivables: number | null
+          unit_linked: number | null
           universal_life: number | null
           updated_at: string
           whole_life: number | null
           years_in_ghana: number | null
         }
         Insert: {
+          acquisition_cashflow?: number | null
+          annuities?: number | null
+          attributable_expense_ratio?: number | null
           branches?: number | null
+          cash_balance?: number | null
           category: string
           claims_ratio?: number | null
           combined_ratio?: number | null
           created_at?: string
           credit_life?: number | null
+          critical_illness?: number | null
           csm?: number | null
           customer_rating?: number | null
           employees?: number | null
@@ -193,33 +224,59 @@ export type Database = {
           gross_premium?: number | null
           group_policies?: number | null
           id?: string
+          insurance_contract_assets?: number | null
+          insurance_contract_liabilities?: number | null
+          insurance_finance_income?: number | null
+          insurance_service_expenses?: number | null
+          insurance_service_result?: number | null
           insurer_id: string
           insurer_name: string
           investment_income?: number | null
+          investment_linked?: number | null
           market_share?: number | null
+          microinsurance?: number | null
           net_premium?: number | null
+          non_attributable_expense_ratio?: number | null
+          non_attributable_expenses?: number | null
+          other_income?: number | null
+          other_products?: number | null
+          ppe?: number | null
           products_offered?: number | null
           profit_after_tax?: number | null
+          reinsurance_contract_assets?: number | null
+          reinsurance_contract_liabilities?: number | null
           report_quarter?: number | null
           report_source?: string | null
           report_year: number
+          share_insurance_service_results?: number | null
           shareholders_funds?: number | null
           solvency_ratio?: number | null
+          technical_results_margin?: number | null
           term_premium?: number | null
           total_assets?: number | null
+          total_attributable_expenses?: number | null
           total_claims_paid?: number | null
+          total_investments?: number | null
+          total_liabilities?: number | null
+          total_receivables?: number | null
+          unit_linked?: number | null
           universal_life?: number | null
           updated_at?: string
           whole_life?: number | null
           years_in_ghana?: number | null
         }
         Update: {
+          acquisition_cashflow?: number | null
+          annuities?: number | null
+          attributable_expense_ratio?: number | null
           branches?: number | null
+          cash_balance?: number | null
           category?: string
           claims_ratio?: number | null
           combined_ratio?: number | null
           created_at?: string
           credit_life?: number | null
+          critical_illness?: number | null
           csm?: number | null
           customer_rating?: number | null
           employees?: number | null
@@ -228,21 +285,42 @@ export type Database = {
           gross_premium?: number | null
           group_policies?: number | null
           id?: string
+          insurance_contract_assets?: number | null
+          insurance_contract_liabilities?: number | null
+          insurance_finance_income?: number | null
+          insurance_service_expenses?: number | null
+          insurance_service_result?: number | null
           insurer_id?: string
           insurer_name?: string
           investment_income?: number | null
+          investment_linked?: number | null
           market_share?: number | null
+          microinsurance?: number | null
           net_premium?: number | null
+          non_attributable_expense_ratio?: number | null
+          non_attributable_expenses?: number | null
+          other_income?: number | null
+          other_products?: number | null
+          ppe?: number | null
           products_offered?: number | null
           profit_after_tax?: number | null
+          reinsurance_contract_assets?: number | null
+          reinsurance_contract_liabilities?: number | null
           report_quarter?: number | null
           report_source?: string | null
           report_year?: number
+          share_insurance_service_results?: number | null
           shareholders_funds?: number | null
           solvency_ratio?: number | null
+          technical_results_margin?: number | null
           term_premium?: number | null
           total_assets?: number | null
+          total_attributable_expenses?: number | null
           total_claims_paid?: number | null
+          total_investments?: number | null
+          total_liabilities?: number | null
+          total_receivables?: number | null
+          unit_linked?: number | null
           universal_life?: number | null
           updated_at?: string
           whole_life?: number | null

@@ -41,6 +41,34 @@ interface ParsedLifeInsurer {
   endowment?: number;
   universal_life?: number;
   csm?: number;
+  // New product types
+  annuities?: number;
+  microinsurance?: number;
+  unit_linked?: number;
+  investment_linked?: number;
+  critical_illness?: number;
+  other_products?: number;
+  // New financial metrics
+  insurance_service_result?: number;
+  insurance_service_expenses?: number;
+  total_attributable_expenses?: number;
+  non_attributable_expenses?: number;
+  acquisition_cashflow?: number;
+  insurance_finance_income?: number;
+  other_income?: number;
+  total_investments?: number;
+  total_liabilities?: number;
+  total_receivables?: number;
+  ppe?: number;
+  cash_balance?: number;
+  insurance_contract_assets?: number;
+  reinsurance_contract_assets?: number;
+  insurance_contract_liabilities?: number;
+  reinsurance_contract_liabilities?: number;
+  technical_results_margin?: number;
+  attributable_expense_ratio?: number;
+  non_attributable_expense_ratio?: number;
+  share_insurance_service_results?: number;
 }
 
 // Non-Life insurance fields
@@ -1167,6 +1195,36 @@ const DataAdmin = () => {
           if (h.includes('endowment')) columnMap['endowment'] = index;
           if (h.includes('universal life')) columnMap['universal_life'] = index;
           if (h === 'csm' || h.includes('contractual service margin')) columnMap['csm'] = index;
+          // New product types
+          if (h.includes('annuit')) columnMap['annuities'] = index;
+          if (h.includes('microinsurance') || h.includes('micro insurance')) columnMap['microinsurance'] = index;
+          if (h.includes('unit-linked') || h.includes('unit linked')) columnMap['unit_linked'] = index;
+          if (h.includes('investment-linked') || h.includes('investment linked')) columnMap['investment_linked'] = index;
+          if (h.includes('critical illness') || h.includes('dread disease')) columnMap['critical_illness'] = index;
+          if (h.includes('other approved') || h.includes('other products')) columnMap['other_products'] = index;
+          // New financial metrics
+          if (h.includes('insurance services expenses') || h.includes('insurance service expenses')) columnMap['insurance_service_expenses'] = index;
+          if (h.includes('insurance service result') && !h.includes('share') && !h.includes('from')) columnMap['insurance_service_result'] = index;
+          if (h.includes('total attributable expenses')) columnMap['total_attributable_expenses'] = index;
+          if (h.includes('non-attributable expense') || h.includes('non attributable expense')) {
+            if (!h.includes('ratio')) columnMap['non_attributable_expenses'] = index;
+          }
+          if (h.includes('acquisition cashflow') || h.includes('acquisition cash')) columnMap['acquisition_cashflow'] = index;
+          if (h.includes('insurance finance income') || h.includes('insurance finance')) columnMap['insurance_finance_income'] = index;
+          if (h.includes('other income') || h.includes('total other income')) columnMap['other_income'] = index;
+          if (h.includes('total investments') && !h.includes('income')) columnMap['total_investments'] = index;
+          if (h.includes('total liabilities')) columnMap['total_liabilities'] = index;
+          if (h.includes('total receivables') || h === 'receivables') columnMap['total_receivables'] = index;
+          if (h.includes('property, plant') || h.includes('ppe') || h.includes('property plant')) columnMap['ppe'] = index;
+          if (h.includes('cash and cash') || h.includes('cash balance')) columnMap['cash_balance'] = index;
+          if (h.includes('insurance contract assets') && !h.includes('liabilit') && !h.includes('reinsurance')) columnMap['insurance_contract_assets'] = index;
+          if (h.includes('reinsurance contract assets') && !h.includes('liabilit')) columnMap['reinsurance_contract_assets'] = index;
+          if (h.includes('insurance contract liabilit') && !h.includes('reinsurance')) columnMap['insurance_contract_liabilities'] = index;
+          if (h.includes('reinsurance contract liabilit')) columnMap['reinsurance_contract_liabilities'] = index;
+          if (h.includes('technical results margin')) columnMap['technical_results_margin'] = index;
+          if (h.includes('attributable expense ratio') && !h.includes('non')) columnMap['attributable_expense_ratio'] = index;
+          if (h.includes('non-attributable expense ratio') || h.includes('non attributable expense ratio')) columnMap['non_attributable_expense_ratio'] = index;
+          if (h.includes('share of insurance') || h.includes('share insurance service')) columnMap['share_insurance_service_results'] = index;
         } else {
           if ((h.includes('insurance service revenue') || h === 'insurance revenue' || (h.includes('insurance revenue') && !h.includes('net') && !h.includes('finance'))) && !h.includes('net')) columnMap['insurance_service_revenue'] = index;
           if ((h.includes('investment income') || h.includes('net investment income')) && !h.includes('finance')) columnMap['investment_income'] = index;
@@ -1242,6 +1300,32 @@ const DataAdmin = () => {
             endowment: parseNumber(row[columnMap['endowment']]),
             universal_life: parseNumber(row[columnMap['universal_life']]),
             csm: parseNumber(row[columnMap['csm']]),
+            annuities: parseNumber(row[columnMap['annuities']]),
+            microinsurance: parseNumber(row[columnMap['microinsurance']]),
+            unit_linked: parseNumber(row[columnMap['unit_linked']]),
+            investment_linked: parseNumber(row[columnMap['investment_linked']]),
+            critical_illness: parseNumber(row[columnMap['critical_illness']]),
+            other_products: parseNumber(row[columnMap['other_products']]),
+            insurance_service_result: parseNumber(row[columnMap['insurance_service_result']]),
+            insurance_service_expenses: parseNumber(row[columnMap['insurance_service_expenses']]),
+            total_attributable_expenses: parseNumber(row[columnMap['total_attributable_expenses']]),
+            non_attributable_expenses: parseNumber(row[columnMap['non_attributable_expenses']]),
+            acquisition_cashflow: parseNumber(row[columnMap['acquisition_cashflow']]),
+            insurance_finance_income: parseNumber(row[columnMap['insurance_finance_income']]),
+            other_income: parseNumber(row[columnMap['other_income']]),
+            total_investments: parseNumber(row[columnMap['total_investments']]),
+            total_liabilities: parseNumber(row[columnMap['total_liabilities']]),
+            total_receivables: parseNumber(row[columnMap['total_receivables']]),
+            ppe: parseNumber(row[columnMap['ppe']]),
+            cash_balance: parseNumber(row[columnMap['cash_balance']]),
+            insurance_contract_assets: parseNumber(row[columnMap['insurance_contract_assets']]),
+            reinsurance_contract_assets: parseNumber(row[columnMap['reinsurance_contract_assets']]),
+            insurance_contract_liabilities: parseNumber(row[columnMap['insurance_contract_liabilities']]),
+            reinsurance_contract_liabilities: parseNumber(row[columnMap['reinsurance_contract_liabilities']]),
+            technical_results_margin: parseNumber(row[columnMap['technical_results_margin']]),
+            attributable_expense_ratio: parseNumber(row[columnMap['attributable_expense_ratio']]),
+            non_attributable_expense_ratio: parseNumber(row[columnMap['non_attributable_expense_ratio']]),
+            share_insurance_service_results: parseNumber(row[columnMap['share_insurance_service_results']]),
           } as ParsedLifeInsurer;
         } else {
           insurer = {
@@ -1683,6 +1767,40 @@ const DataAdmin = () => {
                 endowment: lifeItem.endowment ?? null,
                 universal_life: lifeItem.universal_life ?? null,
                 csm: lifeItem.csm ?? null,
+                annuities: lifeItem.annuities ?? null,
+                microinsurance: lifeItem.microinsurance ?? null,
+                unit_linked: lifeItem.unit_linked ?? null,
+                investment_linked: lifeItem.investment_linked ?? null,
+                critical_illness: lifeItem.critical_illness ?? null,
+                other_products: lifeItem.other_products ?? null,
+                insurance_service_result: lifeItem.insurance_service_result ?? null,
+                insurance_service_expenses: lifeItem.insurance_service_expenses ?? null,
+                total_attributable_expenses: lifeItem.total_attributable_expenses ?? null,
+                non_attributable_expenses: lifeItem.non_attributable_expenses ?? null,
+                acquisition_cashflow: lifeItem.acquisition_cashflow ?? null,
+                insurance_finance_income: lifeItem.insurance_finance_income ?? null,
+                other_income: lifeItem.other_income ?? null,
+                total_investments: lifeItem.total_investments ?? null,
+                total_liabilities: lifeItem.total_liabilities ?? null,
+                total_receivables: lifeItem.total_receivables ?? null,
+                ppe: lifeItem.ppe ?? null,
+                cash_balance: lifeItem.cash_balance ?? null,
+                insurance_contract_assets: lifeItem.insurance_contract_assets ?? null,
+                reinsurance_contract_assets: lifeItem.reinsurance_contract_assets ?? null,
+                insurance_contract_liabilities: lifeItem.insurance_contract_liabilities ?? null,
+                reinsurance_contract_liabilities: lifeItem.reinsurance_contract_liabilities ?? null,
+                technical_results_margin: lifeItem.technical_results_margin != null && lifeItem.technical_results_margin > 1
+                  ? lifeItem.technical_results_margin / 100
+                  : lifeItem.technical_results_margin ?? null,
+                attributable_expense_ratio: lifeItem.attributable_expense_ratio != null && lifeItem.attributable_expense_ratio > 1
+                  ? lifeItem.attributable_expense_ratio / 100
+                  : lifeItem.attributable_expense_ratio ?? null,
+                non_attributable_expense_ratio: lifeItem.non_attributable_expense_ratio != null && lifeItem.non_attributable_expense_ratio > 1
+                  ? lifeItem.non_attributable_expense_ratio / 100
+                  : lifeItem.non_attributable_expense_ratio ?? null,
+                share_insurance_service_results: lifeItem.share_insurance_service_results != null && lifeItem.share_insurance_service_results > 1
+                  ? lifeItem.share_insurance_service_results / 100
+                  : lifeItem.share_insurance_service_results ?? null,
                 report_year: sheet.year,
                 report_quarter: sheet.quarter,
                 report_source: 'NIC Quarterly Report',

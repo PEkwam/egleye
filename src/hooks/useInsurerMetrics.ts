@@ -38,6 +38,34 @@ export interface InsurerMetrics {
   investment_income: number | null;
   profit_after_tax: number | null;
   csm: number | null;
+  // New product types
+  annuities: number | null;
+  microinsurance: number | null;
+  unit_linked: number | null;
+  investment_linked: number | null;
+  critical_illness: number | null;
+  other_products: number | null;
+  // New financial metrics
+  insurance_service_result: number | null;
+  insurance_service_expenses: number | null;
+  total_attributable_expenses: number | null;
+  non_attributable_expenses: number | null;
+  acquisition_cashflow: number | null;
+  insurance_finance_income: number | null;
+  other_income: number | null;
+  total_investments: number | null;
+  total_liabilities: number | null;
+  total_receivables: number | null;
+  ppe: number | null;
+  cash_balance: number | null;
+  insurance_contract_assets: number | null;
+  reinsurance_contract_assets: number | null;
+  insurance_contract_liabilities: number | null;
+  reinsurance_contract_liabilities: number | null;
+  technical_results_margin: number | null;
+  attributable_expense_ratio: number | null;
+  non_attributable_expense_ratio: number | null;
+  share_insurance_service_results: number | null;
 }
 
 export function useInsurerMetrics(category?: InsuranceCategory, year?: number, quarter?: number) {
@@ -322,4 +350,30 @@ export const fallbackMetrics: Omit<InsurerMetrics, 'id' | 'insurer_id' | 'insure
   investment_income: null,
   profit_after_tax: null,
   csm: null,
+  annuities: null,
+  microinsurance: null,
+  unit_linked: null,
+  investment_linked: null,
+  critical_illness: null,
+  other_products: null,
+  insurance_service_result: null,
+  insurance_service_expenses: null,
+  total_attributable_expenses: null,
+  non_attributable_expenses: null,
+  acquisition_cashflow: null,
+  insurance_finance_income: null,
+  other_income: null,
+  total_investments: null,
+  total_liabilities: null,
+  total_receivables: null,
+  ppe: null,
+  cash_balance: null,
+  insurance_contract_assets: null,
+  reinsurance_contract_assets: null,
+  insurance_contract_liabilities: null,
+  reinsurance_contract_liabilities: null,
+  technical_results_margin: null,
+  attributable_expense_ratio: null,
+  non_attributable_expense_ratio: null,
+  share_insurance_service_results: null,
 };
