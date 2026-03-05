@@ -41,6 +41,34 @@ interface ParsedLifeInsurer {
   endowment?: number;
   universal_life?: number;
   csm?: number;
+  // New product types
+  annuities?: number;
+  microinsurance?: number;
+  unit_linked?: number;
+  investment_linked?: number;
+  critical_illness?: number;
+  other_products?: number;
+  // New financial metrics
+  insurance_service_result?: number;
+  insurance_service_expenses?: number;
+  total_attributable_expenses?: number;
+  non_attributable_expenses?: number;
+  acquisition_cashflow?: number;
+  insurance_finance_income?: number;
+  other_income?: number;
+  total_investments?: number;
+  total_liabilities?: number;
+  total_receivables?: number;
+  ppe?: number;
+  cash_balance?: number;
+  insurance_contract_assets?: number;
+  reinsurance_contract_assets?: number;
+  insurance_contract_liabilities?: number;
+  reinsurance_contract_liabilities?: number;
+  technical_results_margin?: number;
+  attributable_expense_ratio?: number;
+  non_attributable_expense_ratio?: number;
+  share_insurance_service_results?: number;
 }
 
 // Non-Life insurance fields
