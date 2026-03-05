@@ -1195,6 +1195,36 @@ const DataAdmin = () => {
           if (h.includes('endowment')) columnMap['endowment'] = index;
           if (h.includes('universal life')) columnMap['universal_life'] = index;
           if (h === 'csm' || h.includes('contractual service margin')) columnMap['csm'] = index;
+          // New product types
+          if (h.includes('annuit')) columnMap['annuities'] = index;
+          if (h.includes('microinsurance') || h.includes('micro insurance')) columnMap['microinsurance'] = index;
+          if (h.includes('unit-linked') || h.includes('unit linked')) columnMap['unit_linked'] = index;
+          if (h.includes('investment-linked') || h.includes('investment linked')) columnMap['investment_linked'] = index;
+          if (h.includes('critical illness') || h.includes('dread disease')) columnMap['critical_illness'] = index;
+          if (h.includes('other approved') || h.includes('other products')) columnMap['other_products'] = index;
+          // New financial metrics
+          if (h.includes('insurance services expenses') || h.includes('insurance service expenses')) columnMap['insurance_service_expenses'] = index;
+          if (h.includes('insurance service result') && !h.includes('share') && !h.includes('from')) columnMap['insurance_service_result'] = index;
+          if (h.includes('total attributable expenses')) columnMap['total_attributable_expenses'] = index;
+          if (h.includes('non-attributable expense') || h.includes('non attributable expense')) {
+            if (!h.includes('ratio')) columnMap['non_attributable_expenses'] = index;
+          }
+          if (h.includes('acquisition cashflow') || h.includes('acquisition cash')) columnMap['acquisition_cashflow'] = index;
+          if (h.includes('insurance finance income') || h.includes('insurance finance')) columnMap['insurance_finance_income'] = index;
+          if (h.includes('other income') || h.includes('total other income')) columnMap['other_income'] = index;
+          if (h.includes('total investments') && !h.includes('income')) columnMap['total_investments'] = index;
+          if (h.includes('total liabilities')) columnMap['total_liabilities'] = index;
+          if (h.includes('total receivables') || h === 'receivables') columnMap['total_receivables'] = index;
+          if (h.includes('property, plant') || h.includes('ppe') || h.includes('property plant')) columnMap['ppe'] = index;
+          if (h.includes('cash and cash') || h.includes('cash balance')) columnMap['cash_balance'] = index;
+          if (h.includes('insurance contract assets') && !h.includes('liabilit') && !h.includes('reinsurance')) columnMap['insurance_contract_assets'] = index;
+          if (h.includes('reinsurance contract assets') && !h.includes('liabilit')) columnMap['reinsurance_contract_assets'] = index;
+          if (h.includes('insurance contract liabilit') && !h.includes('reinsurance')) columnMap['insurance_contract_liabilities'] = index;
+          if (h.includes('reinsurance contract liabilit')) columnMap['reinsurance_contract_liabilities'] = index;
+          if (h.includes('technical results margin')) columnMap['technical_results_margin'] = index;
+          if (h.includes('attributable expense ratio') && !h.includes('non')) columnMap['attributable_expense_ratio'] = index;
+          if (h.includes('non-attributable expense ratio') || h.includes('non attributable expense ratio')) columnMap['non_attributable_expense_ratio'] = index;
+          if (h.includes('share of insurance') || h.includes('share insurance service')) columnMap['share_insurance_service_results'] = index;
         } else {
           if ((h.includes('insurance service revenue') || h === 'insurance revenue' || (h.includes('insurance revenue') && !h.includes('net') && !h.includes('finance'))) && !h.includes('net')) columnMap['insurance_service_revenue'] = index;
           if ((h.includes('investment income') || h.includes('net investment income')) && !h.includes('finance')) columnMap['investment_income'] = index;
