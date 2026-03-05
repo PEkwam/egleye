@@ -1767,6 +1767,40 @@ const DataAdmin = () => {
                 endowment: lifeItem.endowment ?? null,
                 universal_life: lifeItem.universal_life ?? null,
                 csm: lifeItem.csm ?? null,
+                annuities: lifeItem.annuities ?? null,
+                microinsurance: lifeItem.microinsurance ?? null,
+                unit_linked: lifeItem.unit_linked ?? null,
+                investment_linked: lifeItem.investment_linked ?? null,
+                critical_illness: lifeItem.critical_illness ?? null,
+                other_products: lifeItem.other_products ?? null,
+                insurance_service_result: lifeItem.insurance_service_result ?? null,
+                insurance_service_expenses: lifeItem.insurance_service_expenses ?? null,
+                total_attributable_expenses: lifeItem.total_attributable_expenses ?? null,
+                non_attributable_expenses: lifeItem.non_attributable_expenses ?? null,
+                acquisition_cashflow: lifeItem.acquisition_cashflow ?? null,
+                insurance_finance_income: lifeItem.insurance_finance_income ?? null,
+                other_income: lifeItem.other_income ?? null,
+                total_investments: lifeItem.total_investments ?? null,
+                total_liabilities: lifeItem.total_liabilities ?? null,
+                total_receivables: lifeItem.total_receivables ?? null,
+                ppe: lifeItem.ppe ?? null,
+                cash_balance: lifeItem.cash_balance ?? null,
+                insurance_contract_assets: lifeItem.insurance_contract_assets ?? null,
+                reinsurance_contract_assets: lifeItem.reinsurance_contract_assets ?? null,
+                insurance_contract_liabilities: lifeItem.insurance_contract_liabilities ?? null,
+                reinsurance_contract_liabilities: lifeItem.reinsurance_contract_liabilities ?? null,
+                technical_results_margin: lifeItem.technical_results_margin != null && lifeItem.technical_results_margin > 1
+                  ? lifeItem.technical_results_margin / 100
+                  : lifeItem.technical_results_margin ?? null,
+                attributable_expense_ratio: lifeItem.attributable_expense_ratio != null && lifeItem.attributable_expense_ratio > 1
+                  ? lifeItem.attributable_expense_ratio / 100
+                  : lifeItem.attributable_expense_ratio ?? null,
+                non_attributable_expense_ratio: lifeItem.non_attributable_expense_ratio != null && lifeItem.non_attributable_expense_ratio > 1
+                  ? lifeItem.non_attributable_expense_ratio / 100
+                  : lifeItem.non_attributable_expense_ratio ?? null,
+                share_insurance_service_results: lifeItem.share_insurance_service_results != null && lifeItem.share_insurance_service_results > 1
+                  ? lifeItem.share_insurance_service_results / 100
+                  : lifeItem.share_insurance_service_results ?? null,
                 report_year: sheet.year,
                 report_quarter: sheet.quarter,
                 report_source: 'NIC Quarterly Report',
