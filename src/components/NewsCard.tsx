@@ -204,7 +204,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
           <span className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-lg shadow-md category-badge-overlay">
             {categoryLabels[article.category]}
           </span>
-          <CredibilityBadge sourceName={article.source_name} />
+          <CredibilityBadge sourceName={article.source_name} overlay />
         </div>
         <div className="absolute top-4 right-4">
           <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-black/40 backdrop-blur-sm text-white">{readingTime} min</span>
