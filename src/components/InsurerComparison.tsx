@@ -124,6 +124,20 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     return {};
   };
 
+  // Fetch available non-life years from DB
+  const { data: nonLifeYears = [] } = useQuery({
+    queryKey: ['nonlife-available-years'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('report_year')
+        .order('report_year', { ascending: false });
+      if (error || !data) return [];
+      return [...new Set(data.map(d => d.report_year))];
+    },
+    enabled: insuranceType === 'nonlife',
+  });
+
   // Fetch non-life insurance metrics
   const { data: nonLifeMetrics = [], isLoading: isLoadingNonLife } = useQuery({
     queryKey: ['nonlife-comparison-metrics', selectedYear, selectedQuarter],
