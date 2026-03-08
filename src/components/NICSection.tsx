@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, FileText, AlertCircle, ChevronRight, Bell, ExternalLink, Clock, Zap } from 'lucide-react';
+import { sanitizeText } from '@/lib/utils/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -156,9 +157,9 @@ export function NICSection({ articles, isLoading, onViewAll }: NICSectionProps) 
                 {featuredArticle.title}
               </h3>
               
-              {featuredArticle.description && (
+              {featuredArticle.description && sanitizeText(featuredArticle.description) && (
                 <p className="text-emerald-100/75 line-clamp-2 mb-5 max-w-2xl text-sm sm:text-base">
-                  {featuredArticle.description}
+                  {sanitizeText(featuredArticle.description)}
                 </p>
               )}
               
