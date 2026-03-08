@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, Database, RefreshCw, FileSpreadsheet, Check, AlertTriangle, 
   FileUp, X, Trash2, Newspaper, Building2, Landmark, Image, ImagePlus,
-  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save
+  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save, LogOut
 } from 'lucide-react';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
