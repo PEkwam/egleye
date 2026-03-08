@@ -102,6 +102,8 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
             <img
               src={article.image_url}
               alt={article.title}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             />
           </div>
@@ -137,8 +139,10 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
         {article.image_url ? (
           <img
-            src={article.image_url}
+             src={article.image_url}
             alt={article.title}
+            loading="lazy"
+            decoding="async"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
@@ -193,7 +197,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
     <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="group news-card flex flex-col h-full">
       <div className="relative h-48 overflow-hidden bg-secondary">
         {article.image_url ? (
-          <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+          <img src={article.image_url} alt={article.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         ) : (
           <div className="w-full h-full hero-gradient opacity-60" />
         )}
