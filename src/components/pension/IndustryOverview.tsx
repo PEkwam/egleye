@@ -113,10 +113,10 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: DollarSign, label: 'Total Industry AUM', value: fmt(totals.totalAUM), sub: `${selectedYear || ''}`, color: 'from-amber-500 to-orange-600', text: 'text-amber-600 dark:text-amber-400' },
-          { icon: Shield, label: 'SSNIT (Tier 1)', value: fmt(totals.ssnitAUM), sub: 'BNSSS', color: 'from-blue-500 to-indigo-600', text: 'text-blue-600 dark:text-blue-400' },
-          { icon: Wallet, label: 'Private Pensions', value: fmt(totals.privateAUM), sub: 'Tier 2 & 3', color: 'from-emerald-500 to-green-600', text: 'text-emerald-600 dark:text-emerald-400' },
-          { icon: Users, label: 'SSNIT Contributors', value: `${(totals.contributors / 1e6).toFixed(2)}M`, sub: `${totals.pensioners.toLocaleString()} pensioners`, color: 'from-purple-500 to-violet-600', text: 'text-purple-600 dark:text-purple-400' },
+          { icon: DollarSign, label: 'Total Industry AUM', value: fmt(totals.totalAUM), sub: `${selectedYear || ''}`, color: 'from-amber-500 to-orange-600', text: 'text-amber-600 dark:text-amber-400', hasData: totals.hasSSNIT || totals.hasPrivate },
+          { icon: Shield, label: 'SSNIT (Tier 1)', value: fmt(totals.ssnitAUM), sub: 'BNSSS', color: 'from-blue-500 to-indigo-600', text: 'text-blue-600 dark:text-blue-400', hasData: totals.hasSSNIT },
+          { icon: Wallet, label: 'Private Pensions', value: fmt(totals.privateAUM), sub: 'Tier 2 & 3', color: 'from-emerald-500 to-green-600', text: 'text-emerald-600 dark:text-emerald-400', hasData: totals.hasPrivate },
+          { icon: Users, label: 'SSNIT Contributors', value: `${(totals.contributors / 1e6).toFixed(2)}M`, sub: `${totals.pensioners.toLocaleString()} pensioners`, color: 'from-purple-500 to-violet-600', text: 'text-purple-600 dark:text-purple-400', hasData: totals.hasContributors },
         ].map((s, i) => (
           <Card key={i} className="relative overflow-hidden border-border/50 hover:border-border transition-colors">
             <CardContent className="p-4">
@@ -126,7 +126,13 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
                 </div>
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">{s.label}</span>
               </div>
-              <p className={`text-lg sm:text-xl font-bold ${s.text}`}>{s.value}</p>
+              {s.hasData ? (
+                <p className={`text-lg sm:text-xl font-bold ${s.text}`}>{s.value}</p>
+              ) : (
+                <div className="mt-1">
+                  <NoDataBadge size="md" />
+                </div>
+              )}
               <p className="text-xs text-muted-foreground mt-0.5">{s.sub}</p>
             </CardContent>
           </Card>
