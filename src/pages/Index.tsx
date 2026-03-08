@@ -171,6 +171,9 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
           />
         )}
 
+        {/* AI News Digest */}
+        {showSections && <AINewsDigest />}
+
 
         {showHero && (
           <HeroSection
