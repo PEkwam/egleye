@@ -174,7 +174,7 @@ export const MobileDashboard = () => {
         { label: 'Companies', value: String(latestLifeData.length), icon: Building2 },
         { label: 'Avg Claims Ratio', value: `${(latestLifeData.reduce((s, d) => s + (d.claims_ratio || 0), 0) / latestLifeData.length || 0).toFixed(1)}%`, icon: Percent },
       ],
-      topPlayer: lifeTopPlayer?.insurer_name || 'N/A',
+      topPlayer: lifeTopPlayer?.insurer_name || 'No data',
       marketSize: formatCurrency(lifeTotalPremium),
     },
     {
