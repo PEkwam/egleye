@@ -83,7 +83,7 @@ interface NewsCardProps {
   variant?: 'default' | 'compact' | 'featured';
 }
 
-export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
+export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article, variant = 'default' }, ref) => {
   const publishedDate = article.published_at
     ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
     : 'Recently';
