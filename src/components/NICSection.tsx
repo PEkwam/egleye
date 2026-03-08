@@ -195,7 +195,7 @@ export function NICSection({ articles, isLoading, onViewAll }: NICSectionProps) 
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm text-foreground line-clamp-2 group-hover:text-emerald-600 transition-colors">
-                      {article.title}
+                      {sanitizeText(article.title)}
                     </h4>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
