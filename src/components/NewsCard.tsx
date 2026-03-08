@@ -156,11 +156,9 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
         {article.image_url ? (
-          <img
-             src={article.image_url}
+          <ImageWithFallback
+            src={article.image_url}
             alt={article.title}
-            loading="lazy"
-            decoding="async"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
