@@ -346,14 +346,14 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Service Revenue</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">₵{(totalRevenue / 1e9).toFixed(2)}B</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{totalRevenue > 0 ? `₵${(totalRevenue / 1e9).toFixed(2)}B` : 'N/A'}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-blue-500/15 flex items-center justify-center">
                   <BarChart3 className="h-5 w-5 text-blue-500" />
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2">
-                {previousMetrics.length > 0 && (
+                {previousMetrics.length > 0 && totalRevenue > 0 && (
                   <TrendingIndicator 
                     currentValue={totalRevenue} 
                     previousValue={previousMetrics.reduce((sum, m) => sum + (m.insurance_service_revenue || 0), 0)}
@@ -435,14 +435,14 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years in Ghana</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana.toFixed(0)} yrs</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana > 0 ? `${avgYearsInGhana.toFixed(0)} yrs` : 'N/A'}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-cyan-500/15 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-cyan-500" />
                 </div>
               </div>
               <div className="mt-3">
-                <Badge variant="secondary" className="text-xs">Industry Experience</Badge>
+                <Badge variant="secondary" className="text-xs">Avg. Industry Experience</Badge>
               </div>
             </CardContent>
           </Card>

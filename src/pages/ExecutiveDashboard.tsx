@@ -59,8 +59,8 @@ export default function ExecutiveDashboardPage() {
   const selectedCategory = 'life';
   const { metrics: allMetrics, availableYears, availableQuarters, isLoading } = useInsurerMetrics(
     'life',
-    selectedYear || 2024,
-    selectedQuarter || 1
+    selectedYear || undefined,
+    selectedQuarter || undefined
   );
 
   // Set default year and quarter to latest available
