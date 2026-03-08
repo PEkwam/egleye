@@ -1,9 +1,24 @@
-import { forwardRef } from 'react';
-import { ExternalLink, Clock, TrendingUp, Shield, CheckCircle2, Building2 } from 'lucide-react';
+import { forwardRef, useState, useCallback } from 'react';
+import { ExternalLink, Clock, TrendingUp, Shield, CheckCircle2, Building2, Newspaper } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NewsArticle } from '@/types/news';
 import { categoryLabels, categoryColors } from '@/types/news';
 import { sanitizeText } from '@/lib/utils/text';
+
+const ImageWithFallback = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
+  const [failed, setFailed] = useState(false);
+  const onError = useCallback(() => setFailed(true), []);
+
+  if (failed || !src) {
+    return (
+      <div className={`flex items-center justify-center bg-muted ${className}`}>
+        <Newspaper className="h-10 w-10 text-muted-foreground/40" />
+      </div>
+    );
+  }
+
+  return <img src={src} alt={alt} loading="lazy" decoding="async" className={className} onError={onError} />;
+};
 
 // Credibility badge configuration based on source
 const sourceCredibility: Record<string, { level: 'official' | 'verified' | 'standard'; label: string; logo?: string }> = {
@@ -100,17 +115,16 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
         rel="noopener noreferrer"
         className="group flex gap-4 p-4 glass-effect rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
       >
-        {article.image_url && (
-          <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-secondary">
-            <img
-              src={article.image_url}
-              alt={article.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
-          </div>
-        )}
+         {article.image_url && (
+           <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-secondary">
+             <ImageWithFallback
+               src={article.image_url}
+               alt={article.title}
+               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+             />
+           </div>
+         )}
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md ${categoryColors[article.category]}`}>
@@ -142,11 +156,9 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
         {article.image_url ? (
-          <img
-             src={article.image_url}
+          <ImageWithFallback
+            src={article.image_url}
             alt={article.title}
-            loading="lazy"
-            decoding="async"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
@@ -201,7 +213,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
     <a ref={ref} href={article.source_url} target="_blank" rel="noopener noreferrer" className="group news-card flex flex-col h-full">
       <div className="relative h-48 overflow-hidden bg-secondary">
         {article.image_url ? (
-          <img src={article.image_url} alt={article.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+          <ImageWithFallback src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         ) : (
           <div className="w-full h-full hero-gradient opacity-60" />
         )}
