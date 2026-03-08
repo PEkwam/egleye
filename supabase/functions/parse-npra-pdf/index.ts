@@ -55,7 +55,7 @@ interface ParsedPensionData {
 async function extractTextFromPDF(data: Uint8Array): Promise<string> {
   console.log('PDF buffer size:', data.length);
   
-  const doc = await getDocument(data).promise;
+  const doc = await pdfjs.getDocument(data).promise;
   console.log('PDF loaded, pages:', doc.numPages);
   
   let fullText = '';
