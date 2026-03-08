@@ -13,7 +13,9 @@ interface InsurerMetricButtonsProps {
 }
 
 type MetricKey = 'csm' | 'gross_premium' | 'total_assets' | 'profit_after_tax' | 'market_share' | 
-                 'total_claims_paid' | 'investment_income';
+                 'total_claims_paid' | 'investment_income' | 'insurance_service_result' | 
+                 'total_investments' | 'total_liabilities' | 'technical_results_margin' |
+                 'insurance_finance_income' | 'acquisition_cashflow' | 'share_insurance_service_results';
 
 interface MetricConfig {
   key: MetricKey;
