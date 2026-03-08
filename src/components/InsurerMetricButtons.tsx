@@ -321,16 +321,8 @@ export function InsurerMetricButtons({
                         </p>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
                           <div 
-                            className={`h-full rounded-full transition-all duration-500`}
-                            style={{ 
-                              width: `${percentage}%`,
-                              backgroundColor: currentMetric.color.includes('violet') ? '#7c3aed' :
-                                              currentMetric.color.includes('emerald') ? '#059669' :
-                                              currentMetric.color.includes('amber') ? '#d97706' :
-                                              currentMetric.color.includes('teal') ? '#0d9488' :
-                                              currentMetric.color.includes('cyan') ? '#0891b2' :
-                                              '#475569'
-                            }}
+                            className="h-full rounded-full transition-all duration-500 bg-primary/70"
+                            style={{ width: `${percentage}%` }}
                           />
                         </div>
                       </div>
