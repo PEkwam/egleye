@@ -168,7 +168,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         setSelectedYear(maxYear);
       }
     }
-  }, [availableYears, pensionYears, insuranceType, selectedYear]);
+  }, [availableYears, pensionYears, nonLifeYears, insuranceType, selectedYear]);
 
   // Fetch historical data for trend comparison - use DB ID mappings first
   const { data: historicalData = [] } = useQuery({
