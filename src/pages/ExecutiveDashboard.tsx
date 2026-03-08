@@ -381,25 +381,6 @@ export default function ExecutiveDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Avg Claims Ratio Card */}
-            <Card className="relative overflow-hidden bg-gradient-to-br from-rose-500/15 via-rose-400/10 to-pink-600/5 border-2 border-rose-500/30 hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-500/10 transition-all duration-300 hover:scale-[1.02] group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-rose-400/20 to-transparent rounded-bl-[80px] group-hover:scale-110 transition-transform" />
-              <CardContent className="p-4 relative">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/30 group-hover:shadow-rose-500/50 transition-shadow">
-                    <Scale className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">Avg Claims Ratio</span>
-                </div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 dark:from-rose-400 dark:to-pink-400 bg-clip-text text-transparent">
-                  {industryTotals.avgClaimsRatio ? `${industryTotals.avgClaimsRatio.toFixed(1)}%` : 'N/A'}
-                </p>
-                <div className="mt-2 h-1 w-full bg-rose-500/20 rounded-full overflow-hidden">
-                  <div className="h-full w-3/5 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full animate-pulse" />
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Companies Card */}
             <Card className="relative overflow-hidden bg-gradient-to-br from-cyan-500/15 via-cyan-400/10 to-teal-600/5 border-2 border-cyan-500/30 hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-300 hover:scale-[1.02] group">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-cyan-400/20 to-transparent rounded-bl-[80px] group-hover:scale-110 transition-transform" />
