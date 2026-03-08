@@ -5,6 +5,7 @@ import { Newspaper, MapPin, Clock, TrendingUp, Sparkles, Zap } from 'lucide-reac
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { categoryLabels, categoryColors } from '@/types/news';
+import { sanitizeText } from '@/lib/utils/text';
 
 interface HeroSectionProps {
   featuredArticle: NewsArticle | null;
