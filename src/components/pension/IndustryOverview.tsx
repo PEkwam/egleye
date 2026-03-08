@@ -37,6 +37,9 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
   const privateFunds = metrics.filter(m => m.fund_type !== 'Tier 1');
 
   const totals = useMemo(() => {
+    const hasSSNIT = !!ssnitFund;
+    const hasPrivate = privateFunds.length > 0 && privateFunds.some(f => f.aum);
+    
     const ssnitAUM = ssnitFund?.aum || SSNIT_2024.totalAssets;
     const privateAUM = privateFunds.reduce((sum, m) => sum + (m.aum || 0), 0);
     const totalAUM = privateAUM > 0 ? ssnitAUM + privateAUM : INDUSTRY_STRUCTURE_2024.totalIndustryAUM;
@@ -44,18 +47,24 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
     const tier2AUM = metrics.filter(m => m.fund_type === 'Tier 2').reduce((sum, m) => sum + (m.aum || 0), 0);
     const tier3AUM = metrics.filter(m => m.fund_type === 'Tier 3').reduce((sum, m) => sum + (m.aum || 0), 0);
 
+    const contributors = ssnitFund?.total_contributors || SSNIT_2024.activeContributors;
+
     return {
       totalAUM,
       ssnitAUM,
       privateAUM: privateAUM || INDUSTRY_STRUCTURE_2024.totalIndustryAUM - SSNIT_2024.totalAssets,
       tier2AUM,
       tier3AUM,
-      contributors: ssnitFund?.total_contributors || SSNIT_2024.activeContributors,
+      contributors,
       pensioners: SSNIT_2024.activePensioners,
       roi: ssnitFund?.investment_return || SSNIT_2024.returnOnInvestment,
       corporateTrustees: INDUSTRY_STRUCTURE_2024.corporateTrustees,
       custodians: INDUSTRY_STRUCTURE_2024.fundCustodians,
       managers: INDUSTRY_STRUCTURE_2024.pensionFundManagers,
+      // Track whether data comes from DB
+      hasSSNIT,
+      hasPrivate,
+      hasContributors: !!(ssnitFund?.total_contributors),
     };
   }, [metrics, ssnitFund, privateFunds]);
 
