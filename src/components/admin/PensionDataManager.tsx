@@ -316,7 +316,39 @@ export function PensionDataManager() {
     try {
       const fileName = file.name.toLowerCase();
       
-      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      if (fileName.endsWith('.pdf')) {
+        // Send PDF to parse-npra-pdf edge function
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Content = btoa(binary);
+        
+        toast.info('Parsing PDF... This may take a moment.');
+        
+        const { data: result, error } = await supabase.functions.invoke('parse-npra-pdf', {
+          body: {
+            year: parseInt(selectedYear),
+            fileContent: base64Content,
+            fileName: file.name,
+          },
+        });
+        
+        if (error) {
+          console.error('PDF parse error:', error);
+          toast.error('Failed to parse PDF: ' + error.message);
+        } else if (result?.success) {
+          toast.success(result.message || `Successfully imported ${result.data?.fundsImported || 0} pension fund metrics`);
+          refetch();
+        } else {
+          toast.error(result?.error || 'Failed to parse PDF');
+        }
+        
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data);
         const sheetName = workbook.SheetNames[0];
@@ -632,7 +664,7 @@ export function PensionDataManager() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls,.csv,.json"
+              accept=".xlsx,.xls,.csv,.json,.pdf"
               onChange={handleFileUpload}
               className="hidden"
             />
