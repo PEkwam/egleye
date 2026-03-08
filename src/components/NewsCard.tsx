@@ -11,8 +11,11 @@ const ImageWithFallback = ({ src, alt, className }: { src: string; alt: string; 
 
   if (failed || !src) {
     return (
-      <div className={`flex items-center justify-center bg-muted ${className}`}>
-        <Newspaper className="h-10 w-10 text-muted-foreground/40" />
+      <div className={`flex items-center justify-center bg-gradient-to-br from-primary/10 via-muted to-accent/10 ${className}`}>
+        <div className="flex flex-col items-center gap-1.5 opacity-60">
+          <Newspaper className="h-8 w-8 text-primary/40" />
+          <span className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground/60">No Image</span>
+        </div>
       </div>
     );
   }
