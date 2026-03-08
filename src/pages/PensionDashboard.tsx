@@ -197,6 +197,11 @@ export default function PensionDashboard() {
             <PrivatePensionSection metrics={metrics} />
           </TabsContent>
 
+          {/* Compare Tab */}
+          <TabsContent value="compare" className="space-y-6">
+            <TrusteeComparison />
+          </TabsContent>
+
           {/* Details Tab */}
           <TabsContent value="details" className="space-y-6">
             {metrics.length > 0 ? (
