@@ -117,7 +117,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
             <span className="text-[10px] text-muted-foreground">{readingTime} min</span>
           </div>
           <h3 className="font-semibold text-sm text-foreground line-clamp-2 group-hover:text-primary transition-colors font-display">
-            {article.title}
+            {sanitizeText(article.title)}
           </h3>
           <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
