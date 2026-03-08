@@ -112,7 +112,7 @@ export function NICSection({ articles, isLoading, onViewAll }: NICSectionProps) 
             to={`/article/${featuredArticle.id}`}
             className="lg:col-span-2 group relative rounded-2xl overflow-hidden border border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-500 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-0.5"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/92 via-emerald-700/88 to-teal-800/90" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-900" />
             {featuredArticle.image_url && (
               <img
                 src={featuredArticle.image_url}
