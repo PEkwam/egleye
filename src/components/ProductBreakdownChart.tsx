@@ -62,6 +62,14 @@ const formatCurrency = (value: number) => {
   return `GH₵${value.toFixed(0)}`;
 };
 
+// Normalize insurer name to deduplicate variants like "Limited" vs "Ltd"
+const normalizeInsurerName = (name: string): string => {
+  return name
+    .replace(/\s+(Insurance|Assurance|Life|Company|Limited|Ltd\.?|PLC|Ghana)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 // Insurer selector sub-component for quarterly/yearly tabs
 function InsurerCompareSelector({
   allInsurers,
@@ -170,10 +178,24 @@ export function ProductBreakdownChart({
     },
   });
 
-  // All unique insurer names from historical data
+  // All unique insurer names from historical data — deduplicated by normalized form
   const allInsurerNames = useMemo(() => {
-    return [...new Set(historicalData.map(m => m.insurer_name))].sort();
+    const seen = new Map<string, string>(); // normalizedName -> displayName (prefer longest)
+    historicalData.forEach(m => {
+      const norm = normalizeInsurerName(m.insurer_name);
+      const existing = seen.get(norm);
+      if (!existing || m.insurer_name.length > existing.length) {
+        seen.set(norm, m.insurer_name);
+      }
+    });
+    return [...seen.values()].sort();
   }, [historicalData]);
+
+  // Helper: check if a raw insurer_name matches any selected compare insurer
+  const matchesCompareInsurer = (rawName: string, selected: string[]): boolean => {
+    const norm = normalizeInsurerName(rawName);
+    return selected.some(s => normalizeInsurerName(s) === norm);
+  };
 
   const handleAddInsurer = (name: string) => {
     if (!compareInsurers.includes(name) && compareInsurers.length < 3) {
@@ -225,7 +247,7 @@ export function ProductBreakdownChart({
   const quarterlyTrendData = useMemo(() => {
     const filterInsurers = compareInsurers.length > 0;
     const relevantData = filterInsurers
-      ? historicalData.filter(m => compareInsurers.includes(m.insurer_name))
+      ? historicalData.filter(m => matchesCompareInsurer(m.insurer_name, compareInsurers))
       : historicalData;
 
     if (filterInsurers) {
@@ -234,14 +256,14 @@ export function ProductBreakdownChart({
       relevantData.forEach(m => {
         const period = `Q${m.report_quarter}'${String(m.report_year).slice(-2)}`;
         if (!grouped[period]) grouped[period] = {};
+        // Use the selected display name as grouping key
+        const displayName = compareInsurers.find(s => normalizeInsurerName(s) === normalizeInsurerName(m.insurer_name)) || m.insurer_name;
         PRODUCT_KEYS.forEach(({ key, label }) => {
-          const colKey = `${m.insurer_name}__${label}`;
+          const colKey = `${displayName}__${label}`;
           grouped[period][colKey] = (grouped[period][colKey] || 0) + ((m as Record<string, unknown>)[key] as number || 0);
         });
-        // Also store total per insurer for the stacked bar
-        const totalKey = m.insurer_name;
         const total = PRODUCT_KEYS.reduce((sum, { key }) => sum + ((m as Record<string, unknown>)[key] as number || 0), 0);
-        grouped[period][totalKey] = (grouped[period][totalKey] || 0) + total;
+        grouped[period][displayName] = (grouped[period][displayName] || 0) + total;
       });
 
       return Object.entries(grouped)
@@ -275,16 +297,16 @@ export function ProductBreakdownChart({
   const yearlyComparisonData = useMemo(() => {
     const filterInsurers = compareInsurers.length > 0;
     const relevantData = filterInsurers
-      ? historicalData.filter(m => compareInsurers.includes(m.insurer_name))
+      ? historicalData.filter(m => matchesCompareInsurer(m.insurer_name, compareInsurers))
       : historicalData;
 
     if (filterInsurers) {
       const grouped: Record<number, Record<string, number>> = {};
       relevantData.forEach(m => {
         if (!grouped[m.report_year]) grouped[m.report_year] = {};
-        const totalKey = m.insurer_name;
+        const displayName = compareInsurers.find(s => normalizeInsurerName(s) === normalizeInsurerName(m.insurer_name)) || m.insurer_name;
         const total = PRODUCT_KEYS.reduce((sum, { key }) => sum + ((m as Record<string, unknown>)[key] as number || 0), 0);
-        grouped[m.report_year][totalKey] = (grouped[m.report_year][totalKey] || 0) + total;
+        grouped[m.report_year][displayName] = (grouped[m.report_year][displayName] || 0) + total;
       });
       return Object.entries(grouped)
         .map(([year, data]) => ({ year: Number(year), ...data }))
