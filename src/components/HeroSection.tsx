@@ -109,7 +109,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                     </div>
 
                     <h3 className="text-base font-bold text-primary-foreground font-display mb-2.5 leading-tight line-clamp-3">
-                      {hero.title}
+                      {sanitizeText(hero.title)}
                     </h3>
 
                     <div className="flex items-center gap-3">
