@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { ExternalLink, Clock, TrendingUp, Shield, CheckCircle2, Building2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NewsArticle } from '@/types/news';
@@ -50,7 +51,7 @@ const getCredibilityBadge = (sourceName: string | null): { level: 'official' | '
   return { level: 'standard' as const, label: shortName.length > 12 ? shortName.slice(0, 10) + '...' : shortName };
 };
 
-const CredibilityBadge = ({ sourceName, overlay = false }: { sourceName: string | null; overlay?: boolean }) => {
+const CredibilityBadge = forwardRef<HTMLSpanElement, { sourceName: string | null; overlay?: boolean }>(({ sourceName, overlay = false }, ref) => {
   const badge = getCredibilityBadge(sourceName);
   if (!badge) return null;
   
@@ -65,7 +66,7 @@ const CredibilityBadge = ({ sourceName, overlay = false }: { sourceName: string 
   };
   
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-md border ${styles[badge.level]}`}>
+    <span ref={ref} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-md border ${styles[badge.level]}`}>
       {badge.logo ? (
         <img src={badge.logo} alt={badge.label} className="h-3 w-3 rounded-sm object-contain" />
       ) : (
@@ -74,14 +75,15 @@ const CredibilityBadge = ({ sourceName, overlay = false }: { sourceName: string 
       {badge.label}
     </span>
   );
-};
+});
+CredibilityBadge.displayName = 'CredibilityBadge';
 
 interface NewsCardProps {
   article: NewsArticle;
   variant?: 'default' | 'compact' | 'featured';
 }
 
-export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
+export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article, variant = 'default' }, ref) => {
   const publishedDate = article.published_at
     ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
     : 'Recently';
@@ -92,6 +94,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
   if (variant === 'compact') {
     return (
       <a
+        ref={ref}
         href={article.source_url}
         target="_blank"
         rel="noopener noreferrer"
@@ -131,6 +134,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
   if (variant === 'featured') {
     return (
       <a
+        ref={ref}
         href={article.source_url}
         target="_blank"
         rel="noopener noreferrer"
@@ -194,7 +198,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
   }
 
   return (
-    <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="group news-card flex flex-col h-full">
+    <a ref={ref} href={article.source_url} target="_blank" rel="noopener noreferrer" className="group news-card flex flex-col h-full">
       <div className="relative h-48 overflow-hidden bg-secondary">
         {article.image_url ? (
           <img src={article.image_url} alt={article.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -230,4 +234,5 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
       </div>
     </a>
   );
-}
+});
+NewsCard.displayName = 'NewsCard';
