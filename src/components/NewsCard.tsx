@@ -51,7 +51,7 @@ const getCredibilityBadge = (sourceName: string | null): { level: 'official' | '
   return { level: 'standard' as const, label: shortName.length > 12 ? shortName.slice(0, 10) + '...' : shortName };
 };
 
-const CredibilityBadge = ({ sourceName, overlay = false }: { sourceName: string | null; overlay?: boolean }) => {
+const CredibilityBadge = forwardRef<HTMLSpanElement, { sourceName: string | null; overlay?: boolean }>(({ sourceName, overlay = false }, ref) => {
   const badge = getCredibilityBadge(sourceName);
   if (!badge) return null;
   
