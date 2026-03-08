@@ -420,11 +420,10 @@ export default function ExecutiveDashboardPage() {
             </Card>
           </div>
 
-          {/* IFRS 17 Financial Metrics Cards */}
+          {/* Additional Financial Metrics Cards */}
           {(industryTotals.totalCSM > 0 || industryTotals.totalServiceResult > 0 || industryTotals.totalInvestments > 0) && (
             <div className="mt-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">IFRS 17 Metrics</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {industryTotals.totalCSM > 0 && (
                   <Card className="relative overflow-hidden bg-gradient-to-br from-violet-500/15 via-violet-400/10 to-purple-600/5 border-2 border-violet-500/30 hover:border-violet-500/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group">
                     <CardContent className="p-4 relative">
