@@ -232,4 +232,5 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
       </div>
     </a>
   );
-}
+});
+NewsCard.displayName = 'NewsCard';
