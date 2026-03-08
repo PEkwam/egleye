@@ -85,7 +85,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                   rel="noopener noreferrer"
                   className="sm:hidden group relative block rounded-2xl overflow-hidden border border-primary/20 hover:border-primary/40 transition-all duration-500 shadow-lg hover:shadow-xl"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-primary/70" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/95 to-primary/90" />
                   {hero.image_url && (
                     <img
                       src={hero.image_url}
@@ -113,7 +113,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                     </h3>
 
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 text-[11px] text-primary-foreground/60">
+                      <div className="flex items-center gap-1.5 text-[11px] text-primary-foreground/80">
                         <Clock className="h-3 w-3" />
                         <span>
                           {hero.published_at
@@ -122,7 +122,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                         </span>
                       </div>
                       {hero.source_name && (
-                        <span className="text-[11px] text-primary-foreground/50 truncate max-w-[100px]">
+                        <span className="text-[11px] text-primary-foreground/70 truncate max-w-[100px]">
                           {hero.source_name}
                         </span>
                       )}
