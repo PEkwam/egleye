@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.product-mix-strategy]
 verify_jwt = false
+
+[functions.strategic-qa]
+verify_jwt = false

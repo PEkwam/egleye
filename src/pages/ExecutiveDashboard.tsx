@@ -764,7 +764,7 @@ export default function ExecutiveDashboardPage() {
 
         {/* Strategic Market Questions */}
         <section>
-          <StrategicInsightsQA metrics={metrics} />
+          <StrategicInsightsQA metrics={metrics} year={selectedYear} quarter={selectedQuarter} />
         </section>
 
         {/* AI Strategic Analysis */}
