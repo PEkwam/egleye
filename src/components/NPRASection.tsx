@@ -167,7 +167,7 @@ export function NPRASection({ articles, isLoading, onViewAll }: NPRASectionProps
               </div>
               
               <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-foreground font-display mb-3 sm:mb-4 group-hover:text-amber-50 transition-colors leading-tight">
-                {featuredArticle.title}
+                {sanitizeText(featuredArticle.title)}
               </h3>
               
               {featuredArticle.description && sanitizeText(featuredArticle.description) && (
@@ -208,7 +208,7 @@ export function NPRASection({ articles, isLoading, onViewAll }: NPRASectionProps
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm text-foreground line-clamp-2 group-hover:text-amber-600 transition-colors">
-                      {article.title}
+                      {sanitizeText(article.title)}
                     </h4>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />

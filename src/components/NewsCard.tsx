@@ -117,7 +117,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
             <span className="text-[10px] text-muted-foreground">{readingTime} min</span>
           </div>
           <h3 className="font-semibold text-sm text-foreground line-clamp-2 group-hover:text-primary transition-colors font-display">
-            {article.title}
+            {sanitizeText(article.title)}
           </h3>
           <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
@@ -166,7 +166,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
           </div>
           
           <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white font-display mb-2 md:mb-4 group-hover:text-accent transition-colors leading-tight line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
-            {article.title}
+            {sanitizeText(article.title)}
           </h2>
           
           {article.description && (
@@ -213,7 +213,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
 
       <div className="flex flex-col flex-1 p-5">
         <h3 className="text-lg font-semibold font-display text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-3">
-          {article.title}
+          {sanitizeText(article.title)}
         </h3>
         {article.description && (
           <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-4">{sanitizeText(article.description)}</p>

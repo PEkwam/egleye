@@ -5,6 +5,7 @@ import { Newspaper, MapPin, Clock, TrendingUp, Sparkles, Zap } from 'lucide-reac
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { categoryLabels, categoryColors } from '@/types/news';
+import { sanitizeText } from '@/lib/utils/text';
 
 interface HeroSectionProps {
   featuredArticle: NewsArticle | null;
@@ -108,7 +109,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                     </div>
 
                     <h3 className="text-base font-bold text-primary-foreground font-display mb-2.5 leading-tight line-clamp-3">
-                      {hero.title}
+                      {sanitizeText(hero.title)}
                     </h3>
 
                     <div className="flex items-center gap-3">

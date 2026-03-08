@@ -1,5 +1,6 @@
 import { Zap, MapPin } from 'lucide-react';
 import type { NewsArticle } from '@/types/news';
+import { sanitizeText } from '@/lib/utils/text';
 
 interface BreakingTickerProps {
   articles: NewsArticle[];
@@ -48,7 +49,7 @@ export function BreakingTicker({ articles }: BreakingTickerProps) {
                 rel="noopener noreferrer"
                 className="ticker-item group py-2 md:py-3 px-4 md:px-8 text-sm md:text-base"
               >
-                <span className="group-hover:underline line-clamp-1">{article.title}</span>
+                <span className="group-hover:underline line-clamp-1">{sanitizeText(article.title)}</span>
                 {article.source_name && (
                   <span className="text-white/60 text-xs md:text-sm hidden sm:inline">— {article.source_name}</span>
                 )}
