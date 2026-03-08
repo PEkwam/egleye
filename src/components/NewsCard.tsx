@@ -1,9 +1,24 @@
-import { forwardRef } from 'react';
-import { ExternalLink, Clock, TrendingUp, Shield, CheckCircle2, Building2 } from 'lucide-react';
+import { forwardRef, useState, useCallback } from 'react';
+import { ExternalLink, Clock, TrendingUp, Shield, CheckCircle2, Building2, Newspaper } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NewsArticle } from '@/types/news';
 import { categoryLabels, categoryColors } from '@/types/news';
 import { sanitizeText } from '@/lib/utils/text';
+
+const ImageWithFallback = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
+  const [failed, setFailed] = useState(false);
+  const onError = useCallback(() => setFailed(true), []);
+
+  if (failed || !src) {
+    return (
+      <div className={`flex items-center justify-center bg-muted ${className}`}>
+        <Newspaper className="h-10 w-10 text-muted-foreground/40" />
+      </div>
+    );
+  }
+
+  return <img src={src} alt={alt} loading="lazy" decoding="async" className={className} onError={onError} />;
+};
 
 // Credibility badge configuration based on source
 const sourceCredibility: Record<string, { level: 'official' | 'verified' | 'standard'; label: string; logo?: string }> = {
