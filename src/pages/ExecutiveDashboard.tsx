@@ -29,6 +29,7 @@ import { DashboardNavigation } from '@/components/DashboardNavigation';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { PremiumGrowthLeaderboard } from '@/components/PremiumGrowthLeaderboard';
 import { ProductMixTreemap } from '@/components/ProductMixTreemap';
+import { StrategicInsightsQA } from '@/components/StrategicInsightsQA';
 import { ProfitabilityHeatmap } from '@/components/ProfitabilityHeatmap';
 import { useInsurerMetrics } from '@/hooks/useInsurerMetrics';
 import { 
@@ -758,6 +759,11 @@ export default function ExecutiveDashboardPage() {
         {/* Product Mix Treemap */}
         <section>
           <ProductMixTreemap metrics={metrics} />
+        </section>
+
+        {/* Strategic Market Questions */}
+        <section>
+          <StrategicInsightsQA metrics={metrics} />
         </section>
 
         {/* Market Performance Summary */}
