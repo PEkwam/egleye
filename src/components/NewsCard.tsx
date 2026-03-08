@@ -66,7 +66,7 @@ const CredibilityBadge = forwardRef<HTMLSpanElement, { sourceName: string | null
   };
   
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-md border ${styles[badge.level]}`}>
+    <span ref={ref} className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-md border ${styles[badge.level]}`}>
       {badge.logo ? (
         <img src={badge.logo} alt={badge.label} className="h-3 w-3 rounded-sm object-contain" />
       ) : (
@@ -75,7 +75,8 @@ const CredibilityBadge = forwardRef<HTMLSpanElement, { sourceName: string | null
       {badge.label}
     </span>
   );
-};
+});
+CredibilityBadge.displayName = 'CredibilityBadge';
 
 interface NewsCardProps {
   article: NewsArticle;
