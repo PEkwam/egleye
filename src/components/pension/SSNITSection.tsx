@@ -61,7 +61,7 @@ export function SSNITSection({ metrics = [] }: SSNITSectionProps) {
             <Shield className="h-5 w-5 text-amber-500" />
             SSNIT (BNSSS) — Tier 1
           </h2>
-          <p className="text-sm text-muted-foreground">Basic National Social Security Scheme • NPRA 2024</p>
+          <p className="text-sm text-muted-foreground">Basic National Social Security Scheme • NPRA Annual Report</p>
         </div>
         <Badge variant="outline" className="gap-1 text-xs">
           <Calendar className="h-3 w-3" /> 2024 Annual Report
