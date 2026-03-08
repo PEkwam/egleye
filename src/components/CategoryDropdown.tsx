@@ -49,7 +49,7 @@ export function CategoryDropdown({ category, onInsurerSelect, isActive }: Catego
               onClick={() => onInsurerSelect(insurer)}
               className="rounded-lg p-2 cursor-pointer flex items-center gap-2.5"
             >
-              <InsurerLogo insurer={insurer} size="sm" />
+              <InsurerLogo name={insurer.name} shortName={insurer.shortName} logoUrl={insurer.logoUrl} brandColor={insurer.brandColor} size="sm" />
               <span className="text-sm font-medium truncate">{insurer.shortName}</span>
             </DropdownMenuItem>
           ))}
