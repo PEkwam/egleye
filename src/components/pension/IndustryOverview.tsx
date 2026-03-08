@@ -58,21 +58,28 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
     };
   }, [metrics, ssnitFund, privateFunds]);
 
-  // Top trustees from DB
+  // Top trustees from DB - aggregate by trustee name to avoid duplicates across tiers
   const topTrustees = useMemo(() => {
-    const funds = [...privateFunds]
-      .filter(m => m.aum)
-      .sort((a, b) => (b.aum || 0) - (a.aum || 0))
+    const trusteeMap: Record<string, { aum: number; type: string; name: string }> = {};
+    privateFunds.filter(m => m.aum).forEach(f => {
+      const key = f.trustee_name || f.fund_name;
+      if (!trusteeMap[key]) {
+        trusteeMap[key] = { aum: 0, type: f.fund_type, name: key };
+      }
+      trusteeMap[key].aum += f.aum || 0;
+    });
+    
+    const sorted = Object.values(trusteeMap)
+      .sort((a, b) => b.aum - a.aum)
       .slice(0, 10);
-    const total = funds.reduce((sum, m) => sum + (m.aum || 0), 0);
-    return funds.map((f, i) => ({
-      name: (f.trustee_name || f.fund_name).length > 18
-        ? (f.trustee_name || f.fund_name).slice(0, 18) + '…'
-        : (f.trustee_name || f.fund_name),
-      fullName: f.trustee_name || f.fund_name,
-      aum: (f.aum || 0) / 1e9,
-      share: total > 0 ? ((f.aum || 0) / total) * 100 : (f.market_share || 0),
-      type: f.fund_type,
+    const total = sorted.reduce((sum, t) => sum + t.aum, 0);
+    
+    return sorted.map((t, i) => ({
+      name: t.name.length > 18 ? t.name.slice(0, 18) + '…' : t.name,
+      fullName: t.name,
+      aum: t.aum / 1e9,
+      share: total > 0 ? (t.aum / total) * 100 : 0,
+      type: t.type,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     }));
   }, [privateFunds]);
