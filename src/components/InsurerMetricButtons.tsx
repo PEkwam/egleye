@@ -284,7 +284,7 @@ export function InsurerMetricButtons({
 
       <CardContent className="space-y-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-2">
           {metrics.map((metric) => {
             const Icon = metric.icon;
             const isSelected = selectedMetric === metric.key;
