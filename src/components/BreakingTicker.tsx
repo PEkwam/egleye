@@ -1,5 +1,6 @@
 import { Zap, MapPin } from 'lucide-react';
 import type { NewsArticle } from '@/types/news';
+import { sanitizeText } from '@/lib/utils/text';
 
 interface BreakingTickerProps {
   articles: NewsArticle[];
