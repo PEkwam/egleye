@@ -85,7 +85,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                   rel="noopener noreferrer"
                   className="sm:hidden group relative block rounded-2xl overflow-hidden border border-primary/20 hover:border-primary/40 transition-all duration-500 shadow-lg hover:shadow-xl"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-primary/70" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/95 to-primary/90" />
                   {hero.image_url && (
                     <img
                       src={hero.image_url}
