@@ -62,6 +62,14 @@ const formatCurrency = (value: number) => {
   return `GH₵${value.toFixed(0)}`;
 };
 
+// Normalize insurer name to deduplicate variants like "Limited" vs "Ltd"
+const normalizeInsurerName = (name: string): string => {
+  return name
+    .replace(/\s+(Insurance|Assurance|Life|Company|Limited|Ltd\.?|PLC|Ghana)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 // Insurer selector sub-component for quarterly/yearly tabs
 function InsurerCompareSelector({
   allInsurers,
