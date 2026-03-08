@@ -219,33 +219,40 @@ export function InsurerMetricButtons({
 
       <CardContent className="space-y-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3">
           {metrics.map((metric) => {
             const Icon = metric.icon;
             const isSelected = selectedMetric === metric.key;
+            // Check if any data exists for this metric
+            const hasData = metricsData.some(m => m[metric.key] !== null && m[metric.key] !== undefined && m[metric.key] !== 0);
             return (
               <button
                 key={metric.key}
                 onClick={() => setSelectedMetric(metric.key)}
-                className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                className={`relative p-4 rounded-xl border transition-all text-left group ${
                   isSelected
-                    ? `${metric.bgColor} border-current ${metric.color} shadow-sm`
-                    : 'bg-background border-border hover:border-muted-foreground/30 hover:bg-muted/50'
+                    ? 'bg-card border-primary/40 shadow-md shadow-primary/5 ring-1 ring-primary/20'
+                    : 'bg-card border-border/60 hover:border-primary/30 hover:shadow-sm'
                 }`}
               >
                 {isSelected && (
-                  <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-current" />
+                  <div className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary" />
                 )}
-                <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-2 ${
-                  isSelected ? 'bg-white/80' : 'bg-muted'
+                <div className={`h-10 w-10 rounded-lg flex items-center justify-center mb-3 transition-colors ${
+                  isSelected ? 'bg-primary/10' : 'bg-muted group-hover:bg-primary/5'
                 }`}>
-                  <Icon className={`h-5 w-5 ${isSelected ? metric.color : 'text-muted-foreground'}`} />
+                  <Icon className={`h-5 w-5 transition-colors ${isSelected ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
                 </div>
-                <span className={`text-xs font-medium leading-tight block ${
-                  isSelected ? 'text-current' : 'text-muted-foreground'
+                <span className={`text-xs font-semibold leading-tight block transition-colors ${
+                  isSelected ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                 }`}>
                   {metric.label}
                 </span>
+                {!hasData && (
+                  <span className="absolute top-2 right-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-medium">
+                    No data
+                  </span>
+                )}
               </button>
             );
           })}
@@ -314,16 +321,8 @@ export function InsurerMetricButtons({
                         </p>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
                           <div 
-                            className={`h-full rounded-full transition-all duration-500`}
-                            style={{ 
-                              width: `${percentage}%`,
-                              backgroundColor: currentMetric.color.includes('violet') ? '#7c3aed' :
-                                              currentMetric.color.includes('emerald') ? '#059669' :
-                                              currentMetric.color.includes('amber') ? '#d97706' :
-                                              currentMetric.color.includes('teal') ? '#0d9488' :
-                                              currentMetric.color.includes('cyan') ? '#0891b2' :
-                                              '#475569'
-                            }}
+                            className="h-full rounded-full transition-all duration-500 bg-primary/70"
+                            style={{ width: `${percentage}%` }}
                           />
                         </div>
                       </div>
