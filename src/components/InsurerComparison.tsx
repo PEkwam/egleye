@@ -312,7 +312,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         { key: 'claims_ratio', label: 'Claims Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
         { key: 'expense_ratio', label: 'Expense Ratio', icon: TrendingDown, format: formatPercent, highlight: 'min' as const, unit: '%' },
         { key: 'profit_after_tax', label: 'Profit After Tax', icon: TrendingUp, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
-        { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'N/A', highlight: 'max' as const, unit: 'years' },
+        { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'No data', highlight: 'max' as const, unit: 'years' },
       ];
     } else if (insuranceType === 'pension') {
       return [
