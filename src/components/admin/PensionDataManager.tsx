@@ -664,7 +664,7 @@ export function PensionDataManager() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls,.csv,.json"
+              accept=".xlsx,.xls,.csv,.json,.pdf"
               onChange={handleFileUpload}
               className="hidden"
             />
