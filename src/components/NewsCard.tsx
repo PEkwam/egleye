@@ -198,7 +198,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
   }
 
   return (
-    <a href={article.source_url} target="_blank" rel="noopener noreferrer" className="group news-card flex flex-col h-full">
+    <a ref={ref} href={article.source_url} target="_blank" rel="noopener noreferrer" className="group news-card flex flex-col h-full">
       <div className="relative h-48 overflow-hidden bg-secondary">
         {article.image_url ? (
           <img src={article.image_url} alt={article.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
