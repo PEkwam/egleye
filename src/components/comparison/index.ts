@@ -2,7 +2,6 @@ export * from './types';
 export * from './formatters';
 export { InsuranceTypeToggle } from './InsuranceTypeToggle';
 export { InsurerSelector } from './InsurerSelector';
-export { DataAvailabilityIndicator } from './DataAvailabilityIndicator';
 export { RadarChartSection } from './RadarChartSection';
 export { BarChartSection } from './BarChartSection';
 export { ComparisonTable } from './ComparisonTable';
