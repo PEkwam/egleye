@@ -186,9 +186,9 @@ export const MobileDashboard = () => {
       metrics: [
         { label: 'Service Revenue', value: formatCurrency(nonLifeTotalRevenue), icon: DollarSign },
         { label: 'Companies', value: String(latestNonLifeData.length), icon: Building2 },
-        { label: 'Avg Years', value: nonLifeAvgYears > 0 ? `${nonLifeAvgYears.toFixed(0)} yrs` : 'N/A', icon: Clock },
+        { label: 'Avg Years', value: nonLifeAvgYears > 0 ? `${nonLifeAvgYears.toFixed(0)} yrs` : 'No data', icon: Clock },
       ],
-      topPlayer: nonLifeTopPlayer?.insurer_name || 'N/A',
+      topPlayer: nonLifeTopPlayer?.insurer_name || 'No data',
       marketSize: formatCurrency(nonLifeTotalRevenue),
     },
     {
