@@ -160,8 +160,9 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         // Get max year
         const maxYear = Math.max(...availableYears);
         setSelectedYear(maxYear);
-      } else if (insuranceType === 'nonlife') {
-        setSelectedYear(2024);
+      } else if (insuranceType === 'nonlife' && nonLifeYears.length > 0) {
+        const maxYear = Math.max(...nonLifeYears);
+        setSelectedYear(maxYear);
       } else if (insuranceType === 'pension' && pensionYears.length > 0) {
         const maxYear = Math.max(...pensionYears);
         setSelectedYear(maxYear);
