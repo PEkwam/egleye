@@ -23,7 +23,8 @@ import {
   SSNITSection, 
   PrivatePensionSection, 
   IndustryOverview, 
-  FundDetailsTable 
+  FundDetailsTable,
+  TrusteeComparison 
 } from '@/components/pension';
 
 export default function PensionDashboard() {
