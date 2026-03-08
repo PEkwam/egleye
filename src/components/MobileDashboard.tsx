@@ -295,7 +295,7 @@ export const MobileDashboard = () => {
                   </div>
                 </div>
                 <Badge variant="secondary" className="text-xs">
-                  {lifeAggregates?.year || 2024}
+                  {lifeAggregates?.year || new Date().getFullYear()}
                 </Badge>
               </div>
             </CardHeader>
