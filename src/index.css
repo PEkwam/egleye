@@ -218,25 +218,29 @@
 }
 
 @layer components {
-  /* Minimal Corporate Cards */
+  /* Modern Card Styles */
   .news-card {
     @apply bg-card rounded-xl overflow-hidden transition-all duration-300 border border-border/40;
     box-shadow: var(--shadow-xs);
   }
 
   .news-card:hover {
-    box-shadow: var(--shadow-md);
-    @apply -translate-y-1 border-border;
+    box-shadow: var(--shadow-lg);
+    @apply -translate-y-1.5 border-primary/20;
   }
 
-  /* Clean Glass Effect */
+  /* Glassmorphism Card */
   .glass-card {
-    @apply bg-card/90 backdrop-blur-sm border border-border/40 rounded-xl;
+    @apply bg-card/85 backdrop-blur-md border border-border/40 rounded-2xl;
     box-shadow: var(--shadow-sm);
   }
 
+  .glass-card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
   .glass-effect {
-    @apply bg-card/95 backdrop-blur-sm;
+    @apply bg-card/90 backdrop-blur-md;
   }
 
   /* Clean Gradients */
