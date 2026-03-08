@@ -761,6 +761,11 @@ export default function ExecutiveDashboardPage() {
           <ProductMixTreemap metrics={metrics} />
         </section>
 
+        {/* Strategic Market Questions */}
+        <section>
+          <StrategicInsightsQA metrics={metrics} />
+        </section>
+
         {/* Market Performance Summary */}
         <section>
           <MarketPerformanceSummary 
