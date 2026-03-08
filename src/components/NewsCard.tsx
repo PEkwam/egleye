@@ -50,15 +50,13 @@ const getCredibilityBadge = (sourceName: string | null): { level: 'official' | '
   return { level: 'standard' as const, label: shortName.length > 12 ? shortName.slice(0, 10) + '...' : shortName };
 };
 
-const CredibilityBadge = ({ sourceName }: { sourceName: string | null }) => {
+const CredibilityBadge = ({ sourceName, overlay = false }: { sourceName: string | null; overlay?: boolean }) => {
   const badge = getCredibilityBadge(sourceName);
   if (!badge) return null;
   
-  const styles = {
-    official: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
-    verified: 'bg-green-500/10 text-green-600 border-green-500/30',
-    standard: 'bg-muted text-muted-foreground border-border/50',
-  };
+  const styles = overlay
+    ? { official: 'bg-white/20 text-white border-white/30 backdrop-blur-sm', verified: 'bg-white/20 text-white border-white/30 backdrop-blur-sm', standard: 'bg-white/20 text-white border-white/30 backdrop-blur-sm' }
+    : { official: 'bg-blue-500/10 text-blue-600 border-blue-500/30', verified: 'bg-green-500/10 text-green-600 border-green-500/30', standard: 'bg-muted text-muted-foreground border-border/50' };
   
   const icons = {
     official: <Shield className="h-3 w-3" />,
@@ -159,7 +157,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
             <span className="px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wide rounded-lg shadow-md bg-white/20 text-white border border-white/30 backdrop-blur-sm">
               {categoryLabels[article.category]}
             </span>
-            <CredibilityBadge sourceName={article.source_name} />
+            <CredibilityBadge sourceName={article.source_name} overlay />
             <span className="hidden sm:inline-flex px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-xs font-medium rounded-lg bg-white/10 backdrop-blur-sm text-white">
               {readingTime} min read
             </span>
@@ -204,7 +202,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
           <span className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-lg shadow-md category-badge-overlay">
             {categoryLabels[article.category]}
           </span>
-          <CredibilityBadge sourceName={article.source_name} />
+          <CredibilityBadge sourceName={article.source_name} overlay />
         </div>
         <div className="absolute top-4 right-4">
           <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-black/40 backdrop-blur-sm text-white">{readingTime} min</span>
