@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowLeft, Calendar, Landmark, ExternalLink, 
-  BarChart3, PieChart, Shield, Building2
+  BarChart3, PieChart, Shield, Building2, GitCompareArrows
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,8 @@ import {
   SSNITSection, 
   PrivatePensionSection, 
   IndustryOverview, 
-  FundDetailsTable 
+  FundDetailsTable,
+  TrusteeComparison 
 } from '@/components/pension';
 
 export default function PensionDashboard() {
@@ -158,7 +159,7 @@ export default function PensionDashboard() {
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Main Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="overview" className="gap-1.5">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -170,6 +171,10 @@ export default function PensionDashboard() {
             <TabsTrigger value="private" className="gap-1.5">
               <PieChart className="h-4 w-4" />
               <span className="hidden sm:inline">Private</span>
+            </TabsTrigger>
+            <TabsTrigger value="compare" className="gap-1.5">
+              <GitCompareArrows className="h-4 w-4" />
+              <span className="hidden sm:inline">Compare</span>
             </TabsTrigger>
             <TabsTrigger value="details" className="gap-1.5">
               <Building2 className="h-4 w-4" />
@@ -190,6 +195,11 @@ export default function PensionDashboard() {
           {/* Private Pension Tab */}
           <TabsContent value="private" className="space-y-6">
             <PrivatePensionSection metrics={metrics} />
+          </TabsContent>
+
+          {/* Compare Tab */}
+          <TabsContent value="compare" className="space-y-6">
+            <TrusteeComparison />
           </TabsContent>
 
           {/* Details Tab */}
