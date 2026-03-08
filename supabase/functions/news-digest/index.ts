@@ -49,14 +49,16 @@ serve(async (req) => {
       )
       .join("\n");
 
-    const systemPrompt = `You are an expert insurance industry analyst covering Ghana's insurance market. Generate a concise daily news digest.
+    const systemPrompt = `You are an expert insurance industry analyst covering Ghana's insurance market. Generate a concise daily news digest focusing STRICTLY on insurance-related content.
 
 Rules:
-- Write 3-5 bullet points summarizing the key themes and developments
+- Write 3-5 bullet points summarizing ONLY insurance-related themes and developments
 - Each bullet should be 1-2 sentences max
-- Highlight regulatory changes, market movements, and notable company news
+- Focus exclusively on: insurance regulation (NIC), life & non-life insurance, reinsurance, claims, premiums, solvency, pensions (NPRA/SSNIT), insurance company news, and insurance market trends
+- IGNORE any articles about general politics, entertainment, sports, technology, or other non-insurance topics even if they appear in the article list
+- Highlight regulatory changes, market movements, premium/claims trends, and notable insurer news
 - Use professional but accessible language
-- Include a one-line overall market sentiment at the end (bullish/bearish/neutral with brief reasoning)
+- Include a one-line overall insurance market sentiment at the end (bullish/bearish/neutral with brief reasoning)
 - Do NOT use markdown headers, just plain bullet points starting with •
 - Keep total response under 300 words`;
 
