@@ -115,16 +115,15 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
         rel="noopener noreferrer"
         className="group flex gap-4 p-4 glass-effect rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
       >
-        {article.image_url && (
-          <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-secondary">
-            <img
-              src={article.image_url}
-              alt={article.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
-          </div>
+         {article.image_url && (
+           <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-secondary">
+             <ImageWithFallback
+               src={article.image_url}
+               alt={article.title}
+               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+             />
+           </div>
+         )}
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
