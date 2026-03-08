@@ -5,6 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+interface InsurerProfile {
+  name: string;
+  branches: number;
+  employees: number;
+  yearsInGhana: number;
+  premium: number;
+  marketShare: number;
+  website: string;
+  parentGroup: string;
+  distributionScore: number; // branches * employees proxy
+}
+
 interface StrategicQAData {
   year: number;
   quarter: number;
@@ -18,6 +30,7 @@ interface StrategicQAData {
   diversificationTop5: Array<{ name: string; score: number; count: number }>;
   correlationTop5: Array<{ name: string; marketShare: number; activeProducts: number }>;
   underservedProducts: Array<{ product: string; activeInsurers: number; totalPremium: number }>;
+  insurerProfiles: InsurerProfile[];
 }
 
 serve(async (req) => {
@@ -40,17 +53,61 @@ serve(async (req) => {
       return `GH₵${v.toLocaleString()}`;
     };
 
+    const profiles = strategicData.insurerProfiles || [];
+    const profilesSummary = profiles.length > 0
+      ? profiles.slice(0, 10).map(p =>
+          `- ${p.name}: ${p.branches} branches, ${p.employees} employees, ${p.yearsInGhana}yrs in Ghana, ${fmt(p.premium)} premium (${p.marketShare.toFixed(1)}% share)${p.parentGroup ? `, part of ${p.parentGroup}` : ''}${p.website ? `, website: ${p.website}` : ''}`
+        ).join('\n')
+      : 'No detailed profiles available';
+
+    // Identify group affiliations
+    const groupMap: Record<string, string[]> = {};
+    profiles.forEach(p => {
+      if (p.parentGroup) {
+        if (!groupMap[p.parentGroup]) groupMap[p.parentGroup] = [];
+        groupMap[p.parentGroup].push(p.name);
+      }
+    });
+    const affiliationsSummary = Object.keys(groupMap).length > 0
+      ? Object.entries(groupMap).map(([group, members]) => `- ${group}: ${members.join(', ')}`).join('\n')
+      : 'No clear group affiliations detected';
+
+    // Distribution leaders
+    const distributionLeaders = [...profiles].sort((a, b) => b.distributionScore - a.distributionScore).slice(0, 5);
+    const distributionSummary = distributionLeaders.length > 0
+      ? distributionLeaders.map(d => `- ${d.name}: ${d.branches} branches, ${d.employees} employees (reach score: ${d.distributionScore})`).join('\n')
+      : 'No distribution data available';
+
+    // Experience leaders
+    const experienceLeaders = [...profiles].sort((a, b) => b.yearsInGhana - a.yearsInGhana).slice(0, 5);
+    const experienceSummary = experienceLeaders.length > 0
+      ? experienceLeaders.map(e => `- ${e.name}: ${e.yearsInGhana} years in Ghana`).join('\n')
+      : 'No experience data available';
+
     const systemPrompt = `You are an expert insurance strategist analyzing the Ghanaian life insurance market.
-You provide sharp, data-backed answers to strategic questions about product mix and market positioning.
+You provide sharp, data-backed answers to strategic questions about competitive positioning, distribution strategies, leadership approaches, group affiliations, and product mix.
+Consider how distribution networks (branches, agents, bancassurance), corporate group affiliations (banking ties, conglomerate advantages), leadership tenure and experience, and market positioning strategies all interact to drive competitive advantage.
 Be specific with numbers from the data. Be opinionated — take clear positions. Write for insurance executives.
 Each answer should feel like consulting advice, not a textbook summary.`;
 
-    const userPrompt = `Based on Q${strategicData.quarter} ${strategicData.year} Ghana Life Insurance data, answer these 5 strategic questions.
+    const userPrompt = `Based on Q${strategicData.quarter} ${strategicData.year} Ghana Life Insurance data, answer these 7 strategic questions.
 
 **Context:**
 - Market Leader: ${strategicData.marketLeader.name} (${fmt(strategicData.marketLeader.premium)}, ${strategicData.marketLeader.marketShare.toFixed(1)}% share)
 - ${strategicData.insurerCount} active insurers, ${strategicData.totalCategories} product categories
 - Market leader leads ${strategicData.leaderDominanceCount}/${strategicData.totalCategories} categories (gaps in ${strategicData.gapsCount})
+
+**Insurer Profiles (Distribution, Experience & Scale):**
+${profilesSummary}
+
+**Group Affiliations & Conglomerate Advantages:**
+${affiliationsSummary}
+
+**Distribution Network Leaders (by branch + employee reach):**
+${distributionSummary}
+
+**Market Experience Leaders:**
+${experienceSummary}
 
 **Product Category Leaders:**
 ${strategicData.productLeaders.map(pl => `- ${pl.product}: ${pl.leader} (${fmt(pl.value)}) vs market leader's ${fmt(pl.marketLeaderValue)}`).join('\n')}
@@ -67,7 +124,7 @@ ${strategicData.correlationTop5.map(c => `- ${c.name}: ${c.marketShare.toFixed(1
 **Underserved Products (fewest competitors):**
 ${strategicData.underservedProducts.map(u => `- ${u.product}: ${u.activeInsurers} insurers, ${fmt(u.totalPremium)} total`).join('\n')}
 
-Return a JSON object with exactly 5 questions. Each question has: question (string), summary (2-3 sentences), dataPoints (array of 3-5 specific data observations), implication (1 strategic takeaway sentence).
+Return a JSON object with exactly 7 questions. Each question has: question (string), summary (2-3 sentences), dataPoints (array of 3-5 specific data observations), implication (1 strategic takeaway sentence).
 
 {
   "questions": [
@@ -79,6 +136,20 @@ Return a JSON object with exactly 5 questions. Each question has: question (stri
       "implication": "..."
     },
     {
+      "id": "distribution_advantage",
+      "question": "How do distribution networks and branch reach drive competitive advantage?",
+      "summary": "Analyze whether insurers with more branches and employees actually capture more market share, or if lean digital-first models are more effective...",
+      "dataPoints": ["...", "..."],
+      "implication": "..."
+    },
+    {
+      "id": "group_affiliations",
+      "question": "Which group affiliations and corporate backing give insurers an unfair advantage?",
+      "summary": "Analyze how banking group ties, conglomerate ownership, and strategic partnerships translate into premium volume and distribution reach...",
+      "dataPoints": ["...", "..."],
+      "implication": "..."
+    },
+    {
       "id": "niche_specialists",
       "question": "Which insurers are beating the market leader through specialization?",
       "summary": "...",
@@ -86,22 +157,22 @@ Return a JSON object with exactly 5 questions. Each question has: question (stri
       "implication": "..."
     },
     {
-      "id": "diversification_correlation",
-      "question": "Does product diversification actually drive market share in Ghana?",
-      "summary": "...",
+      "id": "leadership_experience",
+      "question": "Does market experience and leadership tenure correlate with market dominance?",
+      "summary": "Analyze whether years in Ghana, institutional knowledge, and established brand trust translate into sustained competitive advantage or if newer entrants are disrupting...",
       "dataPoints": ["...", "..."],
       "implication": "..."
     },
     {
-      "id": "most_diversified",
-      "question": "Who has the most balanced product portfolio and does it pay off?",
-      "summary": "...",
+      "id": "overtaking_strategy",
+      "question": "What is the most viable strategy for a challenger to overtake the market leader?",
+      "summary": "Consider distribution expansion, product specialization, digital transformation, bancassurance partnerships, or aggressive pricing...",
       "dataPoints": ["...", "..."],
       "implication": "..."
     },
     {
       "id": "growth_opportunities",
-      "question": "What underserved product categories represent blue ocean opportunities?",
+      "question": "What underserved product categories and distribution gaps represent blue ocean opportunities?",
       "summary": "...",
       "dataPoints": ["...", "..."],
       "implication": "..."

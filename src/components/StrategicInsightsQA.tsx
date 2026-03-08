@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import {
   ChevronDown, ChevronUp, Lightbulb, HelpCircle,
   Target, Shuffle, Crown, BarChart3, AlertTriangle,
-  RefreshCw, Sparkles
+  RefreshCw, Sparkles, Network, Building2, Clock, Swords
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,6 +33,9 @@ interface MetricRow {
   insurance_service_result: number | null;
   claims_ratio: number | null;
   csm: number | null;
+  branches: number | null;
+  employees: number | null;
+  years_in_ghana: number | null;
 }
 
 interface StrategicInsightsQAProps {
@@ -62,14 +65,46 @@ const PRODUCT_KEYS: { key: keyof MetricRow; label: string }[] = [
   { key: 'investment_linked', label: 'Investment-Linked' },
 ];
 
+// Infer parent group from insurer name patterns
+function inferParentGroup(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('enterprise')) return 'Enterprise Group';
+  if (n.includes('sanlam') || n.includes('allianz')) return 'Sanlam Allianz';
+  if (n.includes('star') && n.includes('life')) return 'Star Group';
+  if (n.includes('prudential')) return 'Prudential plc';
+  if (n.includes('oldmutual') || n.includes('old mutual')) return 'Old Mutual';
+  if (n.includes('metropolitan') || n.includes('metlife')) return 'Metropolitan/MetLife';
+  if (n.includes('hollard')) return 'Hollard Group';
+  if (n.includes('glico')) return 'GLICO Group';
+  if (n.includes('vanguard')) return 'Vanguard Group';
+  if (n.includes('donewell')) return 'Donewell Group';
+  return '';
+}
+
 const QUESTION_ICONS: Record<string, { icon: React.ReactNode; accent: string }> = {
   leader_gaps: {
     icon: <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
     accent: "bg-amber-500/10",
   },
+  distribution_advantage: {
+    icon: <Network className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />,
+    accent: "bg-cyan-500/10",
+  },
+  group_affiliations: {
+    icon: <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />,
+    accent: "bg-indigo-500/10",
+  },
   niche_specialists: {
     icon: <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />,
     accent: "bg-emerald-500/10",
+  },
+  leadership_experience: {
+    icon: <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
+    accent: "bg-orange-500/10",
+  },
+  overtaking_strategy: {
+    icon: <Swords className="h-4 w-4 text-rose-600 dark:text-rose-400" />,
+    accent: "bg-rose-500/10",
   },
   diversification_correlation: {
     icon: <Shuffle className="h-4 w-4 text-blue-600 dark:text-blue-400" />,
@@ -148,6 +183,21 @@ function useStrategicPayload(metrics: MetricRow[], year: number | null, quarter:
       .sort((a, b) => a.activeInsurers - b.activeInsurers)
       .slice(0, 5);
 
+    // Build insurer profiles with strategic dimensions
+    const insurerProfiles = validMetrics
+      .sort((a, b) => (b.gross_premium || 0) - (a.gross_premium || 0))
+      .map(m => ({
+        name: m.insurer_name,
+        branches: m.branches || 0,
+        employees: m.employees || 0,
+        yearsInGhana: m.years_in_ghana || 0,
+        premium: m.gross_premium || 0,
+        marketShare: m.market_share || 0,
+        website: '',
+        parentGroup: inferParentGroup(m.insurer_name),
+        distributionScore: (m.branches || 0) * (m.employees || 0),
+      }));
+
     return {
       year,
       quarter,
@@ -165,6 +215,7 @@ function useStrategicPayload(metrics: MetricRow[], year: number | null, quarter:
       diversificationTop5,
       correlationTop5,
       underservedProducts,
+      insurerProfiles,
     };
   }, [metrics, year, quarter]);
 }
@@ -276,7 +327,7 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
                   </Badge>
                 </CardTitle>
                 <CardDescription className="mt-1">
-                  AI-generated answers about product mix & market share • {year} Q{quarter}
+                  AI analysis of competitive strategy, distribution, affiliations & product positioning • {year} Q{quarter}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -304,7 +355,7 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
           <CardContent className="pt-0 space-y-2">
             {isLoading || isFetching ? (
               <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map(i => (
+                {[1, 2, 3, 4, 5, 6, 7].map(i => (
                   <div key={i} className="rounded-xl border border-border/40 p-4">
                     <div className="flex items-start gap-3">
                       <Skeleton className="w-9 h-9 rounded-lg" />
@@ -317,7 +368,7 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
                 ))}
                 <p className="text-center text-xs text-muted-foreground pt-1">
                   <Sparkles className="h-3 w-3 inline mr-1" />
-                  Generating AI-powered strategic insights...
+                  Analyzing competitive strategies, distribution networks & market positioning...
                 </p>
               </div>
             ) : error ? (
@@ -344,7 +395,7 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
                   );
                 })}
                 <p className="text-[10px] text-muted-foreground/50 text-center pt-2">
-                  AI-generated • {year} Q{quarter} • Based on NIC product mix data
+                  AI-generated • {year} Q{quarter} • Analyzing product mix, distribution, affiliations & competitive strategy
                 </p>
               </>
             ) : null}
