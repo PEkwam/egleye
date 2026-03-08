@@ -347,7 +347,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Service Revenue</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{totalRevenue > 0 ? `₵${(totalRevenue / 1e9).toFixed(2)}B` : 'N/A'}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{totalRevenue > 0 ? `₵${(totalRevenue / 1e9).toFixed(2)}B` : <NoDataBadge size="md" />}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-blue-500/15 flex items-center justify-center">
                   <BarChart3 className="h-5 w-5 text-blue-500" />
