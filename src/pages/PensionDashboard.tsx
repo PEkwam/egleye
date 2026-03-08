@@ -81,7 +81,7 @@ export default function PensionDashboard() {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-sm sm:text-lg font-bold truncate">Pension Dashboard</h1>
-                  <p className="text-xs text-muted-foreground hidden md:block">NPRA Ghana • {selectedYear || 2024}</p>
+                  <p className="text-xs text-muted-foreground hidden md:block">NPRA Ghana • {selectedYear || ''}</p>
                 </div>
               </div>
             </div>
