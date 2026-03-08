@@ -56,12 +56,19 @@ const formatCurrency = (value: number) => {
   return `GH₵${value.toFixed(0)}`;
 };
 
+const INSURER_COMPARE_COLORS = [
+  'hsl(221, 83%, 53%)',
+  'hsl(142, 76%, 36%)',
+  'hsl(262, 83%, 58%)',
+];
+
 export function ProductBreakdownChart({
   category,
   selectedYear,
   selectedQuarter,
   topCount,
 }: ProductBreakdownChartProps) {
+  const [selectedInsurerIds, setSelectedInsurerIds] = useState<string[]>([]);
   // Current quarter data
   const { data: metrics = [], isLoading } = useQuery({
     queryKey: ['product-breakdown', category, selectedYear, selectedQuarter],
