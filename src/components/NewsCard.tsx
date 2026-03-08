@@ -156,7 +156,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
         <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 md:p-8 z-20">
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 mb-2 sm:mb-3 md:mb-4 flex-wrap">
             {article.is_featured && <span className="featured-badge text-[10px] md:text-xs">Featured</span>}
-            <span className={`px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wide rounded-lg shadow-md ${categoryColors[article.category]}`}>
+            <span className="px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-xs font-bold uppercase tracking-wide rounded-lg shadow-md bg-white/20 text-white border border-white/30 backdrop-blur-sm">
               {categoryLabels[article.category]}
             </span>
             <CredibilityBadge sourceName={article.source_name} />
