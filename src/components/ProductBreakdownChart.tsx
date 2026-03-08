@@ -178,10 +178,24 @@ export function ProductBreakdownChart({
     },
   });
 
-  // All unique insurer names from historical data
+  // All unique insurer names from historical data — deduplicated by normalized form
   const allInsurerNames = useMemo(() => {
-    return [...new Set(historicalData.map(m => m.insurer_name))].sort();
+    const seen = new Map<string, string>(); // normalizedName -> displayName (prefer longest)
+    historicalData.forEach(m => {
+      const norm = normalizeInsurerName(m.insurer_name);
+      const existing = seen.get(norm);
+      if (!existing || m.insurer_name.length > existing.length) {
+        seen.set(norm, m.insurer_name);
+      }
+    });
+    return [...seen.values()].sort();
   }, [historicalData]);
+
+  // Helper: check if a raw insurer_name matches any selected compare insurer
+  const matchesCompareInsurer = (rawName: string, selected: string[]): boolean => {
+    const norm = normalizeInsurerName(rawName);
+    return selected.some(s => normalizeInsurerName(s) === norm);
+  };
 
   const handleAddInsurer = (name: string) => {
     if (!compareInsurers.includes(name) && compareInsurers.length < 3) {
