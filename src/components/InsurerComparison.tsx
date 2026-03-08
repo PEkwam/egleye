@@ -315,7 +315,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
       { key: 'market_share', label: 'Market Share', icon: PieChart, format: formatPercent, highlight: 'max' as const, unit: '%' },
       { key: 'gross_premium', label: 'Gross Premium', icon: Wallet, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
       { key: 'total_assets', label: 'Total Assets', icon: Building2, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
-      { key: 'claims_ratio', label: 'Claims Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
+      { key: 'csm', label: 'CSM', icon: Shield, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
       { key: 'profit_after_tax', label: 'Profit After Tax', icon: TrendingUp, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
       { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'N/A', highlight: 'max' as const, unit: 'years' },
     ];
@@ -676,7 +676,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
           totalAssets: getMetricValue(insurer.id, 'total_assets'),
           profitAfterTax: getMetricValue(insurer.id, 'profit_after_tax'),
           solvencyRatio: getMetricValue(insurer.id, 'solvency_ratio'),
-          claimsRatio: getMetricValue(insurer.id, 'claims_ratio'),
+          claimsRatio: getMetricValue(insurer.id, 'csm'),
           expenseRatio: getMetricValue(insurer.id, 'expense_ratio'),
           branches: getMetricValue(insurer.id, 'branches'),
           employees: getMetricValue(insurer.id, 'employees'),

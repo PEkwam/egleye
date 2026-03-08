@@ -75,7 +75,7 @@ serve(async (req) => {
         if (insurer.totalAssets) metrics.push(`Total Assets: GH₵${(insurer.totalAssets / 1e6).toFixed(1)}M`);
         if (insurer.profitAfterTax) metrics.push(`Profit After Tax: GH₵${(insurer.profitAfterTax / 1e6).toFixed(1)}M`);
         if (insurer.solvencyRatio) metrics.push(`Solvency Ratio: ${insurer.solvencyRatio.toFixed(1)}%`);
-        if (insurer.claimsRatio) metrics.push(`Claims Ratio: ${insurer.claimsRatio.toFixed(1)}%`);
+        if (insurer.claimsRatio) metrics.push(`CSM (Contractual Service Margin): GH₵${(insurer.claimsRatio / 1e6).toFixed(1)}M`);
         if (insurer.expenseRatio) metrics.push(`Expense Ratio: ${insurer.expenseRatio.toFixed(1)}%`);
         if (insurer.branches) metrics.push(`Branches: ${insurer.branches}`);
         if (insurer.employees) metrics.push(`Employees: ${insurer.employees}`);
