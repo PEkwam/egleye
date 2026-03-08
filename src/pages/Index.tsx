@@ -16,7 +16,7 @@ import { InsurerComparison } from '@/components/InsurerComparison';
 import { HomeInsurerMetrics } from '@/components/HomeInsurerMetrics';
 import { Footer } from '@/components/Footer';
 import { useNews, useNewsSearch } from '@/hooks/useNews';
-import type { NewsCategory } from '@/types/news';
+import type { NewsCategory, NewsArticle } from '@/types/news';
 import { categoryLabels } from '@/types/news';
 import type { GhanaInsurer, InsuranceCategory } from '@/types/insurers';
 import { toast } from 'sonner';
