@@ -2,3 +2,6 @@ project_id = "sodvlktbvqaxuxnpgbzb"
 
 [functions.verify-admin]
 verify_jwt = false
+
+[functions.news-digest]
+verify_jwt = false

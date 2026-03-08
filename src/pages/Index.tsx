@@ -9,6 +9,7 @@ import { NICSection } from '@/components/NICSection';
 import { NPRASection } from '@/components/NPRASection';
 import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
 import { MobileDashboard } from '@/components/MobileDashboard';
+import { AINewsDigest } from '@/components/AINewsDigest';
 
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
@@ -169,6 +170,9 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
             isLoading={isLoading}
           />
         )}
+
+        {/* AI News Digest */}
+        {showSections && <AINewsDigest />}
 
 
         {showHero && (
