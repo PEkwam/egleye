@@ -29,7 +29,7 @@ interface CategoryMetrics {
 }
 
 const formatCurrency = (value: number | null) => {
-  if (!value) return null;
+  if (!value) return 'No data';
   if (value >= 1e9) return `GH₵${(value / 1e9).toFixed(1)}B`;
   if (value >= 1e6) return `GH₵${(value / 1e6).toFixed(0)}M`;
   return `GH₵${value.toLocaleString()}`;
