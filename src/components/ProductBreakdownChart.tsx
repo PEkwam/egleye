@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
-import { PieChart as PieChartIcon, BarChart3, TrendingUp, Calendar, Users, X } from 'lucide-react';
+import { PieChart as PieChartIcon, TrendingUp, Calendar, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
+  ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,6 +49,12 @@ const PRODUCT_KEYS = [
   { key: 'other_products', label: 'Other Products' },
 ];
 
+const INSURER_COLORS = [
+  'hsl(221, 83%, 53%)',
+  'hsl(142, 76%, 36%)',
+  'hsl(262, 83%, 58%)',
+];
+
 const formatCurrency = (value: number) => {
   if (value >= 1e9) return `GH₵${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `GH₵${(value / 1e6).toFixed(1)}M`;
@@ -56,11 +62,63 @@ const formatCurrency = (value: number) => {
   return `GH₵${value.toFixed(0)}`;
 };
 
-const INSURER_COMPARE_COLORS = [
-  'hsl(221, 83%, 53%)',
-  'hsl(142, 76%, 36%)',
-  'hsl(262, 83%, 58%)',
-];
+// Insurer selector sub-component for quarterly/yearly tabs
+function InsurerCompareSelector({
+  allInsurers,
+  selectedNames,
+  onAdd,
+  onRemove,
+}: {
+  allInsurers: string[];
+  selectedNames: string[];
+  onAdd: (name: string) => void;
+  onRemove: (name: string) => void;
+}) {
+  const available = allInsurers.filter(n => !selectedNames.includes(n));
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap mb-4">
+      <span className="text-xs font-medium text-muted-foreground">Compare:</span>
+      {selectedNames.map((name, idx) => (
+        <div
+          key={name}
+          className="flex items-center gap-1.5 pl-2 pr-1 py-0.5 rounded-full text-xs font-medium border-2 bg-card"
+          style={{ borderColor: INSURER_COLORS[idx] || 'hsl(var(--border))' }}
+        >
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: INSURER_COLORS[idx] }} />
+          <span className="max-w-[120px] truncate">{name}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 hover:bg-destructive/10 hover:text-destructive rounded-full"
+            onClick={() => onRemove(name)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+      {selectedNames.length < 3 && available.length > 0 && (
+        <Select onValueChange={onAdd}>
+          <SelectTrigger className="w-[160px] h-7 text-xs rounded-full border-dashed border-2 border-primary/30">
+            <SelectValue placeholder="+ Add insurer" />
+          </SelectTrigger>
+          <SelectContent>
+            <ScrollArea className="h-[200px]">
+              {available.map(name => (
+                <SelectItem key={name} value={name} className="text-xs">
+                  {name}
+                </SelectItem>
+              ))}
+            </ScrollArea>
+          </SelectContent>
+        </Select>
+      )}
+      {selectedNames.length === 0 && (
+        <span className="text-xs text-muted-foreground italic">Select insurers to compare, or view industry total</span>
+      )}
+    </div>
+  );
+}
 
 export function ProductBreakdownChart({
   category,
@@ -68,7 +126,8 @@ export function ProductBreakdownChart({
   selectedQuarter,
   topCount,
 }: ProductBreakdownChartProps) {
-  const [selectedInsurerIds, setSelectedInsurerIds] = useState<string[]>([]);
+  const [compareInsurers, setCompareInsurers] = useState<string[]>([]);
+
   // Current quarter data
   const { data: metrics = [], isLoading } = useQuery({
     queryKey: ['product-breakdown', category, selectedYear, selectedQuarter],
@@ -90,13 +149,13 @@ export function ProductBreakdownChart({
     },
   });
 
-  // Historical data for trends (all quarters for the year + previous year)
+  // Historical data for trends
   const { data: historicalData = [] } = useQuery({
     queryKey: ['product-breakdown-history', category, selectedYear],
     queryFn: async () => {
       const query = supabase
         .from('insurer_metrics')
-        .select('report_year, report_quarter, group_policies, term_premium, credit_life, whole_life, endowment, universal_life, annuities, microinsurance, unit_linked, investment_linked, critical_illness, other_products, gross_premium')
+        .select('insurer_name, report_year, report_quarter, group_policies, term_premium, credit_life, whole_life, endowment, universal_life, annuities, microinsurance, unit_linked, investment_linked, critical_illness, other_products, gross_premium')
         .in('report_year', [selectedYear, selectedYear - 1])
         .order('report_year', { ascending: true })
         .order('report_quarter', { ascending: true });
@@ -111,6 +170,21 @@ export function ProductBreakdownChart({
     },
   });
 
+  // All unique insurer names from historical data
+  const allInsurerNames = useMemo(() => {
+    return [...new Set(historicalData.map(m => m.insurer_name))].sort();
+  }, [historicalData]);
+
+  const handleAddInsurer = (name: string) => {
+    if (!compareInsurers.includes(name) && compareInsurers.length < 3) {
+      setCompareInsurers(prev => [...prev, name]);
+    }
+  };
+
+  const handleRemoveInsurer = (name: string) => {
+    setCompareInsurers(prev => prev.filter(n => n !== name));
+  };
+
   // Aggregate product totals from metrics
   const getProductTotals = (data: typeof metrics) => {
     const totals: Record<string, number> = {};
@@ -121,7 +195,7 @@ export function ProductBreakdownChart({
     return totals;
   };
 
-  // Product mix for pie chart (industry total)
+  // Product mix for pie chart
   const productMixData = useMemo(() => {
     const totals = getProductTotals(metrics);
     return Object.entries(totals)
@@ -147,44 +221,89 @@ export function ProductBreakdownChart({
     });
   }, [metrics, topCount]);
 
-  // Quarterly trend data
+  // Build quarterly trend data — per-insurer or industry aggregate
   const quarterlyTrendData = useMemo(() => {
-    const grouped: Record<string, Record<string, number>> = {};
+    const filterInsurers = compareInsurers.length > 0;
+    const relevantData = filterInsurers
+      ? historicalData.filter(m => compareInsurers.includes(m.insurer_name))
+      : historicalData;
 
-    historicalData.forEach(m => {
-      const period = `Q${m.report_quarter}'${String(m.report_year).slice(-2)}`;
-      if (!grouped[period]) grouped[period] = {};
-      PRODUCT_KEYS.forEach(({ key, label }) => {
-        grouped[period][label] = (grouped[period][label] || 0) + ((m as Record<string, unknown>)[key] as number || 0);
+    if (filterInsurers) {
+      // Group by period, then each insurer gets their own gross_premium column
+      const grouped: Record<string, Record<string, number>> = {};
+      relevantData.forEach(m => {
+        const period = `Q${m.report_quarter}'${String(m.report_year).slice(-2)}`;
+        if (!grouped[period]) grouped[period] = {};
+        PRODUCT_KEYS.forEach(({ key, label }) => {
+          const colKey = `${m.insurer_name}__${label}`;
+          grouped[period][colKey] = (grouped[period][colKey] || 0) + ((m as Record<string, unknown>)[key] as number || 0);
+        });
+        // Also store total per insurer for the stacked bar
+        const totalKey = m.insurer_name;
+        const total = PRODUCT_KEYS.reduce((sum, { key }) => sum + ((m as Record<string, unknown>)[key] as number || 0), 0);
+        grouped[period][totalKey] = (grouped[period][totalKey] || 0) + total;
       });
-    });
 
-    return Object.entries(grouped)
-      .map(([period, products]) => ({ period, ...products }))
-      .sort((a, b) => {
-        const [aq, ay] = [parseInt(a.period.slice(1)), parseInt(a.period.slice(-2))];
-        const [bq, by] = [parseInt(b.period.slice(1)), parseInt(b.period.slice(-2))];
-        return ay !== by ? ay - by : aq - bq;
+      return Object.entries(grouped)
+        .map(([period, data]) => ({ period, ...data }))
+        .sort((a, b) => {
+          const [aq, ay] = [parseInt(a.period.slice(1)), parseInt(a.period.slice(-2))];
+          const [bq, by] = [parseInt(b.period.slice(1)), parseInt(b.period.slice(-2))];
+          return ay !== by ? ay - by : aq - bq;
+        });
+    } else {
+      // Industry aggregate by product
+      const grouped: Record<string, Record<string, number>> = {};
+      relevantData.forEach(m => {
+        const period = `Q${m.report_quarter}'${String(m.report_year).slice(-2)}`;
+        if (!grouped[period]) grouped[period] = {};
+        PRODUCT_KEYS.forEach(({ key, label }) => {
+          grouped[period][label] = (grouped[period][label] || 0) + ((m as Record<string, unknown>)[key] as number || 0);
+        });
       });
-  }, [historicalData]);
+      return Object.entries(grouped)
+        .map(([period, products]) => ({ period, ...products }))
+        .sort((a, b) => {
+          const [aq, ay] = [parseInt(a.period.slice(1)), parseInt(a.period.slice(-2))];
+          const [bq, by] = [parseInt(b.period.slice(1)), parseInt(b.period.slice(-2))];
+          return ay !== by ? ay - by : aq - bq;
+        });
+    }
+  }, [historicalData, compareInsurers]);
 
-  // Yearly comparison data
+  // Build yearly comparison data
   const yearlyComparisonData = useMemo(() => {
-    const grouped: Record<number, Record<string, number>> = {};
+    const filterInsurers = compareInsurers.length > 0;
+    const relevantData = filterInsurers
+      ? historicalData.filter(m => compareInsurers.includes(m.insurer_name))
+      : historicalData;
 
-    historicalData.forEach(m => {
-      if (!grouped[m.report_year]) grouped[m.report_year] = {};
-      PRODUCT_KEYS.forEach(({ key, label }) => {
-        grouped[m.report_year][label] = (grouped[m.report_year][label] || 0) + ((m as Record<string, unknown>)[key] as number || 0);
+    if (filterInsurers) {
+      const grouped: Record<number, Record<string, number>> = {};
+      relevantData.forEach(m => {
+        if (!grouped[m.report_year]) grouped[m.report_year] = {};
+        const totalKey = m.insurer_name;
+        const total = PRODUCT_KEYS.reduce((sum, { key }) => sum + ((m as Record<string, unknown>)[key] as number || 0), 0);
+        grouped[m.report_year][totalKey] = (grouped[m.report_year][totalKey] || 0) + total;
       });
-    });
+      return Object.entries(grouped)
+        .map(([year, data]) => ({ year: Number(year), ...data }))
+        .sort((a, b) => a.year - b.year);
+    } else {
+      const grouped: Record<number, Record<string, number>> = {};
+      relevantData.forEach(m => {
+        if (!grouped[m.report_year]) grouped[m.report_year] = {};
+        PRODUCT_KEYS.forEach(({ key, label }) => {
+          grouped[m.report_year][label] = (grouped[m.report_year][label] || 0) + ((m as Record<string, unknown>)[key] as number || 0);
+        });
+      });
+      return Object.entries(grouped)
+        .map(([year, products]) => ({ year: Number(year), ...products }))
+        .sort((a, b) => a.year - b.year);
+    }
+  }, [historicalData, compareInsurers]);
 
-    return Object.entries(grouped)
-      .map(([year, products]) => ({ year: Number(year), ...products }))
-      .sort((a, b) => a.year - b.year);
-  }, [historicalData]);
-
-  // Active product labels (those with data in current view)
+  // Active products
   const activeProducts = useMemo(() => {
     return PRODUCT_KEYS
       .map(p => p.label)
@@ -192,6 +311,9 @@ export function ProductBreakdownChart({
   }, [productMixData]);
 
   const hasProductData = productMixData.some(d => d.value > 0);
+
+  // Render bar keys for quarterly/yearly depending on mode
+  const isInsurerMode = compareInsurers.length > 0;
 
   if (isLoading) {
     return (
@@ -354,9 +476,20 @@ export function ProductBreakdownChart({
 
           {/* Quarterly Comparison Tab */}
           <TabsContent value="quarterly">
+            <InsurerCompareSelector
+              allInsurers={allInsurerNames}
+              selectedNames={compareInsurers}
+              onAdd={handleAddInsurer}
+              onRemove={handleRemoveInsurer}
+            />
             {quarterlyTrendData.length > 1 ? (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Product mix trends across quarters ({selectedYear - 1}–{selectedYear})</p>
+                <p className="text-sm text-muted-foreground">
+                  {isInsurerMode
+                    ? `Comparing total product premium: ${compareInsurers.join(' vs ')} (${selectedYear - 1}–${selectedYear})`
+                    : `Product mix trends across quarters (${selectedYear - 1}–${selectedYear})`
+                  }
+                </p>
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={quarterlyTrendData}>
@@ -365,9 +498,14 @@ export function ProductBreakdownChart({
                       <YAxis tickFormatter={(v) => formatCurrency(v)} />
                       <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                       <Legend />
-                      {activeProducts.map(label => (
-                        <Bar key={label} dataKey={label} fill={PRODUCT_COLORS[label]} />
-                      ))}
+                      {isInsurerMode
+                        ? compareInsurers.map((name, idx) => (
+                            <Bar key={name} dataKey={name} fill={INSURER_COLORS[idx]} />
+                          ))
+                        : activeProducts.map(label => (
+                            <Bar key={label} dataKey={label} fill={PRODUCT_COLORS[label]} />
+                          ))
+                      }
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -383,9 +521,20 @@ export function ProductBreakdownChart({
 
           {/* Yearly Comparison Tab */}
           <TabsContent value="yearly">
+            <InsurerCompareSelector
+              allInsurers={allInsurerNames}
+              selectedNames={compareInsurers}
+              onAdd={handleAddInsurer}
+              onRemove={handleRemoveInsurer}
+            />
             {yearlyComparisonData.length > 1 ? (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Year-over-year product mix comparison</p>
+                <p className="text-sm text-muted-foreground">
+                  {isInsurerMode
+                    ? `Year-over-year comparison: ${compareInsurers.join(' vs ')}`
+                    : 'Year-over-year product mix comparison'
+                  }
+                </p>
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={yearlyComparisonData}>
@@ -394,9 +543,14 @@ export function ProductBreakdownChart({
                       <YAxis tickFormatter={(v) => formatCurrency(v)} />
                       <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
                       <Legend />
-                      {activeProducts.map(label => (
-                        <Bar key={label} dataKey={label} fill={PRODUCT_COLORS[label]} />
-                      ))}
+                      {isInsurerMode
+                        ? compareInsurers.map((name, idx) => (
+                            <Bar key={name} dataKey={name} fill={INSURER_COLORS[idx]} />
+                          ))
+                        : activeProducts.map(label => (
+                            <Bar key={label} dataKey={label} fill={PRODUCT_COLORS[label]} />
+                          ))
+                      }
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
