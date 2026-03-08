@@ -421,7 +421,7 @@ export default function ExecutiveDashboardPage() {
           </div>
 
           {/* Additional Financial Metrics Cards */}
-          {(industryTotals.totalCSM > 0 || industryTotals.totalServiceResult > 0 || industryTotals.totalInvestments > 0) && (
+          {(industryTotals.totalServiceResult !== 0 || industryTotals.totalInvestments > 0 || industryTotals.totalLiabilities > 0 || industryTotals.totalFinanceIncome !== 0) && (
             <div className="mt-4">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {industryTotals.totalCSM > 0 && (
