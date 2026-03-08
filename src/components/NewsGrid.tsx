@@ -1,3 +1,4 @@
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { NewsCard } from './NewsCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { NewsArticle, NewsCategory } from '@/types/news';
@@ -11,7 +12,43 @@ interface NewsGridProps {
   isLoading?: boolean;
 }
 
+const INITIAL_BATCH = 12;
+const BATCH_SIZE = 8;
+
 export function NewsGrid({ articles, title, category, isLoading }: NewsGridProps) {
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset visible count when articles change
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH);
+  }, [articles]);
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    if (visibleCount >= articles.length) return;
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, articles.length));
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [visibleCount, articles.length]);
+
+  const visibleArticles = useMemo(
+    () => articles.slice(0, visibleCount),
+    [articles, visibleCount]
+  );
+
   if (isLoading) {
     return (
       <section className="container mx-auto px-4 py-8">
@@ -54,7 +91,7 @@ export function NewsGrid({ articles, title, category, isLoading }: NewsGridProps
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        {articles.map((article, index) => (
+        {visibleArticles.map((article, index) => (
           <div
             key={article.id}
             className="animate-slide-up"
@@ -64,6 +101,16 @@ export function NewsGrid({ articles, title, category, isLoading }: NewsGridProps
           </div>
         ))}
       </div>
+
+      {/* Sentinel for loading more */}
+      {visibleCount < articles.length && (
+        <div ref={sentinelRef} className="flex justify-center py-8">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            Loading more articles...
+          </div>
+        </div>
+      )}
     </section>
   );
 }
