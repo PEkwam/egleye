@@ -123,8 +123,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
              />
            </div>
-         )}
-        )}
+         )
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-md ${categoryColors[article.category]}`}>
