@@ -47,15 +47,23 @@ export function PrivatePensionSection({ metrics = [] }: PrivatePensionSectionPro
     };
   }, [tier2Funds, tier3Funds]);
 
-  // Trustees from DB
+  // Trustees from DB - aggregate by trustee name to avoid duplicates across tiers
   const trusteesData = useMemo(() => {
-    const funds = [...tier2Funds].filter(m => m.aum).sort((a, b) => (b.aum || 0) - (a.aum || 0)).slice(0, 10);
-    const total = funds.reduce((sum, m) => sum + (m.aum || 0), 0);
-    return funds.map((f, i) => ({
-      name: (f.trustee_name || f.fund_name).length > 16 ? (f.trustee_name || f.fund_name).slice(0, 16) + '…' : (f.trustee_name || f.fund_name),
-      fullName: f.trustee_name || f.fund_name,
-      aum: (f.aum || 0) / 1e9,
-      share: total > 0 ? ((f.aum || 0) / total * 100) : (f.market_share || 0),
+    const trusteeMap: Record<string, { aum: number; name: string }> = {};
+    tier2Funds.filter(m => m.aum).forEach(f => {
+      const key = f.trustee_name || f.fund_name;
+      if (!trusteeMap[key]) trusteeMap[key] = { aum: 0, name: key };
+      trusteeMap[key].aum += f.aum || 0;
+    });
+    
+    const sorted = Object.values(trusteeMap).sort((a, b) => b.aum - a.aum).slice(0, 10);
+    const total = sorted.reduce((sum, t) => sum + t.aum, 0);
+    
+    return sorted.map((t, i) => ({
+      name: t.name.length > 16 ? t.name.slice(0, 16) + '…' : t.name,
+      fullName: t.name,
+      aum: t.aum / 1e9,
+      share: total > 0 ? (t.aum / total * 100) : 0,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     }));
   }, [tier2Funds]);
