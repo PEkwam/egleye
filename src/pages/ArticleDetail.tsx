@@ -169,7 +169,7 @@ export default function ArticleDetail() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               <div className="absolute bottom-6 left-6">
-                <Badge className={`${categoryColors[article.category as NewsCategory]} text-sm px-3 py-1`}>
+                <Badge className="category-badge-overlay text-sm px-3 py-1">
                   {categoryLabels[article.category as NewsCategory]}
                 </Badge>
               </div>

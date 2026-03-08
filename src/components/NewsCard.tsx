@@ -201,7 +201,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="absolute top-4 left-4 flex items-center gap-2 flex-wrap">
-          <span className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-lg shadow-md ${categoryColors[article.category]}`}>
+          <span className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide rounded-lg shadow-md category-badge-overlay">
             {categoryLabels[article.category]}
           </span>
           <CredibilityBadge sourceName={article.source_name} />

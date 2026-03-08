@@ -280,7 +280,7 @@
 
   /* Minimal Category Badges */
   .category-enterprise {
-    @apply bg-primary/10 text-primary font-semibold border border-primary/20;
+    @apply bg-primary/10 text-primary dark:text-primary font-semibold border border-primary/20;
   }
 
   .category-regulator {
@@ -299,8 +299,17 @@
     @apply bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-500/20;
   }
 
+  .category-pensions {
+    @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20;
+  }
+
   .category-general {
-    @apply bg-primary/10 text-primary font-semibold border border-primary/20;
+    @apply bg-slate-500/10 text-slate-700 dark:text-slate-300 font-semibold border border-slate-500/20;
+  }
+
+  /* Badge variant for use on dark/image backgrounds */
+  .category-badge-overlay {
+    @apply bg-white/20 text-white font-bold border border-white/30 backdrop-blur-sm;
   }
 
   .breaking-badge {
