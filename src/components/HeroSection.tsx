@@ -103,7 +103,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                     </div>
 
                     <div className="flex items-center gap-2 mb-2.5">
-                      <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-lg shadow-sm ${categoryColors[hero.category]}`}>
+                      <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-lg shadow-sm bg-white/20 text-primary-foreground border border-white/30 backdrop-blur-sm">
                         {categoryLabels[hero.category]}
                       </span>
                     </div>
