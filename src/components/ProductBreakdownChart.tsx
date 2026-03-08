@@ -247,7 +247,7 @@ export function ProductBreakdownChart({
   const quarterlyTrendData = useMemo(() => {
     const filterInsurers = compareInsurers.length > 0;
     const relevantData = filterInsurers
-      ? historicalData.filter(m => compareInsurers.includes(m.insurer_name))
+      ? historicalData.filter(m => matchesCompareInsurer(m.insurer_name, compareInsurers))
       : historicalData;
 
     if (filterInsurers) {
