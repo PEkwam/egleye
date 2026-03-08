@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, Database, RefreshCw, FileSpreadsheet, Check, AlertTriangle, 
   FileUp, X, Trash2, Newspaper, Building2, Landmark, Image, ImagePlus,
-  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save
+  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save, LogOut
 } from 'lucide-react';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
@@ -2018,10 +2018,25 @@ const DataAdmin = () => {
                 <p className="text-sm text-muted-foreground">NIC & NPRA Data Management</p>
               </div>
             </div>
-            <Badge variant="outline" className="gap-1">
-              <Zap className="h-3 w-3" />
-              Auto-sync Active
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1">
+                <Zap className="h-3 w-3" />
+                Auto-sync Active
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive hover:text-destructive-foreground hover:bg-destructive/90 border-destructive/30"
+                onClick={() => {
+                  sessionStorage.removeItem('adminToken');
+                  navigate('/admin-login');
+                  toast.success('Logged out successfully');
+                }}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
