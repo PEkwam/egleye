@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { NoDataBadge } from '@/components/NoDataBadge';
 import {
   DollarSign, Users, TrendingUp, Building2,
   Landmark, PieChart, BarChart3, Wallet, Shield, Briefcase
