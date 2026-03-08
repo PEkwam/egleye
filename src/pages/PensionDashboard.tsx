@@ -228,7 +228,7 @@ export default function PensionDashboard() {
         {/* Data Source Attribution */}
         <div className="text-center py-6 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            Data sourced from the National Pensions Regulatory Authority (NPRA) 2024 Annual Report
+            Data sourced from the National Pensions Regulatory Authority (NPRA) {selectedYear || ''} Annual Report
           </p>
           <div className="flex items-center justify-center gap-4 mt-2">
             <Badge variant="outline" className="text-xs">

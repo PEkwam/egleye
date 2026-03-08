@@ -265,7 +265,7 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
             <Landmark className="h-4 w-4 text-cyan-500" />
             Fund Custodians Market Share
           </CardTitle>
-          <CardDescription>13 active custodians out of 18 registered • Table 1</CardDescription>
+          <CardDescription>{FUND_CUSTODIANS_2024.filter(c => c.marketShare > 0).length} active custodians out of {INDUSTRY_STRUCTURE_2024.fundCustodians} registered • Table 1</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">

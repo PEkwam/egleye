@@ -64,7 +64,7 @@ export function SSNITSection({ metrics = [] }: SSNITSectionProps) {
           <p className="text-sm text-muted-foreground">Basic National Social Security Scheme • NPRA Annual Report</p>
         </div>
         <Badge variant="outline" className="gap-1 text-xs">
-          <Calendar className="h-3 w-3" /> 2024 Annual Report
+          <Calendar className="h-3 w-3" /> Annual Report
         </Badge>
       </div>
 

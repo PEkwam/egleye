@@ -328,7 +328,7 @@ const [selectedYear, setSelectedYear] = useState<string>('');
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent>
-                {(availableYears.length > 0 ? availableYears : [2025, 2024, 2023]).map(year => (
+                {(availableYears.length > 0 ? availableYears : [new Date().getFullYear(), new Date().getFullYear() - 1]).map(year => (
                   <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                 ))}
               </SelectContent>
