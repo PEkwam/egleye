@@ -256,14 +256,14 @@ export function ProductBreakdownChart({
       relevantData.forEach(m => {
         const period = `Q${m.report_quarter}'${String(m.report_year).slice(-2)}`;
         if (!grouped[period]) grouped[period] = {};
+        // Use the selected display name as grouping key
+        const displayName = compareInsurers.find(s => normalizeInsurerName(s) === normalizeInsurerName(m.insurer_name)) || m.insurer_name;
         PRODUCT_KEYS.forEach(({ key, label }) => {
-          const colKey = `${m.insurer_name}__${label}`;
+          const colKey = `${displayName}__${label}`;
           grouped[period][colKey] = (grouped[period][colKey] || 0) + ((m as Record<string, unknown>)[key] as number || 0);
         });
-        // Also store total per insurer for the stacked bar
-        const totalKey = m.insurer_name;
         const total = PRODUCT_KEYS.reduce((sum, { key }) => sum + ((m as Record<string, unknown>)[key] as number || 0), 0);
-        grouped[period][totalKey] = (grouped[period][totalKey] || 0) + total;
+        grouped[period][displayName] = (grouped[period][displayName] || 0) + total;
       });
 
       return Object.entries(grouped)
