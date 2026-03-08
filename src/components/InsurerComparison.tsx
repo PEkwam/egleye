@@ -1115,15 +1115,24 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                                 >
                                   <div className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg ${
                                     value === null
-                                      ? 'text-muted-foreground'
+                                      ? ''
                                       : isBest 
                                       ? 'bg-primary/10 text-primary font-semibold' 
                                       : ''
                                   }`}>
-                                    <span className="text-base font-bold">
-                                      {format(value)}
-                                    </span>
-                                    {isBest && <Star className="h-3 w-3 fill-primary ml-1" />}
+                                    {value === null ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+                                        <AlertCircle className="h-3 w-3" />
+                                        No data
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <span className="text-base font-bold">
+                                          {format(value)}
+                                        </span>
+                                        {isBest && <Star className="h-3 w-3 fill-primary ml-1" />}
+                                      </>
+                                    )}
                                   </div>
                                 </TableCell>
                               );
