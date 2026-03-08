@@ -676,7 +676,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
           totalAssets: getMetricValue(insurer.id, 'total_assets'),
           profitAfterTax: getMetricValue(insurer.id, 'profit_after_tax'),
           solvencyRatio: getMetricValue(insurer.id, 'solvency_ratio'),
-          claimsRatio: getMetricValue(insurer.id, 'claims_ratio'),
+          claimsRatio: getMetricValue(insurer.id, 'csm'),
           expenseRatio: getMetricValue(insurer.id, 'expense_ratio'),
           branches: getMetricValue(insurer.id, 'branches'),
           employees: getMetricValue(insurer.id, 'employees'),
