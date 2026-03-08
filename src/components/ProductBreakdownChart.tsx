@@ -304,9 +304,9 @@ export function ProductBreakdownChart({
       const grouped: Record<number, Record<string, number>> = {};
       relevantData.forEach(m => {
         if (!grouped[m.report_year]) grouped[m.report_year] = {};
-        const totalKey = m.insurer_name;
+        const displayName = compareInsurers.find(s => normalizeInsurerName(s) === normalizeInsurerName(m.insurer_name)) || m.insurer_name;
         const total = PRODUCT_KEYS.reduce((sum, { key }) => sum + ((m as Record<string, unknown>)[key] as number || 0), 0);
-        grouped[m.report_year][totalKey] = (grouped[m.report_year][totalKey] || 0) + total;
+        grouped[m.report_year][displayName] = (grouped[m.report_year][displayName] || 0) + total;
       });
       return Object.entries(grouped)
         .map(([year, data]) => ({ year: Number(year), ...data }))
