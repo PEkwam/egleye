@@ -159,7 +159,7 @@ export default function PensionDashboard() {
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Main Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="overview" className="gap-1.5">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -171,6 +171,10 @@ export default function PensionDashboard() {
             <TabsTrigger value="private" className="gap-1.5">
               <PieChart className="h-4 w-4" />
               <span className="hidden sm:inline">Private</span>
+            </TabsTrigger>
+            <TabsTrigger value="compare" className="gap-1.5">
+              <GitCompareArrows className="h-4 w-4" />
+              <span className="hidden sm:inline">Compare</span>
             </TabsTrigger>
             <TabsTrigger value="details" className="gap-1.5">
               <Building2 className="h-4 w-4" />
