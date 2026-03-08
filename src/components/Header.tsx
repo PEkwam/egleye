@@ -327,7 +327,7 @@ export function Header({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-16 z-40 bg-background overflow-y-auto">
+        <div className="md:hidden fixed inset-0 top-16 z-[60] bg-background overflow-y-auto">
           <div className="p-4 space-y-5 pb-24">
             {/* Mobile Search */}
             <form onSubmit={handleSearch}>
