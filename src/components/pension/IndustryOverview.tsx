@@ -96,7 +96,7 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: DollarSign, label: 'Total Industry AUM', value: fmt(totals.totalAUM), sub: `${selectedYear || 2024}`, color: 'from-amber-500 to-orange-600', text: 'text-amber-600 dark:text-amber-400' },
+          { icon: DollarSign, label: 'Total Industry AUM', value: fmt(totals.totalAUM), sub: `${selectedYear || ''}`, color: 'from-amber-500 to-orange-600', text: 'text-amber-600 dark:text-amber-400' },
           { icon: Shield, label: 'SSNIT (Tier 1)', value: fmt(totals.ssnitAUM), sub: 'BNSSS', color: 'from-blue-500 to-indigo-600', text: 'text-blue-600 dark:text-blue-400' },
           { icon: Wallet, label: 'Private Pensions', value: fmt(totals.privateAUM), sub: 'Tier 2 & 3', color: 'from-emerald-500 to-green-600', text: 'text-emerald-600 dark:text-emerald-400' },
           { icon: Users, label: 'SSNIT Contributors', value: `${(totals.contributors / 1e6).toFixed(2)}M`, sub: `${totals.pensioners.toLocaleString()} pensioners`, color: 'from-purple-500 to-violet-600', text: 'text-purple-600 dark:text-purple-400' },
@@ -265,7 +265,7 @@ export function IndustryOverview({ metrics, selectedYear }: IndustryOverviewProp
             <Landmark className="h-4 w-4 text-cyan-500" />
             Fund Custodians Market Share
           </CardTitle>
-          <CardDescription>13 active custodians out of 18 registered • Table 1</CardDescription>
+          <CardDescription>{FUND_CUSTODIANS_2024.filter(c => c.marketShare > 0).length} active custodians out of {INDUSTRY_STRUCTURE_2024.fundCustodians} registered • Table 1</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">

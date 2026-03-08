@@ -81,7 +81,7 @@ export default function PensionDashboard() {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-sm sm:text-lg font-bold truncate">Pension Dashboard</h1>
-                  <p className="text-xs text-muted-foreground hidden md:block">NPRA Ghana • {selectedYear || 2024}</p>
+                  <p className="text-xs text-muted-foreground hidden md:block">NPRA Ghana • {selectedYear || ''}</p>
                 </div>
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function PensionDashboard() {
         {/* Data Source Attribution */}
         <div className="text-center py-6 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            Data sourced from the National Pensions Regulatory Authority (NPRA) 2024 Annual Report
+            Data sourced from the National Pensions Regulatory Authority (NPRA) {selectedYear || ''} Annual Report
           </p>
           <div className="flex items-center justify-center gap-4 mt-2">
             <Badge variant="outline" className="text-xs">
