@@ -411,7 +411,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     if (dbMetrics) {
       return dbMetrics[key as keyof InsurerMetrics] as number | null;
     }
-    return fallbackMetrics[key as keyof typeof fallbackMetrics] as number | null;
+    return null;
   };
 
   const getBestValue = (metricKey: string, highlight: 'max' | 'min') => {
