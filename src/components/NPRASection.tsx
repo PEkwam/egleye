@@ -170,9 +170,9 @@ export function NPRASection({ articles, isLoading, onViewAll }: NPRASectionProps
                 {featuredArticle.title}
               </h3>
               
-              {featuredArticle.description && (
+              {featuredArticle.description && sanitizeText(featuredArticle.description) && (
                 <p className="text-amber-100/75 line-clamp-2 mb-5 max-w-2xl text-sm sm:text-base">
-                  {featuredArticle.description}
+                  {sanitizeText(featuredArticle.description)}
                 </p>
               )}
               

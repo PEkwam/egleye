@@ -157,9 +157,9 @@ export function NICSection({ articles, isLoading, onViewAll }: NICSectionProps) 
                 {featuredArticle.title}
               </h3>
               
-              {featuredArticle.description && (
+              {featuredArticle.description && sanitizeText(featuredArticle.description) && (
                 <p className="text-emerald-100/75 line-clamp-2 mb-5 max-w-2xl text-sm sm:text-base">
-                  {featuredArticle.description}
+                  {sanitizeText(featuredArticle.description)}
                 </p>
               )}
               
