@@ -124,6 +124,20 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     return {};
   };
 
+  // Fetch available non-life years from DB
+  const { data: nonLifeYears = [] } = useQuery({
+    queryKey: ['nonlife-available-years'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('nonlife_insurer_metrics')
+        .select('report_year')
+        .order('report_year', { ascending: false });
+      if (error || !data) return [];
+      return [...new Set(data.map(d => d.report_year))];
+    },
+    enabled: insuranceType === 'nonlife',
+  });
+
   // Fetch non-life insurance metrics
   const { data: nonLifeMetrics = [], isLoading: isLoadingNonLife } = useQuery({
     queryKey: ['nonlife-comparison-metrics', selectedYear, selectedQuarter],
@@ -146,14 +160,15 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         // Get max year
         const maxYear = Math.max(...availableYears);
         setSelectedYear(maxYear);
-      } else if (insuranceType === 'nonlife') {
-        setSelectedYear(2024);
+      } else if (insuranceType === 'nonlife' && nonLifeYears.length > 0) {
+        const maxYear = Math.max(...nonLifeYears);
+        setSelectedYear(maxYear);
       } else if (insuranceType === 'pension' && pensionYears.length > 0) {
         const maxYear = Math.max(...pensionYears);
         setSelectedYear(maxYear);
       }
     }
-  }, [availableYears, pensionYears, insuranceType, selectedYear]);
+  }, [availableYears, pensionYears, nonLifeYears, insuranceType, selectedYear]);
 
   // Fetch historical data for trend comparison - use DB ID mappings first
   const { data: historicalData = [] } = useQuery({
@@ -396,7 +411,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
     if (dbMetrics) {
       return dbMetrics[key as keyof InsurerMetrics] as number | null;
     }
-    return fallbackMetrics[key as keyof typeof fallbackMetrics] as number | null;
+    return null;
   };
 
   const getBestValue = (metricKey: string, highlight: 'max' | 'min') => {
