@@ -166,7 +166,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
           </div>
           
           <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white font-display mb-2 md:mb-4 group-hover:text-accent transition-colors leading-tight line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
-            {article.title}
+            {sanitizeText(article.title)}
           </h2>
           
           {article.description && (
