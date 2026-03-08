@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
-import { PieChart as PieChartIcon, BarChart3, TrendingUp, Calendar } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { PieChart as PieChartIcon, BarChart3, TrendingUp, Calendar, Users, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
