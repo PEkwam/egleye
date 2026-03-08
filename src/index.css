@@ -251,11 +251,12 @@
     background-clip: text;
   }
 
-  /* Subtle Mesh - Minimal Corporate */
+  /* Subtle Mesh - Bold Modern */
   .mesh-gradient {
     background: 
-      radial-gradient(at 40% 20%, hsl(145, 50%, 50%, 0.04) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsl(45, 70%, 55%, 0.03) 0px, transparent 50%);
+      radial-gradient(at 20% 10%, hsl(145, 50%, 50%, 0.06) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(45, 70%, 55%, 0.04) 0px, transparent 50%),
+      radial-gradient(at 50% 80%, hsl(200, 60%, 50%, 0.03) 0px, transparent 50%);
   }
 
   /* Modern Card Hover Effects */
