@@ -321,8 +321,8 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
         { key: 'total_contributions', label: 'Total Contributions', icon: Building2, format: formatCurrency, highlight: 'max' as const, unit: '₵M' },
         { key: 'investment_return', label: 'Investment Return', icon: TrendingUp, format: formatPercent, highlight: 'max' as const, unit: '%' },
         { key: 'expense_ratio', label: 'Expense Ratio', icon: Shield, format: formatPercent, highlight: 'min' as const, unit: '%' },
-        { key: 'total_contributors', label: 'Total Contributors', icon: Users, format: (v: number | null) => v ? v.toLocaleString() : 'N/A', highlight: 'max' as const, unit: '' },
-        { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'N/A', highlight: 'max' as const, unit: 'years' },
+        { key: 'total_contributors', label: 'Total Contributors', icon: Users, format: (v: number | null) => v ? v.toLocaleString() : 'No data', highlight: 'max' as const, unit: '' },
+        { key: 'years_in_ghana', label: 'Years in Ghana', icon: Calendar, format: (v: number | null) => v ? `${v} years` : 'No data', highlight: 'max' as const, unit: 'years' },
       ];
     }
     // Life insurance (default)
