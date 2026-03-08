@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { ExternalLink, Clock, TrendingUp, Shield, CheckCircle2, Building2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NewsArticle } from '@/types/news';
