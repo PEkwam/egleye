@@ -13,9 +13,7 @@ interface InsurerMetricButtonsProps {
 }
 
 type MetricKey = 'csm' | 'gross_premium' | 'total_assets' | 'profit_after_tax' | 'market_share' | 
-                 'total_claims_paid' | 'investment_income' | 'insurance_service_result' | 
-                 'total_investments' | 'total_liabilities' | 'technical_results_margin' |
-                 'insurance_finance_income' | 'acquisition_cashflow' | 'share_insurance_service_results';
+                 'total_claims_paid' | 'investment_income';
 
 interface MetricConfig {
   key: MetricKey;
@@ -89,69 +87,6 @@ const metrics: MetricConfig[] = [
     format: (v) => v ? `${(v * 100).toFixed(1)}%` : '-',
     color: 'text-cyan-600',
     bgColor: 'bg-cyan-50 border-cyan-200',
-    sortDesc: true,
-  },
-  {
-    key: 'insurance_service_result',
-    label: 'Service Result',
-    icon: TrendingUp,
-    format: (v) => v ? (Math.abs(v) >= 1e9 ? `GH₵${(v / 1e9).toFixed(2)}B` : `GH₵${(v / 1e6).toFixed(1)}M`) : '-',
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-50 border-indigo-200',
-    sortDesc: true,
-  },
-  {
-    key: 'total_investments',
-    label: 'Total Investments',
-    icon: Building,
-    format: (v) => v ? (Math.abs(v) >= 1e9 ? `GH₵${(v / 1e9).toFixed(2)}B` : `GH₵${(v / 1e6).toFixed(1)}M`) : '-',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50 border-blue-200',
-    sortDesc: true,
-  },
-  {
-    key: 'total_liabilities',
-    label: 'Total Liabilities',
-    icon: AlertCircle,
-    format: (v) => v ? (Math.abs(v) >= 1e9 ? `GH₵${(v / 1e9).toFixed(2)}B` : `GH₵${(v / 1e6).toFixed(1)}M`) : '-',
-    color: 'text-red-600',
-    bgColor: 'bg-red-50 border-red-200',
-    sortDesc: true,
-  },
-  {
-    key: 'technical_results_margin',
-    label: 'Tech. Results Margin',
-    icon: LineChart,
-    format: (v) => v ? `${(v * 100).toFixed(1)}%` : '-',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50 border-orange-200',
-    sortDesc: true,
-  },
-  {
-    key: 'insurance_finance_income',
-    label: 'Finance Income',
-    icon: DollarSign,
-    format: (v) => v ? (Math.abs(v) >= 1e9 ? `GH₵${(v / 1e9).toFixed(2)}B` : `GH₵${(v / 1e6).toFixed(1)}M`) : '-',
-    color: 'text-green-600',
-    bgColor: 'bg-green-50 border-green-200',
-    sortDesc: true,
-  },
-  {
-    key: 'acquisition_cashflow',
-    label: 'Acquisition Cashflow',
-    icon: DollarSign,
-    format: (v) => v ? (Math.abs(v) >= 1e9 ? `GH₵${(v / 1e9).toFixed(2)}B` : `GH₵${(v / 1e6).toFixed(1)}M`) : '-',
-    color: 'text-pink-600',
-    bgColor: 'bg-pink-50 border-pink-200',
-    sortDesc: true,
-  },
-  {
-    key: 'share_insurance_service_results',
-    label: 'Share of Service Results',
-    icon: Clock,
-    format: (v) => v ? `${(v * 100).toFixed(1)}%` : '-',
-    color: 'text-fuchsia-600',
-    bgColor: 'bg-fuchsia-50 border-fuchsia-200',
     sortDesc: true,
   },
 ];
