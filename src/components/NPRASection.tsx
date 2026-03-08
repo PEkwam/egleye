@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Landmark, FileText, TrendingUp, ChevronRight, Bell, ExternalLink, Clock, BarChart3, Zap } from 'lucide-react';
+import { sanitizeText } from '@/lib/utils/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
