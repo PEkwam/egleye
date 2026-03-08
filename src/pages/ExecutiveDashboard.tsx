@@ -30,6 +30,7 @@ import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { PremiumGrowthLeaderboard } from '@/components/PremiumGrowthLeaderboard';
 import { ProductMixTreemap } from '@/components/ProductMixTreemap';
 import { StrategicInsightsQA } from '@/components/StrategicInsightsQA';
+import { AIProductMixStrategy } from '@/components/AIProductMixStrategy';
 import { ProfitabilityHeatmap } from '@/components/ProfitabilityHeatmap';
 import { useInsurerMetrics } from '@/hooks/useInsurerMetrics';
 import { 
