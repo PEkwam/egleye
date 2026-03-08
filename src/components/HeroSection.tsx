@@ -122,7 +122,7 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                         </span>
                       </div>
                       {hero.source_name && (
-                        <span className="text-[11px] text-primary-foreground/50 truncate max-w-[100px]">
+                        <span className="text-[11px] text-primary-foreground/70 truncate max-w-[100px]">
                           {hero.source_name}
                         </span>
                       )}
