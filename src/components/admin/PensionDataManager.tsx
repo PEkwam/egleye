@@ -317,21 +317,27 @@ export function PensionDataManager() {
       const fileName = file.name.toLowerCase();
       
       if (fileName.endsWith('.pdf')) {
-        // Send PDF to parse-npra-pdf edge function
-        const arrayBuffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64Content = btoa(binary);
+        toast.info('Uploading PDF... This may take a moment.');
         
-        toast.info('Parsing PDF... This may take a moment.');
+        // Upload PDF to storage first, then parse via storage path
+        const storagePath = `npra-reports/${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('pension-reports')
+          .upload(storagePath, file, { contentType: 'application/pdf', upsert: true });
+        
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          toast.error('Failed to upload PDF: ' + uploadError.message);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+        
+        toast.info('PDF uploaded. Parsing data...');
         
         const { data: result, error } = await supabase.functions.invoke('parse-npra-pdf', {
           body: {
             year: parseInt(selectedYear),
-            fileContent: base64Content,
+            storagePath,
             fileName: file.name,
           },
         });

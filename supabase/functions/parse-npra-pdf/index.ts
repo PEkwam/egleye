@@ -320,25 +320,51 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
-    const { year = 2024, fileContent, fileName } = body;
+    const { year = 2024, fileContent, fileName, storagePath } = body;
 
     console.log(`Processing NPRA data for year ${year}...`);
     
     let parsedData: ParsedPensionData | undefined;
-    
-    if (fileContent) {
-      console.log(`Parsing uploaded file: ${fileName}`);
-      
+    let pdfBytes: Uint8Array | null = null;
+
+    // Strategy 1: Download from storage (preferred for large files)
+    if (storagePath) {
+      console.log(`Downloading PDF from storage: ${storagePath}`);
       try {
-        // Decode base64 content to Uint8Array
-        const binaryString = atob(fileContent);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        const { data: fileData, error: dlError } = await supabase.storage
+          .from('pension-reports')
+          .download(storagePath);
+        
+        if (dlError) {
+          console.error('Storage download error:', dlError);
+          throw dlError;
         }
         
-        // Extract text using pdfjs-serverless
-        const extractedText = await extractTextFromPDF(bytes);
+        const arrayBuffer = await fileData.arrayBuffer();
+        pdfBytes = new Uint8Array(arrayBuffer);
+        console.log(`Downloaded ${pdfBytes.length} bytes from storage`);
+      } catch (storageError) {
+        console.error('Error downloading from storage:', storageError);
+      }
+    }
+    // Strategy 2: Decode base64 inline content (small files)
+    else if (fileContent) {
+      console.log(`Parsing inline base64 file: ${fileName}`);
+      try {
+        const binaryString = atob(fileContent);
+        pdfBytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          pdfBytes[i] = binaryString.charCodeAt(i);
+        }
+      } catch (decodeError) {
+        console.error('Error decoding base64:', decodeError);
+      }
+    }
+
+    // Parse PDF bytes if available
+    if (pdfBytes && pdfBytes.length > 0) {
+      try {
+        const extractedText = await extractTextFromPDF(pdfBytes);
         console.log('Extracted text preview:', extractedText.substring(0, 500));
         
         if (extractedText.length > 100) {
