@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getDocument } from 'https://esm.sh/pdfjs-serverless@0.6.0';
+import * as pdfjs from 'https://esm.sh/pdfjs-serverless@0.6.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
