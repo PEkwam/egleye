@@ -134,6 +134,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
   if (variant === 'featured') {
     return (
       <a
+        ref={ref}
         href={article.source_url}
         target="_blank"
         rel="noopener noreferrer"
