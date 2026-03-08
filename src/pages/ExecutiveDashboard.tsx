@@ -102,7 +102,31 @@ export default function ExecutiveDashboardPage() {
       : 0,
     totalProfit: metrics.reduce((sum, m) => sum + (m.profit_after_tax || 0), 0),
     companiesCount: metrics.length,
+    totalCSM: metrics.reduce((sum, m) => sum + (m.csm || 0), 0),
+    totalServiceResult: metrics.reduce((sum, m) => sum + (m.insurance_service_result || 0), 0),
+    totalInvestments: metrics.reduce((sum, m) => sum + (m.total_investments || 0), 0),
+    totalLiabilities: metrics.reduce((sum, m) => sum + (m.total_liabilities || 0), 0),
+    totalFinanceIncome: metrics.reduce((sum, m) => sum + (m.insurance_finance_income || 0), 0),
   }), [metrics]);
+
+  // Product type highlights
+  const productHighlights = useMemo(() => {
+    const getTopByField = (field: keyof typeof metrics[0], label: string) => {
+      const sorted = [...metrics]
+        .filter(m => (m[field] as number) && (m[field] as number) > 0)
+        .sort((a, b) => ((b[field] as number) || 0) - ((a[field] as number) || 0))
+        .slice(0, 3);
+      return { label, data: sorted, field };
+    };
+    return [
+      getTopByField('annuities', 'Annuities'),
+      getTopByField('microinsurance', 'Microinsurance'),
+      getTopByField('unit_linked', 'Unit-Linked'),
+      getTopByField('investment_linked', 'Investment-Linked'),
+      getTopByField('critical_illness', 'Critical Illness'),
+      getTopByField('other_products', 'Other Products'),
+    ].filter(h => h.data.length > 0);
+  }, [metrics]);
 
   // AI Insights data summary - calculate marketShare dynamically from gross_premium
   const aiMetricsSummary = useMemo(() => {
