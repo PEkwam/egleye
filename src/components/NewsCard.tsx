@@ -213,7 +213,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
 
       <div className="flex flex-col flex-1 p-5">
         <h3 className="text-lg font-semibold font-display text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-3">
-          {article.title}
+          {sanitizeText(article.title)}
         </h3>
         {article.description && (
           <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-4">{sanitizeText(article.description)}</p>
