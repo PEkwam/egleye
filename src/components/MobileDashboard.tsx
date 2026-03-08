@@ -216,7 +216,7 @@ export const MobileDashboard = () => {
         { label: 'Active Brokers', value: String(latestBrokerData.length), icon: Users },
         { label: 'Avg Profit', value: formatCurrency(latestBrokerData.reduce((s, d) => s + (d.profit_loss_after_tax || 0), 0) / latestBrokerData.length), icon: TrendingUp },
       ],
-      topPlayer: brokerTopPlayer?.broker_name || 'N/A',
+      topPlayer: brokerTopPlayer?.broker_name || 'No data',
       marketSize: formatCurrency(brokerTotalCommission),
     },
   ];
