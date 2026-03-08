@@ -419,6 +419,118 @@ export default function ExecutiveDashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* IFRS 17 Financial Metrics Cards */}
+          {(industryTotals.totalCSM > 0 || industryTotals.totalServiceResult > 0 || industryTotals.totalInvestments > 0) && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">IFRS 17 Metrics</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {industryTotals.totalCSM > 0 && (
+                  <Card className="relative overflow-hidden bg-gradient-to-br from-violet-500/15 via-violet-400/10 to-purple-600/5 border-2 border-violet-500/30 hover:border-violet-500/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group">
+                    <CardContent className="p-4 relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/30">
+                          <TrendingUp className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-xs font-semibold text-violet-700 dark:text-violet-400">Total CSM</span>
+                      </div>
+                      <p className="text-xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 dark:from-violet-400 dark:to-purple-400 bg-clip-text text-transparent">
+                        {formatCurrency(industryTotals.totalCSM)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                {industryTotals.totalServiceResult !== 0 && (
+                  <Card className="relative overflow-hidden bg-gradient-to-br from-indigo-500/15 via-indigo-400/10 to-blue-600/5 border-2 border-indigo-500/30 hover:border-indigo-500/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group">
+                    <CardContent className="p-4 relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg shadow-indigo-500/30">
+                          <Activity className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400">Service Result</span>
+                      </div>
+                      <p className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-400 dark:to-blue-400 bg-clip-text text-transparent">
+                        {formatCurrency(industryTotals.totalServiceResult)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                {industryTotals.totalInvestments > 0 && (
+                  <Card className="relative overflow-hidden bg-gradient-to-br from-teal-500/15 via-teal-400/10 to-emerald-600/5 border-2 border-teal-500/30 hover:border-teal-500/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group">
+                    <CardContent className="p-4 relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/30">
+                          <Building2 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-xs font-semibold text-teal-700 dark:text-teal-400">Total Investments</span>
+                      </div>
+                      <p className="text-xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 dark:from-teal-400 dark:to-emerald-400 bg-clip-text text-transparent">
+                        {formatCurrency(industryTotals.totalInvestments)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                {industryTotals.totalLiabilities > 0 && (
+                  <Card className="relative overflow-hidden bg-gradient-to-br from-rose-500/15 via-rose-400/10 to-red-600/5 border-2 border-rose-500/30 hover:border-rose-500/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group">
+                    <CardContent className="p-4 relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-lg bg-gradient-to-br from-rose-500 to-red-600 shadow-lg shadow-rose-500/30">
+                          <BarChart3 className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">Total Liabilities</span>
+                      </div>
+                      <p className="text-xl font-bold bg-gradient-to-r from-rose-600 to-red-600 dark:from-rose-400 dark:to-red-400 bg-clip-text text-transparent">
+                        {formatCurrency(industryTotals.totalLiabilities)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                {industryTotals.totalFinanceIncome !== 0 && (
+                  <Card className="relative overflow-hidden bg-gradient-to-br from-green-500/15 via-green-400/10 to-emerald-600/5 border-2 border-green-500/30 hover:border-green-500/50 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group">
+                    <CardContent className="p-4 relative">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1.5 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30">
+                          <DollarSign className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <span className="text-xs font-semibold text-green-700 dark:text-green-400">Finance Income</span>
+                      </div>
+                      <p className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
+                        {formatCurrency(industryTotals.totalFinanceIncome)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Product Type Highlights */}
+          {productHighlights.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Product Type Leaders</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {productHighlights.map((highlight) => (
+                  <Card key={highlight.label} className="border-border/50 hover:shadow-md transition-all">
+                    <CardContent className="p-3">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">{highlight.label}</p>
+                      <div className="space-y-1.5">
+                        {highlight.data.map((m, idx) => (
+                          <div key={m.insurer_id} className="flex items-center justify-between gap-1">
+                            <span className="text-xs truncate flex-1" title={m.insurer_name}>
+                              {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'} {m.insurer_name.length > 12 ? m.insurer_name.slice(0, 12) + '…' : m.insurer_name}
+                            </span>
+                            <span className="text-xs font-bold text-primary whitespace-nowrap">
+                              {formatCurrency(m[highlight.field as keyof typeof m] as number)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* AI Insights Panel */}
