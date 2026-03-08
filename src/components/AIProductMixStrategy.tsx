@@ -29,6 +29,9 @@ interface MetricRow {
   unit_linked: number | null;
   investment_linked: number | null;
   other_products: number | null;
+  branches: number | null;
+  employees: number | null;
+  years_in_ghana: number | null;
 }
 
 interface AIStrategyProps {
@@ -68,6 +71,22 @@ const PRODUCT_KEYS: { key: keyof MetricRow; label: string }[] = [
   { key: 'investment_linked', label: 'Investment-Linked' },
 ];
 
+// Infer parent group from insurer name patterns
+function inferParentGroup(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('enterprise')) return 'Enterprise Group';
+  if (n.includes('sanlam') || n.includes('allianz')) return 'Sanlam Allianz';
+  if (n.includes('star') && n.includes('life')) return 'Star Group';
+  if (n.includes('prudential')) return 'Prudential plc';
+  if (n.includes('oldmutual') || n.includes('old mutual')) return 'Old Mutual';
+  if (n.includes('metropolitan') || n.includes('metlife')) return 'Metropolitan/MetLife';
+  if (n.includes('hollard')) return 'Hollard Group';
+  if (n.includes('glico')) return 'GLICO Group';
+  if (n.includes('vanguard')) return 'Vanguard Group';
+  if (n.includes('donewell')) return 'Donewell Group';
+  return '';
+}
+
 function useProductMixPayload(metrics: MetricRow[], year: number | null, quarter: number | null) {
   return useMemo(() => {
     const validMetrics = metrics.filter(m => m.gross_premium && m.gross_premium > 0);
@@ -103,6 +122,21 @@ function useProductMixPayload(metrics: MetricRow[], year: number | null, quarter
       activeProducts: PRODUCT_KEYS.filter(pk => ((m[pk.key] as number) || 0) > 0).length,
     })).sort((a, b) => b.marketShare - a.marketShare);
 
+    // Build insurer profiles with strategic dimensions
+    const insurerProfiles = validMetrics
+      .sort((a, b) => (b.gross_premium || 0) - (a.gross_premium || 0))
+      .map(m => ({
+        name: m.insurer_name,
+        branches: m.branches || 0,
+        employees: m.employees || 0,
+        yearsInGhana: m.years_in_ghana || 0,
+        premium: m.gross_premium || 0,
+        marketShare: m.market_share || 0,
+        website: '',
+        parentGroup: inferParentGroup(m.insurer_name),
+        distributionScore: (m.branches || 0) * (m.employees || 0),
+      }));
+
     return {
       marketLeader: {
         name: marketLeader.insurer_name,
@@ -117,6 +151,7 @@ function useProductMixPayload(metrics: MetricRow[], year: number | null, quarter
       correlationData,
       year,
       quarter,
+      insurerProfiles,
     };
   }, [metrics, year, quarter]);
 }
@@ -143,7 +178,7 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
       return data.analysis;
     },
     enabled: !!payload,
-    staleTime: 30 * 60 * 1000, // 30 min cache
+    staleTime: 30 * 60 * 1000,
     retry: 1,
   });
 
@@ -166,7 +201,7 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
                   </Badge>
                 </CardTitle>
                 <CardDescription className="mt-1">
-                  Deep analysis of product mix strategies, competitive positioning & growth opportunities
+                  Deep analysis of product mix, distribution strategies, affiliations & competitive positioning
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -220,7 +255,6 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
 
                 {/* Market Leader vs Challengers */}
                 <div className="grid md:grid-cols-2 gap-4">
-                  {/* Market Leader */}
                   <div className="p-4 rounded-xl border border-border/40 bg-card">
                     <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                       <Shield className="h-4 w-4 text-primary" />
@@ -253,7 +287,6 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
                     </div>
                   </div>
 
-                  {/* Challenger Strategy */}
                   <div className="p-4 rounded-xl border border-border/40 bg-card">
                     <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                       <Sword className="h-4 w-4 text-accent-foreground" />
@@ -278,7 +311,7 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
                   <div className="space-y-2">
                     <h4 className="font-semibold text-sm flex items-center gap-2">
                       <BarChart3 className="h-4 w-4 text-primary" />
-                      Product Mix Insights
+                      Product Mix & Distribution Insights
                     </h4>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                       {analysis.productMixInsights.map((insight, i) => (
@@ -295,7 +328,7 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
                 <div className="p-4 rounded-xl bg-accent/10 border border-accent/20">
                   <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                     <Lightbulb className="h-4 w-4 text-accent-foreground" />
-                    Diversification vs Market Share Verdict
+                    Distribution, Affiliations & Market Share Verdict
                   </h4>
                   <p className="text-xs text-accent-foreground/80 leading-relaxed">
                     {analysis.correlationVerdict}
@@ -331,7 +364,7 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
                 </div>
 
                 <p className="text-[10px] text-muted-foreground/50 text-center pt-2">
-                  AI-generated analysis • {year} Q{quarter} • Based on NIC product mix data
+                  AI-generated analysis • {year} Q{quarter} • Product mix, distribution & competitive strategy
                 </p>
               </div>
             ) : null}
