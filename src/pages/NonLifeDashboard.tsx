@@ -436,7 +436,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years in Ghana</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana > 0 ? `${avgYearsInGhana.toFixed(0)} yrs` : 'N/A'}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana > 0 ? `${avgYearsInGhana.toFixed(0)} yrs` : <NoDataBadge size="md" />}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-cyan-500/15 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-cyan-500" />
