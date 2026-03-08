@@ -200,9 +200,9 @@ export const MobileDashboard = () => {
       metrics: [
         { label: 'Total AUM', value: formatCurrency(pensionTotalAUM), icon: DollarSign },
         { label: 'Schemes', value: String(latestPensionData.length), icon: Shield },
-        { label: 'Avg Years', value: pensionAvgYears > 0 ? `${pensionAvgYears.toFixed(0)} yrs` : 'N/A', icon: Clock },
+        { label: 'Avg Years', value: pensionAvgYears > 0 ? `${pensionAvgYears.toFixed(0)} yrs` : 'No data', icon: Clock },
       ],
-      topPlayer: pensionTopPlayer?.fund_name || 'N/A',
+      topPlayer: pensionTopPlayer?.fund_name || 'No data',
       marketSize: formatCurrency(pensionTotalAUM),
     },
     {
