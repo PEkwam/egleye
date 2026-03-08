@@ -29,7 +29,7 @@ interface CategoryMetrics {
 }
 
 const formatCurrency = (value: number | null) => {
-  if (!value) return 'N/A';
+  if (!value) return 'No data';
   if (value >= 1e9) return `GH₵${(value / 1e9).toFixed(1)}B`;
   if (value >= 1e6) return `GH₵${(value / 1e6).toFixed(0)}M`;
   return `GH₵${value.toLocaleString()}`;
@@ -174,7 +174,7 @@ export const MobileDashboard = () => {
         { label: 'Companies', value: String(latestLifeData.length), icon: Building2 },
         { label: 'Avg Claims Ratio', value: `${(latestLifeData.reduce((s, d) => s + (d.claims_ratio || 0), 0) / latestLifeData.length || 0).toFixed(1)}%`, icon: Percent },
       ],
-      topPlayer: lifeTopPlayer?.insurer_name || 'N/A',
+      topPlayer: lifeTopPlayer?.insurer_name || 'No data',
       marketSize: formatCurrency(lifeTotalPremium),
     },
     {
@@ -186,9 +186,9 @@ export const MobileDashboard = () => {
       metrics: [
         { label: 'Service Revenue', value: formatCurrency(nonLifeTotalRevenue), icon: DollarSign },
         { label: 'Companies', value: String(latestNonLifeData.length), icon: Building2 },
-        { label: 'Avg Years', value: nonLifeAvgYears > 0 ? `${nonLifeAvgYears.toFixed(0)} yrs` : 'N/A', icon: Clock },
+        { label: 'Avg Years', value: nonLifeAvgYears > 0 ? `${nonLifeAvgYears.toFixed(0)} yrs` : 'No data', icon: Clock },
       ],
-      topPlayer: nonLifeTopPlayer?.insurer_name || 'N/A',
+      topPlayer: nonLifeTopPlayer?.insurer_name || 'No data',
       marketSize: formatCurrency(nonLifeTotalRevenue),
     },
     {
@@ -200,9 +200,9 @@ export const MobileDashboard = () => {
       metrics: [
         { label: 'Total AUM', value: formatCurrency(pensionTotalAUM), icon: DollarSign },
         { label: 'Schemes', value: String(latestPensionData.length), icon: Shield },
-        { label: 'Avg Years', value: pensionAvgYears > 0 ? `${pensionAvgYears.toFixed(0)} yrs` : 'N/A', icon: Clock },
+        { label: 'Avg Years', value: pensionAvgYears > 0 ? `${pensionAvgYears.toFixed(0)} yrs` : 'No data', icon: Clock },
       ],
-      topPlayer: pensionTopPlayer?.fund_name || 'N/A',
+      topPlayer: pensionTopPlayer?.fund_name || 'No data',
       marketSize: formatCurrency(pensionTotalAUM),
     },
     {
@@ -216,7 +216,7 @@ export const MobileDashboard = () => {
         { label: 'Active Brokers', value: String(latestBrokerData.length), icon: Users },
         { label: 'Avg Profit', value: formatCurrency(latestBrokerData.reduce((s, d) => s + (d.profit_loss_after_tax || 0), 0) / latestBrokerData.length), icon: TrendingUp },
       ],
-      topPlayer: brokerTopPlayer?.broker_name || 'N/A',
+      topPlayer: brokerTopPlayer?.broker_name || 'No data',
       marketSize: formatCurrency(brokerTotalCommission),
     },
   ];
@@ -314,7 +314,7 @@ export const MobileDashboard = () => {
                 {category.metrics.map((metric) => (
                   <div key={metric.label} className="text-center p-2 rounded-lg bg-secondary/30">
                     <metric.icon className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                    <p className="text-xs font-semibold">{metric.value}</p>
+                    <p className={cn("text-xs font-semibold", metric.value === 'No data' && "text-muted-foreground italic")}>{metric.value}</p>
                     <p className="text-[10px] text-muted-foreground">{metric.label}</p>
                   </div>
                 ))}

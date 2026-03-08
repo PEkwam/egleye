@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Car, TrendingUp, Award, BarChart3, PieChart, Calendar, Sparkles, Flame, Shield, Ship, Users, Clock } from 'lucide-react';
+import { NoDataBadge } from '@/components/NoDataBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -346,7 +347,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Service Revenue</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{totalRevenue > 0 ? `₵${(totalRevenue / 1e9).toFixed(2)}B` : 'N/A'}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{totalRevenue > 0 ? `₵${(totalRevenue / 1e9).toFixed(2)}B` : <NoDataBadge size="md" />}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-blue-500/15 flex items-center justify-center">
                   <BarChart3 className="h-5 w-5 text-blue-500" />
@@ -435,7 +436,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years in Ghana</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana > 0 ? `${avgYearsInGhana.toFixed(0)} yrs` : 'N/A'}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{avgYearsInGhana > 0 ? `${avgYearsInGhana.toFixed(0)} yrs` : <NoDataBadge size="md" />}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-cyan-500/15 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-cyan-500" />
