@@ -314,7 +314,7 @@ export const MobileDashboard = () => {
                 {category.metrics.map((metric) => (
                   <div key={metric.label} className="text-center p-2 rounded-lg bg-secondary/30">
                     <metric.icon className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                    <p className="text-xs font-semibold">{metric.value}</p>
+                    <p className={cn("text-xs font-semibold", metric.value === 'No data' && "text-muted-foreground italic")}>{metric.value}</p>
                     <p className="text-[10px] text-muted-foreground">{metric.label}</p>
                   </div>
                 ))}
