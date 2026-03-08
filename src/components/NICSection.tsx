@@ -154,7 +154,7 @@ export function NICSection({ articles, isLoading, onViewAll }: NICSectionProps) 
               </div>
               
               <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-primary-foreground font-display mb-3 sm:mb-4 group-hover:text-emerald-50 transition-colors leading-tight">
-                {featuredArticle.title}
+                {sanitizeText(featuredArticle.title)}
               </h3>
               
               {featuredArticle.description && sanitizeText(featuredArticle.description) && (
