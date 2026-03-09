@@ -5,18 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface InsurerProfile {
-  name: string;
-  branches: number;
-  employees: number;
-  yearsInGhana: number;
-  premium: number;
-  marketShare: number;
-  website: string;
-  parentGroup: string;
-  distributionScore: number;
-}
-
 interface ProductMixData {
   marketLeader: { name: string; premium: number; marketShare: number };
   insurerCount: number;
@@ -27,7 +15,6 @@ interface ProductMixData {
   correlationData: Array<{ name: string; marketShare: number; activeProducts: number }>;
   year: number;
   quarter: number;
-  insurerProfiles: InsurerProfile[];
 }
 
 serve(async (req) => {
@@ -43,31 +30,13 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const profiles = productMixData.insurerProfiles || [];
-
-    // Build strategic context from profiles
-    const profileContext = profiles.length > 0
-      ? profiles.slice(0, 10).map(p =>
-          `- ${p.name}: ${p.branches} branches, ${p.employees} employees, ${p.yearsInGhana}yrs experience, GH₵${(p.premium / 1e6).toFixed(1)}M premium${p.parentGroup ? ` (${p.parentGroup} group)` : ''}${p.website ? `, ${p.website}` : ''}`
-        ).join('\n')
-      : '';
-
-    const groupMap: Record<string, string[]> = {};
-    profiles.forEach(p => {
-      if (p.parentGroup) {
-        if (!groupMap[p.parentGroup]) groupMap[p.parentGroup] = [];
-        groupMap[p.parentGroup].push(p.name);
-      }
-    });
-
     const systemPrompt = `You are a senior insurance strategy consultant specializing in the Ghanaian life insurance market. 
-You provide deep, nuanced strategic analysis about product mix strategies, competitive positioning, distribution networks, corporate group advantages, and leadership approaches.
-Consider how distribution reach (branches, agents, bancassurance), group affiliations (banking, conglomerate), market experience, and leadership strategies interact to shape competitive dynamics.
+You provide deep, nuanced strategic analysis about product mix strategies, market positioning, and competitive dynamics.
 Your insights should be:
 - Highly specific to Ghana's insurance landscape
 - Actionable for insurance executives
 - Grounded in the data provided
-- Forward-looking with strategic recommendations on distribution, partnerships, and positioning
+- Forward-looking with strategic recommendations
 Write in a professional but accessible tone. Use bullet points for clarity.`;
 
     const productLeadersSummary = productMixData.productLeaders
@@ -92,12 +61,6 @@ Write in a professional but accessible tone. Use bullet points for clarity.`;
 - Product Categories with Activity: ${productMixData.totalCategories}
 - Categories where market leader is NOT #1: ${productMixData.gapsCount}
 
-**Insurer Profiles (Distribution, Experience & Group Affiliations):**
-${profileContext || 'No detailed profiles available'}
-
-**Corporate Group Affiliations:**
-${Object.keys(groupMap).length > 0 ? Object.entries(groupMap).map(([g, m]) => `- ${g}: ${m.join(', ')}`).join('\n') : 'No group affiliations detected'}
-
 **Product Category Leaders:**
 ${productLeadersSummary}
 
@@ -110,28 +73,28 @@ ${correlationSummary}
 Provide a strategic analysis in this JSON format:
 {
   "headline": "A compelling 8-word strategic headline",
-  "executiveSummary": "3-4 sentences summarizing the key strategic takeaway about product mix, distribution strategy, and competitive positioning in Ghana's life insurance market",
+  "executiveSummary": "3-4 sentences summarizing the key strategic takeaway about product mix and market positioning in Ghana's life insurance market",
   "marketLeaderAnalysis": {
-    "strengths": ["strength 1 (consider distribution, group backing, experience)", "strength 2"],
-    "vulnerabilities": ["vulnerability 1 (distribution gaps, product gaps, challenger threats)", "vulnerability 2"],
-    "recommendation": "One strategic recommendation considering distribution, partnerships, or leadership approach"
+    "strengths": ["strength 1", "strength 2"],
+    "vulnerabilities": ["vulnerability 1", "vulnerability 2"],
+    "recommendation": "One strategic recommendation for the market leader"
   },
   "challengerStrategy": {
-    "insight": "2-3 sentences on how challengers can compete through distribution innovation, bancassurance partnerships, digital channels, group affiliations, or product specialization",
-    "opportunities": ["specific opportunity with distribution/partnership angle", "specific opportunity 2", "specific opportunity 3"]
+    "insight": "2-3 sentences on how challengers can compete through product specialization",
+    "opportunities": ["specific opportunity 1", "specific opportunity 2", "specific opportunity 3"]
   },
   "productMixInsights": [
-    {"title": "short insight title", "detail": "1-2 sentence explanation referencing distribution reach or group advantage"},
+    {"title": "short insight title", "detail": "1-2 sentence explanation with data reference"},
     {"title": "short insight title", "detail": "1-2 sentence explanation"},
     {"title": "short insight title", "detail": "1-2 sentence explanation"}
   ],
-  "correlationVerdict": "2-3 sentences on how distribution networks, group affiliations, and product diversification interact to drive or hinder market share in Ghana",
+  "correlationVerdict": "2-3 sentences on whether diversification actually drives market share in Ghana, based on the data",
   "strategicRecommendations": [
-    "Actionable recommendation on distribution or partnership strategy",
-    "Actionable recommendation on product positioning",
-    "Actionable recommendation on competitive approach (leadership, digital, bancassurance)"
+    "Actionable recommendation 1 for the industry",
+    "Actionable recommendation 2",
+    "Actionable recommendation 3"
   ],
-  "riskFactors": ["Risk related to distribution or competitive dynamics", "Risk related to group concentration or regulatory"]
+  "riskFactors": ["Risk 1 related to product concentration", "Risk 2"]
 }`;
 
     console.log("Calling AI gateway for product mix strategy...");
@@ -173,6 +136,8 @@ Provide a strategic analysis in this JSON format:
     const aiResponse = await response.json();
     const content = aiResponse.choices?.[0]?.message?.content || "";
 
+    console.log("AI strategy response received:", content.substring(0, 200));
+
     let analysis;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -184,23 +149,23 @@ Provide a strategic analysis in this JSON format:
     } catch (parseError) {
       console.error("Failed to parse AI response:", parseError);
       analysis = {
-        headline: "Distribution and Affiliations Shape Market Dynamics",
-        executiveSummary: "The Ghana life insurance market shows diverse competitive strategies. Distribution networks and group affiliations play critical roles alongside product mix in determining market position.",
+        headline: "Product Mix Strategy Shapes Market Dynamics",
+        executiveSummary: "The Ghana life insurance market shows diverse product strategies among competitors. Market leadership is concentrated but not universal across product categories.",
         marketLeaderAnalysis: {
-          strengths: ["Dominant market share position", "Strong distribution network"],
+          strengths: ["Dominant market share position", "Strong premium volume"],
           vulnerabilities: ["Not leading in all product categories"],
-          recommendation: "Strengthen presence in underperforming segments through distribution partnerships"
+          recommendation: "Strengthen presence in underperforming product segments"
         },
         challengerStrategy: {
-          insight: "Niche specialization and strategic partnerships offer viable paths to competitive advantage.",
-          opportunities: ["Focus on underserved product categories", "Leverage bancassurance partnerships", "Invest in digital distribution"]
+          insight: "Niche specialization offers viable paths to competitive advantage.",
+          opportunities: ["Focus on underserved product categories", "Build expertise in growing segments"]
         },
         productMixInsights: [
-          { title: "Distribution Drives Volume", detail: "Insurers with wider branch networks tend to capture more premium volume" }
+          { title: "Concentration Risk", detail: "Market relies heavily on a few dominant products" }
         ],
-        correlationVerdict: "Distribution reach and group backing show stronger correlation with market share than product diversification alone.",
-        strategicRecommendations: ["Diversify distribution channels", "Pursue strategic bancassurance partnerships", "Monitor emerging digital channels"],
-        riskFactors: ["Over-reliance on traditional distribution", "Regulatory changes to bancassurance"]
+        correlationVerdict: "Product diversification shows mixed correlation with market share.",
+        strategicRecommendations: ["Diversify product offerings strategically", "Monitor emerging product demand"],
+        riskFactors: ["Over-concentration in few products", "Regulatory changes"]
       };
     }
 
