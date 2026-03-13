@@ -44,7 +44,8 @@ const DEFAULT_GHANA_KEYWORDS = [
   'first pension trust', 'metropolitan pensions',
   // Currency & local media
   'cedis', 'ghc', 'cedi', 'gna.org.gh', 'myjoyonline', 'graphic.com.gh', 'citinewsroom',
-  'pulse.com.gh', 'peacefmonline', '3news.com', 'adomonline', 'classfmonline', 'ghanaweb'
+  'pulse.com.gh', 'peacefmonline', '3news.com', 'adomonline', 'classfmonline', 'ghanaweb',
+  'ghanainsurancehub'
 ];
 
 // BLOCKED DOMAINS - Classified ads, property listings, irrelevant sources
