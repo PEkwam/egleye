@@ -190,6 +190,22 @@ const GOOGLE_NEWS_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+license+compliance&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   // Ghana Insurance Hub via Google News
   { url: 'https://news.google.com/rss/search?q=site:ghanainsurancehub.com&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Ghana Insurance Hub' },
+  // Africa Insurance Pulse - Ghana only
+  { url: 'https://news.google.com/rss/search?q=site:africainsurancepulse.com+ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Africa Insurance Pulse' },
+  // Ghana Re
+  { url: 'https://news.google.com/rss/search?q=site:ghanare.com&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Ghana Reinsurance' },
+  // Atlas Magazine - Ghana insurance
+  { url: 'https://news.google.com/rss/search?q=site:atlas-mag.net+ghana+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Atlas Magazine' },
+  // Accra Street Journal insurance/risk
+  { url: 'https://news.google.com/rss/search?q=site:accrastreetjournal.com+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Accra Street Journal' },
+  // News Ghana insurance coverage
+  { url: 'https://news.google.com/rss/search?q=site:newsghana.com.gh+insurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'News Ghana' },
+  // African Insurance Organisation - Ghana
+  { url: 'https://news.google.com/rss/search?q=site:african-insurance.org+ghana&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'African Insurance Org' },
+  // Reinsurance & broader industry - Ghana focused
+  { url: 'https://news.google.com/rss/search?q=ghana+reinsurance+industry&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=ghana+insurance+broker+agent&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=ghana+microinsurance+bancassurance&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Google News' },
 ];
 
 // NIC-specific RSS feeds (for nic_only mode)
