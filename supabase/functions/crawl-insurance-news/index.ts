@@ -325,10 +325,21 @@ function isBlockedContent(text: string, excludeKeywords: string[]): boolean {
   return excludeKeywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
 }
 
-// Article should be about insurance/pensions
-function isInsuranceRelated(text: string, includeKeywords: string[]): boolean {
+// Article should be about insurance/pensions - STRICT: require 2+ keyword matches
+// unless from a dedicated insurance source
+function isInsuranceRelated(text: string, includeKeywords: string[], sourceName: string): boolean {
   const lowerText = text.toLowerCase();
-  return includeKeywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
+  
+  // Dedicated insurance sources get a pass with 1 keyword
+  const trustedInsuranceSources = [
+    'ghana insurance hub', 'africa insurance pulse', 'atlas magazine',
+    'nic ghana', 'npra', 'ghana reinsurance', 'african insurance org',
+  ];
+  const isTrustedSource = trustedInsuranceSources.some(s => sourceName.toLowerCase().includes(s));
+  const minKeywords = isTrustedSource ? 1 : 2;
+  
+  const matchCount = includeKeywords.filter(keyword => lowerText.includes(keyword.toLowerCase())).length;
+  return matchCount >= minKeywords;
 }
 
 function isRegulatorNews(text: string): boolean {
