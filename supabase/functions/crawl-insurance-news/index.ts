@@ -153,6 +153,9 @@ const LOCAL_GHANA_FEEDS = [
   { url: 'https://classfmonline.com/feed', category: 'general', source: 'Class FM' },
   // Ghana Business News
   { url: 'https://www.ghanabusinessnews.com/feed/', category: 'general', source: 'Ghana Business News' },
+  // Ghana Insurance Hub - dedicated insurance portal
+  { url: 'https://www.ghanainsurancehub.com/feed/', category: 'general', source: 'Ghana Insurance Hub' },
+  { url: 'https://www.ghanainsurancehub.com/feed/rss/', category: 'general', source: 'Ghana Insurance Hub' },
 ];
 
 // GOOGLE NEWS RSS FEEDS - Insurance-specific searches (No API key required!)
