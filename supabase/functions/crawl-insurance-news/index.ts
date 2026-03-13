@@ -73,16 +73,47 @@ const DEFAULT_BLOCKED_KEYWORDS = [
   'nigerian banks', 'nigeria recapitalization', 'nigeria deadline', 'rwanda job', 
   'kenya insurance', 'south africa insurance', 'zambia insurance', 'tanzania insurance',
   'uganda orders', 'uganda shutdown', 'uganda election',
-  // Non-insurance content
-  'traffic lights', 'traffic junction', 'road accident', 'stonebwoy', 'afcon performance',
+  'nigeria insurance', 'nigerian insurance', 'south african insurance',
+  'kenyan insurance', 'tanzanian insurance', 'zimbabwe insurance',
+  // Non-insurance content - Expanded
+  'traffic lights', 'traffic junction', 'road accident', 'car crash', 'fatal crash',
+  'stonebwoy', 'shatta wale', 'sarkodie', 'kuami eugene', 'afcon performance',
   'afcon match', 'black stars', 'parliament speaker', 'speaker of parliament',
   'assembly member', 'constituency', 'member of parliament', 'mp for',
   'election results', 'polling station', 'electoral commission',
-  'fake party', 'political party', 'npp', 'ndc', 'cpp', 'pnp',
+  'fake party', 'political party', 'npp ', 'ndc ', 'cpp ', 'pnp ',
   'frimpong-boateng', 'frimpong boateng', 'congregation', 'graduation ceremony',
   'students graduate', 'university graduation', 'sim card restrictions',
   'internet shutdown', 'football', 'soccer match', 'celebrity', 'showbiz',
   'entertainment news', 'music video', 'new album', 'movie premiere',
+  'big brother', 'reality show', 'dating show', 'cooking show',
+  // Sports
+  'ghana premier league', 'hearts of oak', 'asante kotoko', 'olympics',
+  'world cup qualifier', 'africa cup', 'champions league',
+  // Crime / courts (unless insurance fraud)
+  'murder suspect', 'armed robbery', 'kidnapping', 'drug trafficking',
+  'ritual killing', 'cybercrime', 'ponzi scheme',
+  // Health / covid (generic, not insurance)
+  'covid vaccine', 'malaria outbreak', 'cholera outbreak',
+  // Real estate / construction (not insurance)
+  'affordable housing', 'real estate developer', 'building permit',
+  'construction project', 'housing deficit',
+  // Religion
+  'pastor arrested', 'church building', 'mosque construction', 'prayer camp',
+  // Education (generic)
+  'university admission', 'school fees', 'free shs', 'waec results', 'bece results',
+  // Agriculture / farming (generic)
+  'cocoa production', 'cocoa board', 'planting for food', 'farm input',
+  // Mining / oil (unless insurance related)
+  'illegal mining', 'galamsey', 'oil production', 'petroleum commission',
+  // Venture capital / private equity (not insurance)
+  'venture capital', 'startup funding', 'angel investor', 'seed funding',
+  'hackathon', 'tech startup', 'incubator', 'accelerator programme',
+  // Awards / ceremonies (generic)
+  'best company of the year', 'excellence awards', 'wins award', 'adjudged best',
+  'inaugurates branch', 'opens new branch', 'maiden edition',
+  // Generic finance that isn't insurance
+  'stock exchange', 'forex trading', 'cryptocurrency', 'bitcoin', 'mobile money fraud',
 ];
 
 // DEFAULT INSURANCE-SPECIFIC KEYWORDS - Article must contain at least one (used as fallback)
