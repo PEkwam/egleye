@@ -56,7 +56,8 @@ const BLOCKED_DOMAINS = [
   'cheki.com.gh', 'carmudi.com.gh', 'facebook.com', 'twitter.com', 'instagram.com',
   'linkedin.com', 'youtube.com', 'tiktok.com', 'pinterest.com',
   'apps.apple.com', 'play.google.com', 'rwandajob.com', 'nigeriajob.com',
-  'jobgurus.com', 'jobberman.com', 'glassdoor.com', 'indeed.com'
+  'jobgurus.com', 'jobberman.com', 'glassdoor.com', 'indeed.com',
+  'wikipedia.org', 'investopedia.com', 'quora.com', 'reddit.com',
 ];
 
 // DEFAULT BLOCKED KEYWORDS - Irrelevant content (used as fallback)
