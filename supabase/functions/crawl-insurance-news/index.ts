@@ -187,6 +187,8 @@ const GOOGLE_NEWS_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+regulation&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+circular+directive&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+license+compliance&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
+  // Ghana Insurance Hub via Google News
+  { url: 'https://news.google.com/rss/search?q=site:ghanainsurancehub.com&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Ghana Insurance Hub' },
 ];
 
 // NIC-specific RSS feeds (for nic_only mode)
