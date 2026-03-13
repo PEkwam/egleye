@@ -44,7 +44,8 @@ const DEFAULT_GHANA_KEYWORDS = [
   'first pension trust', 'metropolitan pensions',
   // Currency & local media
   'cedis', 'ghc', 'cedi', 'gna.org.gh', 'myjoyonline', 'graphic.com.gh', 'citinewsroom',
-  'pulse.com.gh', 'peacefmonline', '3news.com', 'adomonline', 'classfmonline', 'ghanaweb'
+  'pulse.com.gh', 'peacefmonline', '3news.com', 'adomonline', 'classfmonline', 'ghanaweb',
+  'ghanainsurancehub'
 ];
 
 // BLOCKED DOMAINS - Classified ads, property listings, irrelevant sources
@@ -153,6 +154,9 @@ const LOCAL_GHANA_FEEDS = [
   { url: 'https://classfmonline.com/feed', category: 'general', source: 'Class FM' },
   // Ghana Business News
   { url: 'https://www.ghanabusinessnews.com/feed/', category: 'general', source: 'Ghana Business News' },
+  // Ghana Insurance Hub - dedicated insurance portal
+  { url: 'https://www.ghanainsurancehub.com/feed/', category: 'general', source: 'Ghana Insurance Hub' },
+  { url: 'https://www.ghanainsurancehub.com/feed/rss/', category: 'general', source: 'Ghana Insurance Hub' },
 ];
 
 // GOOGLE NEWS RSS FEEDS - Insurance-specific searches (No API key required!)
@@ -184,6 +188,8 @@ const GOOGLE_NEWS_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+regulation&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+circular+directive&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=ghana+insurance+license+compliance&hl=en-GH&gl=GH&ceid=GH:en', category: 'regulator', source: 'Google News' },
+  // Ghana Insurance Hub via Google News
+  { url: 'https://news.google.com/rss/search?q=site:ghanainsurancehub.com&hl=en-GH&gl=GH&ceid=GH:en', category: 'general', source: 'Ghana Insurance Hub' },
 ];
 
 // NIC-specific RSS feeds (for nic_only mode)
