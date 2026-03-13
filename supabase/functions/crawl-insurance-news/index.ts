@@ -420,7 +420,8 @@ function parseRSS(
       }
       
       // STRICT: Must be insurance/pension related using dynamic include keywords
-      if (!isInsuranceRelated(fullText, includeKeywords)) {
+      // Requires 2+ keyword matches for general sources, 1+ for trusted insurance sources
+      if (!isInsuranceRelated(fullText, includeKeywords, sourceName)) {
         console.log(`Skipping non-insurance article: ${title.slice(0, 50)}...`);
         return;
       }

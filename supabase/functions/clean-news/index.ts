@@ -129,14 +129,14 @@ Deno.serve(async (req) => {
         const isExcluded = allExcludes.some(k => text.includes(k));
         const insuranceScore = INSURANCE_KEYWORDS.filter(k => text.includes(k)).length;
         
-        // Delete if excluded and not strongly insurance-related
-        if (isExcluded && insuranceScore < 2) {
+        // Delete if excluded and not STRONGLY insurance-related (need 3+ keywords to override)
+        if (isExcluded && insuranceScore < 3) {
           idsToDelete.push(article.id);
           continue;
         }
 
-        // Delete if has no insurance keywords at all
-        if (insuranceScore === 0) {
+        // Delete if has fewer than 2 insurance keywords (stricter than before)
+        if (insuranceScore < 2) {
           idsToDelete.push(article.id);
           continue;
         }
