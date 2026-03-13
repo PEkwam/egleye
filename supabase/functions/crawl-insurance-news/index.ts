@@ -56,7 +56,8 @@ const BLOCKED_DOMAINS = [
   'cheki.com.gh', 'carmudi.com.gh', 'facebook.com', 'twitter.com', 'instagram.com',
   'linkedin.com', 'youtube.com', 'tiktok.com', 'pinterest.com',
   'apps.apple.com', 'play.google.com', 'rwandajob.com', 'nigeriajob.com',
-  'jobgurus.com', 'jobberman.com', 'glassdoor.com', 'indeed.com'
+  'jobgurus.com', 'jobberman.com', 'glassdoor.com', 'indeed.com',
+  'wikipedia.org', 'investopedia.com', 'quora.com', 'reddit.com',
 ];
 
 // DEFAULT BLOCKED KEYWORDS - Irrelevant content (used as fallback)
@@ -72,16 +73,47 @@ const DEFAULT_BLOCKED_KEYWORDS = [
   'nigerian banks', 'nigeria recapitalization', 'nigeria deadline', 'rwanda job', 
   'kenya insurance', 'south africa insurance', 'zambia insurance', 'tanzania insurance',
   'uganda orders', 'uganda shutdown', 'uganda election',
-  // Non-insurance content
-  'traffic lights', 'traffic junction', 'road accident', 'stonebwoy', 'afcon performance',
+  'nigeria insurance', 'nigerian insurance', 'south african insurance',
+  'kenyan insurance', 'tanzanian insurance', 'zimbabwe insurance',
+  // Non-insurance content - Expanded
+  'traffic lights', 'traffic junction', 'road accident', 'car crash', 'fatal crash',
+  'stonebwoy', 'shatta wale', 'sarkodie', 'kuami eugene', 'afcon performance',
   'afcon match', 'black stars', 'parliament speaker', 'speaker of parliament',
   'assembly member', 'constituency', 'member of parliament', 'mp for',
   'election results', 'polling station', 'electoral commission',
-  'fake party', 'political party', 'npp', 'ndc', 'cpp', 'pnp',
+  'fake party', 'political party', 'npp ', 'ndc ', 'cpp ', 'pnp ',
   'frimpong-boateng', 'frimpong boateng', 'congregation', 'graduation ceremony',
   'students graduate', 'university graduation', 'sim card restrictions',
   'internet shutdown', 'football', 'soccer match', 'celebrity', 'showbiz',
   'entertainment news', 'music video', 'new album', 'movie premiere',
+  'big brother', 'reality show', 'dating show', 'cooking show',
+  // Sports
+  'ghana premier league', 'hearts of oak', 'asante kotoko', 'olympics',
+  'world cup qualifier', 'africa cup', 'champions league',
+  // Crime / courts (unless insurance fraud)
+  'murder suspect', 'armed robbery', 'kidnapping', 'drug trafficking',
+  'ritual killing', 'cybercrime', 'ponzi scheme',
+  // Health / covid (generic, not insurance)
+  'covid vaccine', 'malaria outbreak', 'cholera outbreak',
+  // Real estate / construction (not insurance)
+  'affordable housing', 'real estate developer', 'building permit',
+  'construction project', 'housing deficit',
+  // Religion
+  'pastor arrested', 'church building', 'mosque construction', 'prayer camp',
+  // Education (generic)
+  'university admission', 'school fees', 'free shs', 'waec results', 'bece results',
+  // Agriculture / farming (generic)
+  'cocoa production', 'cocoa board', 'planting for food', 'farm input',
+  // Mining / oil (unless insurance related)
+  'illegal mining', 'galamsey', 'oil production', 'petroleum commission',
+  // Venture capital / private equity (not insurance)
+  'venture capital', 'startup funding', 'angel investor', 'seed funding',
+  'hackathon', 'tech startup', 'incubator', 'accelerator programme',
+  // Awards / ceremonies (generic)
+  'best company of the year', 'excellence awards', 'wins award', 'adjudged best',
+  'inaugurates branch', 'opens new branch', 'maiden edition',
+  // Generic finance that isn't insurance
+  'stock exchange', 'forex trading', 'cryptocurrency', 'bitcoin', 'mobile money fraud',
 ];
 
 // DEFAULT INSURANCE-SPECIFIC KEYWORDS - Article must contain at least one (used as fallback)
@@ -293,10 +325,21 @@ function isBlockedContent(text: string, excludeKeywords: string[]): boolean {
   return excludeKeywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
 }
 
-// Article should be about insurance/pensions
-function isInsuranceRelated(text: string, includeKeywords: string[]): boolean {
+// Article should be about insurance/pensions - STRICT: require 2+ keyword matches
+// unless from a dedicated insurance source
+function isInsuranceRelated(text: string, includeKeywords: string[], sourceName: string): boolean {
   const lowerText = text.toLowerCase();
-  return includeKeywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
+  
+  // Dedicated insurance sources get a pass with 1 keyword
+  const trustedInsuranceSources = [
+    'ghana insurance hub', 'africa insurance pulse', 'atlas magazine',
+    'nic ghana', 'npra', 'ghana reinsurance', 'african insurance org',
+  ];
+  const isTrustedSource = trustedInsuranceSources.some(s => sourceName.toLowerCase().includes(s));
+  const minKeywords = isTrustedSource ? 1 : 2;
+  
+  const matchCount = includeKeywords.filter(keyword => lowerText.includes(keyword.toLowerCase())).length;
+  return matchCount >= minKeywords;
 }
 
 function isRegulatorNews(text: string): boolean {
@@ -377,7 +420,8 @@ function parseRSS(
       }
       
       // STRICT: Must be insurance/pension related using dynamic include keywords
-      if (!isInsuranceRelated(fullText, includeKeywords)) {
+      // Requires 2+ keyword matches for general sources, 1+ for trusted insurance sources
+      if (!isInsuranceRelated(fullText, includeKeywords, sourceName)) {
         console.log(`Skipping non-insurance article: ${title.slice(0, 50)}...`);
         return;
       }

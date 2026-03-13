@@ -10,21 +10,39 @@ const NON_INSURANCE_INDICATORS = [
   // Politics
   'member of parliament', 'mp for', 'constituency', 'election results', 'polling station',
   'electoral commission', 'political party', 'npp ', 'ndc ', 'speaker of parliament',
+  'assembly member', 'parliament speaker',
   // Entertainment
-  'stonebwoy', 'shatta wale', 'sarkodie', 'movie premiere', 'music video', 'new album',
+  'stonebwoy', 'shatta wale', 'sarkodie', 'kuami eugene', 'movie premiere', 'music video', 'new album',
   'celebrity', 'showbiz', 'entertainment news', 'big brother', 'reality show',
   // Sports
   'black stars', 'afcon', 'ghana premier league', 'football match', 'soccer',
-  'olympics', 'world cup qualifier',
+  'olympics', 'world cup qualifier', 'hearts of oak', 'asante kotoko', 'champions league',
   // Classifieds
   'for sale', 'buy now', 'apartment for rent', 'house for sale', 'land for sale',
   'job vacancy', 'hiring', 'we are recruiting', 'job listing', 'career opportunity',
   // Foreign (non-Ghana)
   'nigerian banks', 'nigeria recapitalization', 'kenya insurance', 'south africa insurance',
-  'uganda orders', 'uganda shutdown', 'rwanda job',
+  'uganda orders', 'uganda shutdown', 'rwanda job', 'nigeria insurance', 'nigerian insurance',
   // Irrelevant
   'traffic lights', 'traffic junction', 'road accident', 'graduation ceremony',
-  'sim card restrictions', 'internet shutdown',
+  'sim card restrictions', 'internet shutdown', 'car crash', 'fatal crash',
+  // Crime / courts
+  'murder suspect', 'armed robbery', 'kidnapping', 'drug trafficking', 'ponzi scheme',
+  // Real estate
+  'affordable housing', 'real estate developer', 'building permit', 'housing deficit',
+  // Religion
+  'pastor arrested', 'church building', 'mosque construction', 'prayer camp',
+  // Education
+  'university admission', 'school fees', 'free shs', 'waec results', 'bece results',
+  // Generic awards/events
+  'best company of the year', 'excellence awards', 'wins award', 'adjudged best',
+  'inaugurates branch', 'opens new branch', 'maiden edition',
+  // Venture capital / tech
+  'venture capital', 'startup funding', 'angel investor', 'hackathon', 'tech startup',
+  // Generic finance
+  'stock exchange', 'forex trading', 'cryptocurrency', 'bitcoin', 'mobile money fraud',
+  // Agriculture / mining
+  'cocoa production', 'cocoa board', 'illegal mining', 'galamsey',
 ];
 
 // Insurance keywords - articles must contain at least one
@@ -111,14 +129,14 @@ Deno.serve(async (req) => {
         const isExcluded = allExcludes.some(k => text.includes(k));
         const insuranceScore = INSURANCE_KEYWORDS.filter(k => text.includes(k)).length;
         
-        // Delete if excluded and not strongly insurance-related
-        if (isExcluded && insuranceScore < 2) {
+        // Delete if excluded and not STRONGLY insurance-related (need 3+ keywords to override)
+        if (isExcluded && insuranceScore < 3) {
           idsToDelete.push(article.id);
           continue;
         }
 
-        // Delete if has no insurance keywords at all
-        if (insuranceScore === 0) {
+        // Delete if has fewer than 2 insurance keywords (stricter than before)
+        if (insuranceScore < 2) {
           idsToDelete.push(article.id);
           continue;
         }
