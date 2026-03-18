@@ -144,16 +144,10 @@ export function NonLifeAIInsights({ metrics, year, quarter }: NonLifeAIInsightsP
 
   if (mutation.isError) {
     return (
-      <Card className="border-red-500/20 bg-red-500/5">
-        <CardContent className="p-6 text-center">
-          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-          <p className="text-red-600 mb-4">Failed to generate insights. Please try again.</p>
-          <Button variant="outline" onClick={() => mutation.mutate()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <AIUnavailableFallback
+        title="AI Market Insights Paused"
+        message="AI-powered non-life market analysis will return when services are restored. Your dashboard data remains fully accessible."
+      />
     );
   }
 

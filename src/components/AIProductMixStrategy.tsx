@@ -197,13 +197,11 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
                 <Skeleton className="h-24 w-full" />
               </div>
             ) : error ? (
-              <div className="text-center py-8">
-                <AlertTriangle className="h-8 w-8 mx-auto text-destructive/60 mb-2" />
-                <p className="text-sm text-muted-foreground">Failed to generate AI analysis</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
-                </Button>
-              </div>
+              <AIUnavailableFallback
+                variant="compact"
+                title="AI Strategic Analysis Paused"
+                message="Analysis will resume when AI services are restored. Data charts above remain available."
+              />
             ) : analysis ? (
               <div className="space-y-5">
                 {/* Headline & Summary */}

@@ -321,13 +321,11 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
                 </p>
               </div>
             ) : error ? (
-              <div className="text-center py-8">
-                <AlertTriangle className="h-8 w-8 mx-auto text-destructive/60 mb-2" />
-                <p className="text-sm text-muted-foreground">Failed to generate strategic insights</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
-                </Button>
-              </div>
+              <AIUnavailableFallback
+                variant="compact"
+                title="Strategic Q&A Paused"
+                message="AI-powered strategic questions will return when services are restored."
+              />
             ) : aiQuestions && aiQuestions.length > 0 ? (
               <>
                 {aiQuestions.map((q, i) => {
