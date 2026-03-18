@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, TrendingUp, TrendingDown, AlertTriangle, Lightbulb, Target, Award, RefreshCw, Zap, Shield } from 'lucide-react';
+import { AIUnavailableFallback } from './AIUnavailableFallback';
 
 interface AIAnalysis {
   headline: string;
