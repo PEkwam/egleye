@@ -134,11 +134,7 @@ export function AIProductMixStrategy({ metrics, year, quarter }: AIStrategyProps
         body: { productMixData: payload },
       });
       if (error) {
-        if (error.message?.includes('429')) {
-          toast.error('AI rate limit reached. Please try again in a moment.');
-        } else if (error.message?.includes('402')) {
-          toast.error('AI credits exhausted. Please add funds.');
-        }
+        console.error('Product mix strategy AI error:', error.message);
         throw error;
       }
       return data.analysis;
