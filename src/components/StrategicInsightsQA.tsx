@@ -242,8 +242,7 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
         body: { strategicData: payload },
       });
       if (error) {
-        if (error.message?.includes('429')) toast.error('AI rate limit reached. Try again shortly.');
-        else if (error.message?.includes('402')) toast.error('AI credits exhausted.');
+        console.error('Strategic Q&A AI error:', error.message);
         throw error;
       }
       return data.analysis.questions || [];
