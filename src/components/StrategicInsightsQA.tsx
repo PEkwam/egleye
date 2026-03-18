@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AIUnavailableFallback } from './AIUnavailableFallback';
 
 interface MetricRow {
   insurer_id: string;
@@ -241,8 +242,7 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
         body: { strategicData: payload },
       });
       if (error) {
-        if (error.message?.includes('429')) toast.error('AI rate limit reached. Try again shortly.');
-        else if (error.message?.includes('402')) toast.error('AI credits exhausted.');
+        console.error('Strategic Q&A AI error:', error.message);
         throw error;
       }
       return data.analysis.questions || [];
@@ -321,13 +321,11 @@ export function StrategicInsightsQA({ metrics, year, quarter }: StrategicInsight
                 </p>
               </div>
             ) : error ? (
-              <div className="text-center py-8">
-                <AlertTriangle className="h-8 w-8 mx-auto text-destructive/60 mb-2" />
-                <p className="text-sm text-muted-foreground">Failed to generate strategic insights</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetch()}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Retry
-                </Button>
-              </div>
+              <AIUnavailableFallback
+                variant="compact"
+                title="Strategic Q&A Paused"
+                message="AI-powered strategic questions will return when services are restored."
+              />
             ) : aiQuestions && aiQuestions.length > 0 ? (
               <>
                 {aiQuestions.map((q, i) => {

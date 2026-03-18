@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AIUnavailableFallback } from './AIUnavailableFallback';
 
 interface MetricsSummary {
   totalPremium: number;
@@ -69,13 +70,7 @@ export function AIInsightsPanel({ metricsSummary }: AIInsightsPanelProps) {
       }
     } catch (error: any) {
       console.error('AI insights error:', error);
-      if (error.message?.includes('429')) {
-        toast.error('Rate limit exceeded. Please try again later.');
-      } else if (error.message?.includes('402')) {
-        toast.error('AI credits exhausted. Please add funds.');
-      } else {
-        toast.error('Failed to generate insights');
-      }
+      // Silently fail — fallback UI will show
     } finally {
       setIsLoading(false);
     }
@@ -123,19 +118,10 @@ export function AIInsightsPanel({ metricsSummary }: AIInsightsPanelProps) {
 
   if (!analysis) {
     return (
-      <Card className="bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border-primary/20">
-        <CardContent className="py-12 text-center">
-          <Sparkles className="h-12 w-12 text-primary/40 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">AI-Powered Insights</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Get executive-level analysis of the insurance market data
-          </p>
-          <Button onClick={fetchInsights} className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Generate Insights
-          </Button>
-        </CardContent>
-      </Card>
+      <AIUnavailableFallback
+        title="AI Executive Insights"
+        message="AI-powered market analysis will appear here when available. Your dashboard data remains fully accessible."
+      />
     );
   }
 
