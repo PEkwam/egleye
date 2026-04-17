@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Edit3, RefreshCw, AlertTriangle, Check } from 'lucide-react';
+import { useState, useMemo, useRef } from 'react';
+import { Edit3, RefreshCw, AlertTriangle, Check, ImagePlus, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { InsurerLogo } from '@/components/InsurerLogo';
 
 interface InsurerRow {
   insurer_id: string;
@@ -26,6 +27,7 @@ interface InsurerRow {
   website: string | null;
   brand_color: string | null;
   category: string;
+  logo_url: string | null;
 }
 
 function slugify(input: string) {
@@ -37,13 +39,20 @@ function slugify(input: string) {
     .replace(/-+/g, '-');
 }
 
+const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
+const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+
 export function RenameInsurerTool() {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedId, setSelectedId] = useState<string>('');
   const [newName, setNewName] = useState('');
   const [newShortName, setNewShortName] = useState('');
   const [newId, setNewId] = useState('');
   const [newWebsite, setNewWebsite] = useState('');
+  const [newLogoUrl, setNewLogoUrl] = useState<string>('');
+  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
@@ -53,7 +62,7 @@ export function RenameInsurerTool() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('insurers')
-        .select('insurer_id, name, short_name, website, brand_color, category')
+        .select('insurer_id, name, short_name, website, brand_color, category, logo_url')
         .order('name');
       if (error) throw error;
       return data as InsurerRow[];
@@ -73,11 +82,60 @@ export function RenameInsurerTool() {
       setNewShortName(ins.short_name);
       setNewId(ins.insurer_id);
       setNewWebsite(ins.website ?? '');
+      setNewLogoUrl(ins.logo_url ?? '');
+      setLogoPreview('');
     }
   };
 
   const handleAutoSlug = () => {
     if (newShortName) setNewId(slugify(newShortName));
+  };
+
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      toast.error('Please upload a PNG, JPEG, WebP or SVG image');
+      return;
+    }
+    if (file.size > MAX_LOGO_SIZE) {
+      toast.error('Logo must be smaller than 2MB');
+      return;
+    }
+
+    // Show local preview immediately
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setIsUploadingLogo(true);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const targetId = newId.trim() || selected?.insurer_id || 'unknown';
+      const path = `${targetId}-${Date.now()}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from('insurer-logos')
+        .upload(path, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from('insurer-logos').getPublicUrl(path);
+      setNewLogoUrl(pub.publicUrl);
+      toast.success('Logo uploaded');
+    } catch (err: any) {
+      console.error('Logo upload error:', err);
+      toast.error(err.message ?? 'Logo upload failed');
+      setLogoPreview('');
+    } finally {
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const clearLogo = () => {
+    setNewLogoUrl('');
+    setLogoPreview('');
   };
 
   const canSubmit =
@@ -92,7 +150,8 @@ export function RenameInsurerTool() {
     (selected.name !== newName.trim() ||
       selected.short_name !== newShortName.trim() ||
       selected.insurer_id !== newId.trim() ||
-      (selected.website ?? '') !== newWebsite.trim());
+      (selected.website ?? '') !== newWebsite.trim() ||
+      (selected.logo_url ?? '') !== newLogoUrl.trim());
 
   const performRename = async () => {
     if (!selected) return;
@@ -106,6 +165,7 @@ export function RenameInsurerTool() {
           newName: newName.trim(),
           newShortName: newShortName.trim(),
           newWebsite: newWebsite.trim() || undefined,
+          newLogoUrl: newLogoUrl.trim() || undefined,
         },
       });
       if (error) throw error;
@@ -117,6 +177,7 @@ export function RenameInsurerTool() {
       queryClient.invalidateQueries({ queryKey: ['insurer-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['insurers'] });
       setSelectedId(newId.trim());
+      setLogoPreview('');
     } catch (err: any) {
       console.error('Rename error:', err);
       toast.error(err.message ?? 'Failed to rename insurer');
@@ -125,6 +186,8 @@ export function RenameInsurerTool() {
       setConfirmOpen(false);
     }
   };
+
+  const displayLogoUrl = logoPreview || newLogoUrl;
 
   return (
     <Card>
@@ -162,6 +225,80 @@ export function RenameInsurerTool() {
 
         {selected && (
           <>
+            {/* Logo upload section */}
+            <div className="space-y-2 pt-2 border-t">
+              <Label>Logo</Label>
+              <div className="flex items-center gap-4 p-3 rounded-lg border bg-muted/30">
+                {/* Preview */}
+                <div className="flex-shrink-0">
+                  {displayLogoUrl ? (
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-background border flex items-center justify-center">
+                        <img
+                          src={displayLogoUrl}
+                          alt={newName || selected.name}
+                          className="w-full h-full object-contain p-1"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={clearLogo}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:scale-110 transition-transform"
+                        title="Remove logo"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <InsurerLogo
+                      name={newName || selected.name}
+                      shortName={newShortName || selected.short_name}
+                      brandColor={selected.brand_color || undefined}
+                      size="xl"
+                    />
+                  )}
+                </div>
+
+                {/* Upload controls */}
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingLogo}
+                    >
+                      {isUploadingLogo ? (
+                        <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Uploading…</>
+                      ) : (
+                        <><ImagePlus className="h-4 w-4 mr-2" />{displayLogoUrl ? 'Replace logo' : 'Upload logo'}</>
+                      )}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={handleLogoSelect}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    PNG, JPEG, WebP or SVG · max 2MB · square images work best
+                  </p>
+                  <Input
+                    value={newLogoUrl}
+                    onChange={(e) => {
+                      setNewLogoUrl(e.target.value);
+                      setLogoPreview('');
+                    }}
+                    placeholder="…or paste an image URL"
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
               <div className="space-y-2">
                 <Label>New full name *</Label>
@@ -277,6 +414,9 @@ export function RenameInsurerTool() {
                     <p><span className="text-muted-foreground">From:</span> {selected?.name}</p>
                     <p><span className="text-muted-foreground">To:</span> {newName}</p>
                     <p><span className="text-muted-foreground">New ID:</span> <code>{newId}</code></p>
+                    {newLogoUrl && (
+                      <p><span className="text-muted-foreground">Logo:</span> updated</p>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     This action cannot be undone automatically.
