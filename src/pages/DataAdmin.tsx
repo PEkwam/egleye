@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
+import { RenameInsurerTool } from '@/components/admin/RenameInsurerTool';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -2497,7 +2498,10 @@ const DataAdmin = () => {
                   </CardContent>
                 </Card>
 
-                {/* Import NIC Data */}
+                {/* Rename Insurer Tool */}
+                <RenameInsurerTool />
+
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
