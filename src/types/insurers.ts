@@ -78,12 +78,12 @@ export const lifeInsurers: GhanaInsurer[] = [
     brandColor: '#D35400',
   },
   {
-    id: 'metropolitan-life',
-    name: 'Metropolitan Life Insurance Ghana Ltd',
-    shortName: 'Metropolitan Life',
+    id: 'emple-life',
+    name: 'Emple Life Insurance Ghana LTD',
+    shortName: 'Emple Life',
     category: 'life',
-    keywords: ['metropolitan', 'metlife ghana'],
-    website: 'https://www.metropolitan.com.gh',
+    keywords: ['emple life', 'emple'],
+    website: 'https://www.emplelife.com.gh',
     brandColor: '#003399',
   },
   {

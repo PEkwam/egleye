@@ -16,7 +16,7 @@ const INSURER_ESTABLISHMENT_YEARS: Record<string, number> = {
   'star': 1998,                 // StarLife Assurance Company Limited
   'oldmutualghana': 2007,       // Old Mutual Assurance Ghana Limited
   'prudentialghana': 2014,      // Prudential Life Insurance Ghana
-  'metropolitanghana': 2007,    // Metropolitan Life Insurance Ghana Limited
+  'emplelife': 2007,            // Emple Life Insurance Ghana LTD (formerly Metropolitan Life)
   'quality': 1996,              // Quality Life Assurance Company Limited
   'sanlamallianzghana': 2019,   // SanlamAllianz Life Insurance Ghana Limited
   'first': 1996,                // First Insurance Company Limited

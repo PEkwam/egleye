@@ -30,7 +30,7 @@ const DEFAULT_GHANA_KEYWORDS = [
   'enterprise life gambia', 'enterprise life nigeria', 'enterprise property',
   // Life Insurance Companies
   'sic insurance', 'sic life', 'sic ghana', 'starlife', 'star life', 'glico life', 'glico insurance',
-  'prudential ghana', 'prudential life ghana', 'metropolitan life ghana', 'metropolitan insurance',
+  'prudential ghana', 'prudential life ghana', 'emple life ghana', 'emple life',
   'hollard ghana', 'hollard life', 'hollard insurance', 'old mutual ghana', 'old mutual life',
   'saham life ghana', 'saham ghana', 'beige assure', 'donewell life', 'donewell insurance',
   'vanguard life', 'vanguard assurance', 'quality life', 'quality insurance', 'activa life', 'activa insurance',
@@ -143,7 +143,7 @@ const DEFAULT_INSURANCE_KEYWORDS = [
   'enterprise properties', 'enterprise property', 'enterprise funeral', 'transitions funeral',
   'funeral people', 'acacia health',
   'sic life', 'sic insurance', 'starlife', 'star life', 'star assurance',
-  'glico', 'prudential', 'metropolitan life', 'hollard', 'old mutual',
+  'glico', 'prudential', 'emple life', 'hollard', 'old mutual',
   'allianz', 'petra trust', 'axis pension', 'dalex pension', 'pensions alliance',
   'quality life', 'vanguard assurance', 'donewell',
 ];
