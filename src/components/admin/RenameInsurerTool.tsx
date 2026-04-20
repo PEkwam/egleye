@@ -1,10 +1,11 @@
 import { useState, useMemo, useRef } from 'react';
-import { Edit3, RefreshCw, AlertTriangle, Check, ImagePlus, X, Upload } from 'lucide-react';
+import { Edit3, RefreshCw, AlertTriangle, Check, ImagePlus, X, Power } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,7 @@ interface InsurerRow {
   category: string;
   logo_url: string | null;
   established_year: number | null;
+  is_active: boolean;
 }
 
 function slugify(input: string) {
@@ -54,6 +56,7 @@ export function RenameInsurerTool() {
   const [newWebsite, setNewWebsite] = useState('');
   const [newLogoUrl, setNewLogoUrl] = useState<string>('');
   const [newEstablishedYear, setNewEstablishedYear] = useState<string>('');
+  const [isActive, setIsActive] = useState<boolean>(true);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -87,6 +90,7 @@ export function RenameInsurerTool() {
       setNewWebsite(ins.website ?? '');
       setNewLogoUrl(ins.logo_url ?? '');
       setNewEstablishedYear(ins.established_year ? String(ins.established_year) : '');
+      setIsActive(ins.is_active ?? true);
       setLogoPreview('');
     }
   };
@@ -162,7 +166,8 @@ export function RenameInsurerTool() {
       selected.insurer_id !== newId.trim() ||
       (selected.website ?? '') !== newWebsite.trim() ||
       (selected.logo_url ?? '') !== newLogoUrl.trim() ||
-      (selected.established_year ?? null) !== yearNum);
+      (selected.established_year ?? null) !== yearNum ||
+      (selected.is_active ?? true) !== isActive);
 
   const performRename = async () => {
     if (!selected) return;
@@ -178,19 +183,20 @@ export function RenameInsurerTool() {
           newWebsite: newWebsite.trim() || undefined,
           newLogoUrl: newLogoUrl.trim() || undefined,
           newEstablishedYear: yearNum,
+          isActive,
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       setLastResult(data);
-      toast.success(`Renamed to "${newName.trim()}" across all tables`);
+      toast.success(isActive ? `Renamed to "${newName.trim()}"` : `Deactivated "${newName.trim()}"`);
       queryClient.invalidateQueries({ queryKey: ['rename-insurer-list'] });
       queryClient.invalidateQueries({ queryKey: ['insurer-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['insurers'] });
 
       // Refresh the in-memory insurer roster used app-wide so dashboards,
-      // dropdowns, and news filters pick up the new name immediately —
+      // dropdowns, and news filters pick up the new state immediately —
       // no code edit, no hard reload.
       await hydrateInsurersFromDB({ force: true });
 
@@ -243,6 +249,26 @@ export function RenameInsurerTool() {
 
         {selected && (
           <>
+            {/* Status toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Insurer Status</Label>
+                <p className="text-xs text-muted-foreground">
+                  {isActive 
+                    ? "Active — appears in dropdowns and news whitelist" 
+                    : "Inactive — hidden from dropdowns and news whitelist"}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs font-medium ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {isActive ? 'Active' : 'Inactive'}
+                </span>
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                />
+              </div>
+            </div>
             {/* Logo upload section */}
             <div className="space-y-2 pt-2 border-t">
               <Label>Logo</Label>
@@ -378,20 +404,23 @@ export function RenameInsurerTool() {
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30 text-xs">
+              <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-medium text-amber-900 dark:text-amber-200">
-                  This will update the following tables:
+                <p className="font-medium text-foreground">
+                  {isActive 
+                    ? "This will update the following tables:"
+                    : "Deactivating will hide this insurer from:"}
                 </p>
-                <p className="text-amber-800 dark:text-amber-300">
-                  insurers · insurer_metrics · nonlife_insurer_metrics · insurer_id_mappings ·
-                  insurer_logos · news_articles (title/description/content)
+                <p className="text-muted-foreground">
+                  {isActive 
+                    ? "insurers · insurer_metrics · nonlife_insurer_metrics · insurer_id_mappings · insurer_logos · news_articles"
+                    : "Dropdowns · News whitelist · News filters"}
                 </p>
-                <p className="text-amber-800 dark:text-amber-300">
-                  ✨ The app reads insurers from the database at startup, so renames flow through
-                  to dashboards, dropdowns, news filters, and edge functions automatically — no
-                  code edit required.
+                <p className="text-muted-foreground">
+                  {isActive 
+                    ? "✨ The app reads insurers from the database at startup, so changes flow through to dashboards, dropdowns, news filters, and edge functions automatically — no code edit required."
+                    : "✨ Historical metrics data is preserved. You can reactivate anytime to restore visibility."}
                 </p>
               </div>
             </div>
@@ -407,11 +436,12 @@ export function RenameInsurerTool() {
               <Button
                 onClick={() => setConfirmOpen(true)}
                 disabled={!canSubmit || !hasChanges || isRunning}
+                variant={isActive ? 'default' : 'destructive'}
               >
                 {isRunning ? (
-                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Renaming…</>
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />{isActive ? 'Renaming…' : 'Deactivating…'}</>
                 ) : (
-                  <><Edit3 className="h-4 w-4 mr-2" />Rename Across All Tables</>
+                  <>{isActive ? <Edit3 className="h-4 w-4 mr-2" /> : <Power className="h-4 w-4 mr-2" />}{isActive ? 'Rename Across All Tables' : 'Deactivate Insurer'}</>
                 )}
               </Button>
             </div>
@@ -419,14 +449,14 @@ export function RenameInsurerTool() {
         )}
 
         {lastResult?.success && (
-          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs space-y-1">
-            <p className="flex items-center gap-2 font-medium text-emerald-900 dark:text-emerald-200">
-              <Check className="h-4 w-4" /> Rename complete
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 text-xs space-y-1">
+            <p className="flex items-center gap-2 font-medium text-foreground">
+              <Check className="h-4 w-4 text-primary" /> {isActive ? 'Rename complete' : 'Deactivation complete'}
             </p>
-            <p className="text-emerald-800 dark:text-emerald-300">
+            <p className="text-muted-foreground">
               {lastResult.from?.name} → {lastResult.to?.name}
             </p>
-            <ul className="text-emerald-800 dark:text-emerald-300 mt-1 space-y-0.5">
+            <ul className="text-muted-foreground mt-1 space-y-0.5">
               {Object.entries(lastResult.updated || {}).map(([table, count]) => (
                 <li key={table}>
                   <code>{table}</code>: {String(count)} row{count === 1 ? '' : 's'}
@@ -439,28 +469,39 @@ export function RenameInsurerTool() {
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm rename</AlertDialogTitle>
+              <AlertDialogTitle>{isActive ? 'Confirm rename' : 'Confirm deactivation'}</AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div className="space-y-2 text-sm">
-                  <p>This will permanently rename across the database:</p>
+                  <p>
+                    {isActive 
+                      ? "This will permanently rename across the database:"
+                      : "This will hide the insurer from all UI components:"}
+                  </p>
                   <div className="p-2 rounded bg-muted">
                     <p><span className="text-muted-foreground">From:</span> {selected?.name}</p>
                     <p><span className="text-muted-foreground">To:</span> {newName}</p>
-                    <p><span className="text-muted-foreground">New ID:</span> <code>{newId}</code></p>
-                    {newLogoUrl && (
+                    <p><span className="text-muted-foreground">ID:</span> <code>{newId}</code></p>
+                    {!isActive && (
+                      <p className="text-destructive text-xs mt-1">
+                        Status will change to: <strong>Inactive</strong>
+                      </p>
+                    )}
+                    {newLogoUrl && isActive && (
                       <p><span className="text-muted-foreground">Logo:</span> updated</p>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    This action cannot be undone automatically.
+                    {isActive 
+                      ? "This action cannot be undone automatically."
+                      : "Historical metrics data will be preserved. You can reactivate later."}
                   </p>
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isRunning}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={performRename} disabled={isRunning}>
-                {isRunning ? 'Renaming…' : 'Yes, rename'}
+              <AlertDialogAction onClick={performRename} disabled={isRunning} className={!isActive ? 'bg-destructive hover:bg-destructive/90' : ''}>
+                {isRunning ? (isActive ? 'Renaming…' : 'Deactivating…') : (isActive ? 'Yes, rename' : 'Yes, deactivate')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
