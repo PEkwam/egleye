@@ -333,6 +333,7 @@ export type Database = {
           brand_color: string
           category: string
           created_at: string
+          established_year: number | null
           id: string
           insurer_id: string
           is_active: boolean
@@ -350,6 +351,7 @@ export type Database = {
           brand_color?: string
           category: string
           created_at?: string
+          established_year?: number | null
           id?: string
           insurer_id: string
           is_active?: boolean
@@ -367,6 +369,7 @@ export type Database = {
           brand_color?: string
           category?: string
           created_at?: string
+          established_year?: number | null
           id?: string
           insurer_id?: string
           is_active?: boolean

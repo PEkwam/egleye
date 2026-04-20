@@ -18,35 +18,46 @@ interface NewsArticle {
 }
 
 // Ghana-specific keywords for filtering - COMPREHENSIVE
+// NOTE: This is a fallback list. The crawler also pulls insurer names + keywords
+// from the `insurers` DB table at runtime via `loadDbKeywords()` so renames
+// and additions made via the admin tool flow through automatically.
 const DEFAULT_GHANA_KEYWORDS = [
   // Country & cities
   'ghana', 'accra', 'kumasi', 'tema', 'takoradi', 'cape coast',
   // Regulatory
   'nic', 'nicgh', 'national insurance commission', 'npra', 'national pensions',
-  // Enterprise Group - Full coverage
-  'enterprise group', 'enterprise life', 'enterprise insurance', 'eic', 'egl', 'etl',
-  'acacia health', 'acacia insurance', 'enterprise trustees', 'enterprise properties',
-  'enterprise funeral', 'transitions ghana', 'transitions funeral', 'funeral people',
-  'enterprise life gambia', 'enterprise life nigeria', 'enterprise property',
-  // Life Insurance Companies
-  'sic insurance', 'sic life', 'sic ghana', 'starlife', 'star life', 'glico life', 'glico insurance',
-  'prudential ghana', 'prudential life ghana', 'emple life ghana', 'emple life',
-  'hollard ghana', 'hollard life', 'hollard insurance', 'old mutual ghana', 'old mutual life',
-  'saham life ghana', 'saham ghana', 'beige assure', 'donewell life', 'donewell insurance',
-  'vanguard life', 'vanguard assurance', 'quality life', 'quality insurance', 'activa life', 'activa insurance',
-  // Non-Life Insurance Companies
-  'allianz ghana', 'star assurance', 'phoenix insurance ghana', 'priority insurance ghana',
-  'unique insurance ghana', 'millennium insurance ghana', 'regency alliance ghana',
-  'loyalty insurance ghana', 'best assurance ghana',
-  // Pension & Trustees
-  'ssnit', 'social security ghana', 'pensions alliance trust', 'petra trust', 'axis pension',
-  'negotiated benefits trust', 'dalex pensions', 'ecobank pensions', 'stanbic pensions',
-  'first pension trust', 'metropolitan pensions',
   // Currency & local media
   'cedis', 'ghc', 'cedi', 'gna.org.gh', 'myjoyonline', 'graphic.com.gh', 'citinewsroom',
   'pulse.com.gh', 'peacefmonline', '3news.com', 'adomonline', 'classfmonline', 'ghanaweb',
   'ghanainsurancehub'
 ];
+
+// Loaded from `insurers` table on each invocation so admin renames are picked
+// up without redeploying this function.
+let DB_INSURER_KEYWORDS: string[] = [];
+
+async function loadDbKeywords(supabase: any): Promise<void> {
+  try {
+    const { data, error } = await supabase
+      .from('insurers')
+      .select('name, short_name, keywords')
+      .eq('is_active', true);
+    if (error) throw error;
+    const set = new Set<string>();
+    for (const row of data ?? []) {
+      if (row.name) set.add(String(row.name).toLowerCase());
+      if (row.short_name) set.add(String(row.short_name).toLowerCase());
+      for (const kw of row.keywords ?? []) {
+        if (kw) set.add(String(kw).toLowerCase());
+      }
+    }
+    DB_INSURER_KEYWORDS = Array.from(set);
+    console.log(`Loaded ${DB_INSURER_KEYWORDS.length} insurer keywords from DB`);
+  } catch (e) {
+    console.warn('Failed to load insurer keywords from DB, using defaults only:', e);
+    DB_INSURER_KEYWORDS = [];
+  }
+}
 
 // BLOCKED DOMAINS - Classified ads, property listings, irrelevant sources
 const BLOCKED_DOMAINS = [
@@ -312,7 +323,8 @@ async function fetchDynamicKeywords(supabaseClient: any): Promise<{
 
 function isGhanaRelevant(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return DEFAULT_GHANA_KEYWORDS.some(keyword => lowerText.includes(keyword));
+  if (DEFAULT_GHANA_KEYWORDS.some(keyword => lowerText.includes(keyword))) return true;
+  return DB_INSURER_KEYWORDS.some(keyword => lowerText.includes(keyword));
 }
 
 function isBlockedDomain(url: string): boolean {
@@ -530,6 +542,9 @@ Deno.serve(async (req) => {
 
     // Fetch dynamic keywords from database
     const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
+
+    // Pull live insurer name/keyword list so admin renames flow through automatically
+    await loadDbKeywords(supabase);
 
     // Check mode from query params
     const url = new URL(req.url);

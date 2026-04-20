@@ -15,6 +15,8 @@ interface RenameRequest {
   newKeywords?: string[];
   newBrandColor?: string;
   newLogoUrl?: string;
+  newEstablishedYear?: number | null;
+  newCategory?: 'life' | 'nonlife' | 'pension';
 }
 
 Deno.serve(async (req) => {
@@ -29,7 +31,7 @@ Deno.serve(async (req) => {
     );
 
     const body: RenameRequest = await req.json();
-    const { oldInsurerId, oldName, newInsurerId, newName, newShortName, newWebsite, newKeywords, newBrandColor, newLogoUrl } = body;
+    const { oldInsurerId, oldName, newInsurerId, newName, newShortName, newWebsite, newKeywords, newBrandColor, newLogoUrl, newEstablishedYear, newCategory } = body;
 
     if (!newInsurerId || !newName || !newShortName) {
       return new Response(
@@ -80,6 +82,8 @@ Deno.serve(async (req) => {
     if (newKeywords && newKeywords.length > 0) insurerUpdate.keywords = newKeywords;
     if (newBrandColor) insurerUpdate.brand_color = newBrandColor;
     if (newLogoUrl !== undefined) insurerUpdate.logo_url = newLogoUrl || null;
+    if (newEstablishedYear !== undefined) insurerUpdate.established_year = newEstablishedYear;
+    if (newCategory) insurerUpdate.category = newCategory;
 
     const { error: e1, count: c1 } = await supabase
       .from('insurers')

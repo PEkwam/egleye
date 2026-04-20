@@ -1,0 +1,1 @@
+ALTER TABLE public.insurers ADD COLUMN IF NOT EXISTS established_year integer;

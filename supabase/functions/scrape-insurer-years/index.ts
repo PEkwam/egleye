@@ -187,7 +187,19 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Starting insurer years sync...');
-    
+
+    // Load establishment years from the `insurers` DB table first. The
+    // hardcoded INSURER_ESTABLISHMENT_YEARS / NONLIFE_ESTABLISHMENT_YEARS maps
+    // remain as a fallback for any rows that don't yet have a year set.
+    const { data: dbInsurers } = await supabase
+      .from('insurers')
+      .select('insurer_id, category, established_year');
+    const dbYears: Record<string, number> = {};
+    for (const row of dbInsurers ?? []) {
+      if (row.established_year) dbYears[row.insurer_id] = row.established_year as number;
+    }
+    console.log(`Loaded establishment years for ${Object.keys(dbYears).length} insurers from DB`);
+
     // Try to scrape for any new data (but handle SSL errors gracefully)
     let scrapedYears: Record<string, number> = {};
     try {
@@ -195,10 +207,11 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.log('Scraping failed, using hardcoded data:', e);
     }
-    
-    // Merge scraped data with known data
-    const allLifeYears = { ...INSURER_ESTABLISHMENT_YEARS, ...scrapedYears };
-    
+
+    // Priority: scraped > DB > hardcoded fallback
+    const allLifeYears = { ...INSURER_ESTABLISHMENT_YEARS, ...dbYears, ...scrapedYears };
+    const allNonLifeYears = { ...NONLIFE_ESTABLISHMENT_YEARS, ...dbYears };
+
     const results = {
       life_updated: 0,
       nonlife_updated: 0,
@@ -206,23 +219,23 @@ Deno.serve(async (req) => {
       skipped: 0,
       details: [] as { table: string; id: string; years_in_ghana: number }[],
     };
-    
+
     // === UPDATE LIFE INSURERS (insurer_metrics table) ===
     console.log('Processing life insurers...');
     const { data: lifeMetrics } = await supabase
       .from('insurer_metrics')
       .select('id, insurer_id, years_in_ghana');
-    
+
     for (const [insurerId, establishmentYear] of Object.entries(allLifeYears)) {
       const yearsInGhana = calculateYearsInGhana(establishmentYear);
       const found = lifeMetrics?.filter(m => m.insurer_id === insurerId) || [];
-      
+
       if (found.length > 0) {
         const { error } = await supabase
           .from('insurer_metrics')
           .update({ years_in_ghana: yearsInGhana })
           .eq('insurer_id', insurerId);
-        
+
         if (!error) {
           results.life_updated++;
           results.details.push({ table: 'insurer_metrics', id: insurerId, years_in_ghana: yearsInGhana });
@@ -230,27 +243,27 @@ Deno.serve(async (req) => {
         }
       }
     }
-    
+
     // === UPDATE NON-LIFE INSURERS (nonlife_insurer_metrics table) ===
     console.log('Processing non-life insurers...');
     const { data: nonLifeMetrics } = await supabase
       .from('nonlife_insurer_metrics')
       .select('id, insurer_id, years_in_ghana');
-    
-    for (const [insurerId, establishmentYear] of Object.entries(NONLIFE_ESTABLISHMENT_YEARS)) {
+
+    for (const [insurerId, establishmentYear] of Object.entries(allNonLifeYears)) {
       const yearsInGhana = calculateYearsInGhana(establishmentYear);
-      const found = nonLifeMetrics?.filter(m => 
-        m.insurer_id === insurerId || 
+      const found = nonLifeMetrics?.filter(m =>
+        m.insurer_id === insurerId ||
         m.insurer_id.toLowerCase().includes(insurerId.split('-')[0])
       ) || [];
-      
+
       if (found.length > 0) {
         for (const record of found) {
           const { error } = await supabase
             .from('nonlife_insurer_metrics')
             .update({ years_in_ghana: yearsInGhana })
             .eq('id', record.id);
-          
+
           if (!error) {
             results.nonlife_updated++;
             results.details.push({ table: 'nonlife_insurer_metrics', id: record.insurer_id, years_in_ghana: yearsInGhana });

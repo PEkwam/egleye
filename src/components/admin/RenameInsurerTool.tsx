@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { InsurerLogo } from '@/components/InsurerLogo';
+import { hydrateInsurersFromDB } from '@/types/insurers';
 
 interface InsurerRow {
   insurer_id: string;
@@ -28,6 +29,7 @@ interface InsurerRow {
   brand_color: string | null;
   category: string;
   logo_url: string | null;
+  established_year: number | null;
 }
 
 function slugify(input: string) {
@@ -51,6 +53,7 @@ export function RenameInsurerTool() {
   const [newId, setNewId] = useState('');
   const [newWebsite, setNewWebsite] = useState('');
   const [newLogoUrl, setNewLogoUrl] = useState<string>('');
+  const [newEstablishedYear, setNewEstablishedYear] = useState<string>('');
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -62,7 +65,7 @@ export function RenameInsurerTool() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('insurers')
-        .select('insurer_id, name, short_name, website, brand_color, category, logo_url')
+        .select('insurer_id, name, short_name, website, brand_color, category, logo_url, established_year')
         .order('name');
       if (error) throw error;
       return data as InsurerRow[];
@@ -83,6 +86,7 @@ export function RenameInsurerTool() {
       setNewId(ins.insurer_id);
       setNewWebsite(ins.website ?? '');
       setNewLogoUrl(ins.logo_url ?? '');
+      setNewEstablishedYear(ins.established_year ? String(ins.established_year) : '');
       setLogoPreview('');
     }
   };
@@ -138,12 +142,18 @@ export function RenameInsurerTool() {
     setLogoPreview('');
   };
 
+  const yearNum = newEstablishedYear.trim() ? Number(newEstablishedYear.trim()) : null;
+  const yearValid =
+    newEstablishedYear.trim() === '' ||
+    (Number.isInteger(yearNum) && yearNum! >= 1800 && yearNum! <= new Date().getFullYear());
+
   const canSubmit =
     selected &&
     newName.trim().length > 0 &&
     newShortName.trim().length > 0 &&
     newId.trim().length > 0 &&
-    /^[a-z0-9-]+$/.test(newId);
+    /^[a-z0-9-]+$/.test(newId) &&
+    yearValid;
 
   const hasChanges =
     selected &&
@@ -151,7 +161,8 @@ export function RenameInsurerTool() {
       selected.short_name !== newShortName.trim() ||
       selected.insurer_id !== newId.trim() ||
       (selected.website ?? '') !== newWebsite.trim() ||
-      (selected.logo_url ?? '') !== newLogoUrl.trim());
+      (selected.logo_url ?? '') !== newLogoUrl.trim() ||
+      (selected.established_year ?? null) !== yearNum);
 
   const performRename = async () => {
     if (!selected) return;
@@ -166,6 +177,7 @@ export function RenameInsurerTool() {
           newShortName: newShortName.trim(),
           newWebsite: newWebsite.trim() || undefined,
           newLogoUrl: newLogoUrl.trim() || undefined,
+          newEstablishedYear: yearNum,
         },
       });
       if (error) throw error;
@@ -176,6 +188,12 @@ export function RenameInsurerTool() {
       queryClient.invalidateQueries({ queryKey: ['rename-insurer-list'] });
       queryClient.invalidateQueries({ queryKey: ['insurer-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['insurers'] });
+
+      // Refresh the in-memory insurer roster used app-wide so dashboards,
+      // dropdowns, and news filters pick up the new name immediately —
+      // no code edit, no hard reload.
+      await hydrateInsurersFromDB({ force: true });
+
       setSelectedId(newId.trim());
       setLogoPreview('');
     } catch (err: any) {
@@ -344,6 +362,20 @@ export function RenameInsurerTool() {
                   maxLength={255}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Established year</Label>
+                <Input
+                  type="number"
+                  value={newEstablishedYear}
+                  onChange={(e) => setNewEstablishedYear(e.target.value)}
+                  placeholder={`e.g. 1997`}
+                  min={1800}
+                  max={new Date().getFullYear()}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Drives "Years in Ghana" on dashboards. Leave empty to keep unset.
+                </p>
+              </div>
             </div>
 
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs">
@@ -357,8 +389,9 @@ export function RenameInsurerTool() {
                   insurer_logos · news_articles (title/description/content)
                 </p>
                 <p className="text-amber-800 dark:text-amber-300">
-                  Note: hard-coded references in <code>src/types/insurers.ts</code> and edge functions
-                  must still be updated manually in code.
+                  ✨ The app reads insurers from the database at startup, so renames flow through
+                  to dashboards, dropdowns, news filters, and edge functions automatically — no
+                  code edit required.
                 </p>
               </div>
             </div>
