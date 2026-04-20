@@ -142,6 +142,11 @@ export function RenameInsurerTool() {
     setLogoPreview('');
   };
 
+  const yearNum = newEstablishedYear.trim() ? Number(newEstablishedYear.trim()) : null;
+  const yearValid =
+    newEstablishedYear.trim() === '' ||
+    (Number.isInteger(yearNum) && yearNum! >= 1800 && yearNum! <= new Date().getFullYear());
+
   const canSubmit =
     selected &&
     newName.trim().length > 0 &&
@@ -149,11 +154,6 @@ export function RenameInsurerTool() {
     newId.trim().length > 0 &&
     /^[a-z0-9-]+$/.test(newId) &&
     yearValid;
-
-  const yearNum = newEstablishedYear.trim() ? Number(newEstablishedYear.trim()) : null;
-  const yearValid =
-    newEstablishedYear.trim() === '' ||
-    (Number.isInteger(yearNum) && yearNum! >= 1800 && yearNum! <= new Date().getFullYear());
 
   const hasChanges =
     selected &&
