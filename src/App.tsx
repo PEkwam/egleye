@@ -9,6 +9,12 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { SwipeNavigationProvider } from "@/components/SwipeNavigationProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { hydrateInsurersFromDB } from "@/types/insurers";
+
+// Hydrate the insurer roster from the DB before first paint so renames done
+// in the admin tool show up app-wide without any code edits. Fire-and-forget
+// — hardcoded fallback is used if this hasn't resolved by render time.
+hydrateInsurersFromDB();
 
 // Eagerly load the index page for fast initial render
 import Index from "./pages/Index";
