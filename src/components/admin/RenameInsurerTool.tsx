@@ -362,6 +362,20 @@ export function RenameInsurerTool() {
                   maxLength={255}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Established year</Label>
+                <Input
+                  type="number"
+                  value={newEstablishedYear}
+                  onChange={(e) => setNewEstablishedYear(e.target.value)}
+                  placeholder={`e.g. 1997`}
+                  min={1800}
+                  max={new Date().getFullYear()}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Drives "Years in Ghana" on dashboards. Leave empty to keep unset.
+                </p>
+              </div>
             </div>
 
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs">
@@ -375,8 +389,9 @@ export function RenameInsurerTool() {
                   insurer_logos · news_articles (title/description/content)
                 </p>
                 <p className="text-amber-800 dark:text-amber-300">
-                  Note: hard-coded references in <code>src/types/insurers.ts</code> and edge functions
-                  must still be updated manually in code.
+                  ✨ The app reads insurers from the database at startup, so renames flow through
+                  to dashboards, dropdowns, news filters, and edge functions automatically — no
+                  code edit required.
                 </p>
               </div>
             </div>
