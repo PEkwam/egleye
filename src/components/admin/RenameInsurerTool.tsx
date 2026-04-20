@@ -260,13 +260,12 @@ export function RenameInsurerTool() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <span className={`text-xs font-medium ${isActive ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                <span className={`text-xs font-medium ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
                   {isActive ? 'Active' : 'Inactive'}
                 </span>
                 <Switch
                   checked={isActive}
                   onCheckedChange={setIsActive}
-                  className="data-[state=checked]:bg-emerald-500"
                 />
               </div>
             </div>
