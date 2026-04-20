@@ -449,14 +449,14 @@ export function RenameInsurerTool() {
         )}
 
         {lastResult?.success && (
-          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs space-y-1">
-            <p className="flex items-center gap-2 font-medium text-emerald-900 dark:text-emerald-200">
-              <Check className="h-4 w-4" /> Rename complete
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 text-xs space-y-1">
+            <p className="flex items-center gap-2 font-medium text-foreground">
+              <Check className="h-4 w-4 text-primary" /> {isActive ? 'Rename complete' : 'Deactivation complete'}
             </p>
-            <p className="text-emerald-800 dark:text-emerald-300">
+            <p className="text-muted-foreground">
               {lastResult.from?.name} → {lastResult.to?.name}
             </p>
-            <ul className="text-emerald-800 dark:text-emerald-300 mt-1 space-y-0.5">
+            <ul className="text-muted-foreground mt-1 space-y-0.5">
               {Object.entries(lastResult.updated || {}).map(([table, count]) => (
                 <li key={table}>
                   <code>{table}</code>: {String(count)} row{count === 1 ? '' : 's'}
