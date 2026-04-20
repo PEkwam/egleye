@@ -543,6 +543,9 @@ Deno.serve(async (req) => {
     // Fetch dynamic keywords from database
     const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
 
+    // Pull live insurer name/keyword list so admin renames flow through automatically
+    await loadDbKeywords(supabase);
+
     // Check mode from query params
     const url = new URL(req.url);
     const nicOnly = url.searchParams.get('nic_only') === 'true';
