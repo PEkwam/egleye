@@ -177,6 +177,7 @@ export function RenameInsurerTool() {
           newShortName: newShortName.trim(),
           newWebsite: newWebsite.trim() || undefined,
           newLogoUrl: newLogoUrl.trim() || undefined,
+          newEstablishedYear: yearNum,
         },
       });
       if (error) throw error;
@@ -187,6 +188,12 @@ export function RenameInsurerTool() {
       queryClient.invalidateQueries({ queryKey: ['rename-insurer-list'] });
       queryClient.invalidateQueries({ queryKey: ['insurer-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['insurers'] });
+
+      // Refresh the in-memory insurer roster used app-wide so dashboards,
+      // dropdowns, and news filters pick up the new name immediately —
+      // no code edit, no hard reload.
+      await hydrateInsurersFromDB({ force: true });
+
       setSelectedId(newId.trim());
       setLogoPreview('');
     } catch (err: any) {
