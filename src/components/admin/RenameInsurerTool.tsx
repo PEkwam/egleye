@@ -404,20 +404,20 @@ export function RenameInsurerTool() {
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30 text-xs">
+              <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-medium text-amber-900 dark:text-amber-200">
+                <p className="font-medium text-foreground">
                   {isActive 
                     ? "This will update the following tables:"
                     : "Deactivating will hide this insurer from:"}
                 </p>
-                <p className="text-amber-800 dark:text-amber-300">
+                <p className="text-muted-foreground">
                   {isActive 
                     ? "insurers · insurer_metrics · nonlife_insurer_metrics · insurer_id_mappings · insurer_logos · news_articles"
                     : "Dropdowns · News whitelist · News filters"}
                 </p>
-                <p className="text-amber-800 dark:text-amber-300">
+                <p className="text-muted-foreground">
                   {isActive 
                     ? "✨ The app reads insurers from the database at startup, so changes flow through to dashboards, dropdowns, news filters, and edge functions automatically — no code edit required."
                     : "✨ Historical metrics data is preserved. You can reactivate anytime to restore visibility."}
