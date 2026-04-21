@@ -1,9 +1,10 @@
-import { forwardRef, useState, useCallback } from 'react';
+import { forwardRef, useState, useCallback, type MouseEvent } from 'react';
 import { ExternalLink, Clock, TrendingUp, Shield, CheckCircle2, Building2, Newspaper } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NewsArticle } from '@/types/news';
 import { categoryLabels, categoryColors } from '@/types/news';
 import { sanitizeText } from '@/lib/utils/text';
+import { useNewArticleAlertsOptional } from './NewArticleAlertProvider';
 
 const ImageWithFallback = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
   const [failed, setFailed] = useState(false);
@@ -99,9 +100,21 @@ CredibilityBadge.displayName = 'CredibilityBadge';
 interface NewsCardProps {
   article: NewsArticle;
   variant?: 'default' | 'compact' | 'featured';
+  onOpen?: (article: NewsArticle) => void;
 }
 
-export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article, variant = 'default' }, ref) => {
+export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article, variant = 'default', onOpen }, ref) => {
+  const alertCtx = useNewArticleAlertsOptional();
+  const handler = onOpen ?? alertCtx?.openArticle;
+
+  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!handler) return; // fall through to default link behavior
+    // Allow modifier-clicks / middle-click to keep native open-in-new-tab behavior
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    handler(article);
+  };
+
   const publishedDate = article.published_at
     ? formatDistanceToNow(new Date(article.published_at), { addSuffix: true })
     : 'Recently';
