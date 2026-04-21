@@ -1,11 +1,12 @@
 import { NewsCard } from './NewsCard';
 import type { NewsArticle } from '@/types/news';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Newspaper, MapPin, Clock, TrendingUp, Sparkles, Zap } from 'lucide-react';
+import { Newspaper, MapPin, Clock, Sparkles, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
-import { categoryLabels, categoryColors } from '@/types/news';
+import { categoryLabels } from '@/types/news';
 import { sanitizeText } from '@/lib/utils/text';
+import { useNewArticleAlertsOptional } from './NewArticleAlertProvider';
 
 interface HeroSectionProps {
   featuredArticle: NewsArticle | null;
@@ -14,6 +15,7 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ featuredArticle, latestArticles, isLoading }: HeroSectionProps) {
+  const alertCtx = useNewArticleAlertsOptional();
   if (isLoading) {
     return (
       <section className="container mx-auto px-4 py-8">
@@ -83,7 +85,13 @@ export function HeroSection({ featuredArticle, latestArticles, isLoading }: Hero
                   href={hero.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="sm:hidden group relative block rounded-2xl overflow-hidden border border-primary/20 hover:border-primary/40 transition-all duration-500 shadow-lg hover:shadow-xl"
+                  onClick={(e) => {
+                    if (alertCtx && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button !== 1) {
+                      e.preventDefault();
+                      alertCtx.openArticle(hero);
+                    }
+                  }}
+                  className="sm:hidden group relative block rounded-2xl overflow-hidden border border-primary/20 hover:border-primary/40 transition-all duration-500 shadow-lg hover:shadow-xl cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/95 to-primary/90" />
                   {hero.image_url && (
