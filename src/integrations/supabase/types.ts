@@ -430,6 +430,39 @@ export type Database = {
         }
         Relationships: []
       }
+      news_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          frequency: string
+          id: string
+          is_active: boolean
+          last_sent_at: string | null
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_sent_at?: string | null
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nonlife_insurer_metrics: {
         Row: {
           accident_others: number | null
