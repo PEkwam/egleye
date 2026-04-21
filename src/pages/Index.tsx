@@ -10,6 +10,7 @@ import { NPRASection } from '@/components/NPRASection';
 import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
 import { MobileDashboard } from '@/components/MobileDashboard';
 import { AINewsDigest } from '@/components/AINewsDigest';
+import { NewArticleAlertProvider, useTrackArticles } from '@/components/NewArticleAlertProvider';
 
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
@@ -26,7 +27,7 @@ import { Button } from '@/components/ui/button';
 // Auto-refresh interval in milliseconds (5 minutes)
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
 
-const Index = () => {
+const IndexInner = () => {
   const [activeCategory, setActiveCategory] = useState<NewsCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [timeRange, setTimeRange] = useState<TimeRange>('all');
@@ -43,6 +44,9 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
   const pensionArticles = useMemo(() => articles.filter(a => a.category === 'pensions'), [articles]);
   const { results: searchResults, isLoading: isSearching } = useNewsSearch(searchQuery);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Detect newly-arrived articles for the in-app toast alert
+  useTrackArticles(articles);
 
   // Manual refresh handler
   const handleRefresh = useCallback(async () => {
@@ -225,5 +229,11 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
     </div>
   );
 };
+
+const Index = () => (
+  <NewArticleAlertProvider>
+    <IndexInner />
+  </NewArticleAlertProvider>
+);
 
 export default Index;
