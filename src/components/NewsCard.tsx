@@ -129,7 +129,8 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
         href={article.source_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group flex gap-4 p-4 glass-effect rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+        onClick={handleClick}
+        className="group flex gap-4 p-4 glass-effect rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all duration-300 cursor-pointer"
       >
          {article.image_url && (
            <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-secondary">
@@ -168,7 +169,8 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
         href={article.source_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative block h-[260px] xs:h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden"
+        onClick={handleClick}
+        className="group relative block h-[260px] xs:h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden cursor-pointer"
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
         {article.image_url ? (
@@ -226,7 +228,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
   }
 
   return (
-    <a ref={ref} href={article.source_url} target="_blank" rel="noopener noreferrer" className="group news-card flex flex-col h-full">
+    <a ref={ref} href={article.source_url} target="_blank" rel="noopener noreferrer" onClick={handleClick} className="group news-card flex flex-col h-full cursor-pointer">
       <div className="relative h-48 overflow-hidden bg-secondary">
         {article.image_url ? (
           <ImageWithFallback src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
