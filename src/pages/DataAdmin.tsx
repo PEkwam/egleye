@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, Database, RefreshCw, FileSpreadsheet, Check, AlertTriangle, 
   FileUp, X, Trash2, Newspaper, Building2, Landmark, Image, ImagePlus,
-  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save, LogOut
+  BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save, LogOut, Mail
 } from 'lucide-react';
+import { SubscriberManager } from '@/components/admin/SubscriberManager';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
 import { RenameInsurerTool } from '@/components/admin/RenameInsurerTool';
@@ -165,7 +166,7 @@ interface BrokerSheetData {
   selected: boolean;
 }
 
-type AdminSection = 'overview' | 'news' | 'insurers' | 'brokers' | 'pension' | 'settings';
+type AdminSection = 'overview' | 'news' | 'insurers' | 'brokers' | 'pension' | 'subscribers' | 'settings';
 
 // Site Settings Section Component
 const SiteSettingsSection = () => {
@@ -1990,6 +1991,7 @@ const DataAdmin = () => {
     { id: 'insurers' as const, label: 'Insurers', icon: Shield, color: 'text-primary' },
     { id: 'brokers' as const, label: 'Brokers', icon: Users, color: 'text-purple-500' },
     { id: 'pension' as const, label: 'Pension', icon: Landmark, color: 'text-amber-500' },
+    { id: 'subscribers' as const, label: 'Subscribers', icon: Mail, color: 'text-pink-500' },
     { id: 'settings' as const, label: 'Site Settings', icon: Globe, color: 'text-cyan-500' },
   ];
 
@@ -2705,6 +2707,11 @@ const DataAdmin = () => {
             {/* Pension Section */}
             {activeSection === 'pension' && (
               <PensionDataManager />
+            )}
+
+            {/* Subscribers Section */}
+            {activeSection === 'subscribers' && (
+              <SubscriberManager />
             )}
 
             {/* Site Settings Section */}
