@@ -8,7 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mail, Plus, Trash2, RefreshCw, Users, Zap, CalendarDays } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Mail, Plus, Trash2, RefreshCw, Users, Zap, CalendarDays, RotateCcw, FastForward,
+  CheckCircle2, AlertCircle, Clock,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -20,6 +27,7 @@ interface Subscriber {
   is_active: boolean;
   last_sent_at: string | null;
   created_at: string;
+  send_stats?: { sent: number; pending: number; failed: number };
 }
 
 const isValidEmail = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.trim());
@@ -88,6 +96,26 @@ export function SubscriberManager() {
       queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
     },
     onError: (err: Error) => toast.error(err.message || 'Failed to remove'),
+  });
+
+  const resetUnreadMutation = useMutation({
+    mutationFn: (id: string) => callManage('reset_unread', { id }),
+    onSuccess: (res: { cleared: number }) => {
+      toast.success(`Unread reset · ${res.cleared} record${res.cleared === 1 ? '' : 's'} cleared`);
+      queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Reset failed'),
+  });
+
+  const catchUpMutation = useMutation({
+    mutationFn: (id: string) => callManage('mark_caught_up', { id }),
+    onSuccess: (res: { marked: number }) => {
+      toast.success(`Marked ${res.marked} article${res.marked === 1 ? '' : 's'} as already-sent`);
+      queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Catch-up failed'),
   });
 
   const handleAdd = (e: React.FormEvent) => {
@@ -207,70 +235,146 @@ export function SubscriberManager() {
           )}
 
           <div className="divide-y divide-border/50 rounded-xl border border-border/60 overflow-hidden">
-            {subscribers.map((sub) => (
-              <div
-                key={sub.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-sm truncate">{sub.email}</p>
-                    {!sub.is_active && (
-                      <Badge variant="outline" className="text-[10px]">Inactive</Badge>
-                    )}
+            {subscribers.map((sub) => {
+              const stats = sub.send_stats ?? { sent: 0, pending: 0, failed: 0 };
+              return (
+                <div
+                  key={sub.id}
+                  className="flex flex-col gap-3 p-3 sm:p-4 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm truncate">{sub.email}</p>
+                        {!sub.is_active && (
+                          <Badge variant="outline" className="text-[10px]">Inactive</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                        {sub.name && <span className="truncate max-w-[160px]">{sub.name}</span>}
+                        <span>Added {formatDistanceToNow(new Date(sub.created_at), { addSuffix: true })}</span>
+                        {sub.last_sent_at && (
+                          <span>Last sent {formatDistanceToNow(new Date(sub.last_sent_at), { addSuffix: true })}</span>
+                        )}
+                      </div>
+                      {/* Per-subscriber send stats */}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <Badge variant="outline" className="gap-1 text-[10px] bg-emerald-500/5 text-emerald-700 border-emerald-500/20">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          {stats.sent} sent
+                        </Badge>
+                        <Badge variant="outline" className="gap-1 text-[10px] bg-amber-500/5 text-amber-700 border-amber-500/20">
+                          <Clock className="h-2.5 w-2.5" />
+                          {stats.pending} pending
+                        </Badge>
+                        {stats.failed > 0 && (
+                          <Badge variant="outline" className="gap-1 text-[10px] bg-destructive/5 text-destructive border-destructive/20">
+                            <AlertCircle className="h-2.5 w-2.5" />
+                            {stats.failed} failed
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Select
+                        value={sub.frequency}
+                        onValueChange={(v) =>
+                          updateMutation.mutate({ id: sub.id, changes: { frequency: v as 'instant' | 'daily' } })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[140px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="instant">
+                            <span className="flex items-center gap-1.5"><Zap className="h-3 w-3" />Instant</span>
+                          </SelectItem>
+                          <SelectItem value="daily">
+                            <span className="flex items-center gap-1.5"><CalendarDays className="h-3 w-3" />Daily</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <div className="flex items-center gap-1.5">
+                        <Switch
+                          checked={sub.is_active}
+                          onCheckedChange={(checked) =>
+                            updateMutation.mutate({ id: sub.id, changes: { is_active: checked } })
+                          }
+                        />
+                        <Label className="text-xs text-muted-foreground">Active</Label>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          if (confirm(`Remove ${sub.email}?`)) deleteMutation.mutate(sub.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
-                    {sub.name && <span className="truncate max-w-[160px]">{sub.name}</span>}
-                    <span>Added {formatDistanceToNow(new Date(sub.created_at), { addSuffix: true })}</span>
-                    {sub.last_sent_at && (
-                      <span>Last sent {formatDistanceToNow(new Date(sub.last_sent_at), { addSuffix: true })}</span>
-                    )}
+
+                  {/* Unread tracking actions */}
+                  <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/30">
+                    <span className="text-[11px] text-muted-foreground">Unread tracking:</span>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
+                          <RotateCcw className="h-3 w-3" />
+                          Reset unread
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Reset unread for {sub.email}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This clears all delivery records for this subscriber so every existing
+                            article becomes "unread" again. They will be re-queued on the next send
+                            cycle. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => resetUnreadMutation.mutate(sub.id)}>
+                            Reset unread
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
+                          <FastForward className="h-3 w-3" />
+                          Mark caught up
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Mark {sub.email} as caught up?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Marks every existing article as already-sent so the subscriber only
+                            receives articles published from now on. Skips the historical backlog.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => catchUpMutation.mutate(sub.id)}>
+                            Mark caught up
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 flex-wrap">
-                  <Select
-                    value={sub.frequency}
-                    onValueChange={(v) =>
-                      updateMutation.mutate({ id: sub.id, changes: { frequency: v as 'instant' | 'daily' } })
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-[140px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="instant">
-                        <span className="flex items-center gap-1.5"><Zap className="h-3 w-3" />Instant</span>
-                      </SelectItem>
-                      <SelectItem value="daily">
-                        <span className="flex items-center gap-1.5"><CalendarDays className="h-3 w-3" />Daily</span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <div className="flex items-center gap-1.5">
-                    <Switch
-                      checked={sub.is_active}
-                      onCheckedChange={(checked) =>
-                        updateMutation.mutate({ id: sub.id, changes: { is_active: checked } })
-                      }
-                    />
-                    <Label className="text-xs text-muted-foreground">Active</Label>
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      if (confirm(`Remove ${sub.email}?`)) deleteMutation.mutate(sub.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </CardContent>
