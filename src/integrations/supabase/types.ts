@@ -430,6 +430,66 @@ export type Database = {
         }
         Relationships: []
       }
+      news_subscriber_sends: {
+        Row: {
+          article_id: string
+          attempts: number
+          created_at: string
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          message_id: string | null
+          queued_at: string
+          sent_at: string | null
+          status: string
+          subscriber_id: string
+          updated_at: string
+        }
+        Insert: {
+          article_id: string
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          message_id?: string | null
+          queued_at?: string
+          sent_at?: string | null
+          status?: string
+          subscriber_id: string
+          updated_at?: string
+        }
+        Update: {
+          article_id?: string
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          message_id?: string | null
+          queued_at?: string
+          sent_at?: string | null
+          status?: string
+          subscriber_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_subscriber_sends_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "news_subscriber_sends_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "news_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_subscribers: {
         Row: {
           created_at: string
