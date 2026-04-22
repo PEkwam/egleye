@@ -6,6 +6,7 @@ import {
   BarChart3, Settings, Users, TrendingUp, Shield, Zap, Calendar, Globe, Type, Save, LogOut, Mail
 } from 'lucide-react';
 import { SubscriberManager } from '@/components/admin/SubscriberManager';
+import { EmailDeliveryDashboard } from '@/components/admin/EmailDeliveryDashboard';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
 import { RenameInsurerTool } from '@/components/admin/RenameInsurerTool';
@@ -2711,7 +2712,10 @@ const DataAdmin = () => {
 
             {/* Subscribers Section */}
             {activeSection === 'subscribers' && (
-              <SubscriberManager />
+              <div className="space-y-6">
+                <SubscriberManager />
+                <EmailDeliveryDashboard />
+              </div>
             )}
 
             {/* Site Settings Section */}
