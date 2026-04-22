@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Newspaper } from 'lucide-react';
-import type { NewsArticle } from '@/types/news';
+import { Newspaper, ExternalLink } from 'lucide-react';
+import type { NewsArticle, NewsCategory } from '@/types/news';
+import { categoryLabels } from '@/types/news';
+import { sanitizeText } from '@/lib/utils/text';
 import { NewsReaderModal } from './NewsReaderModal';
 
 interface NewArticleAlertContextValue {
@@ -13,6 +15,68 @@ const NewArticleAlertContext = createContext<NewArticleAlertContextValue | null>
 
 interface ProviderProps {
   children: ReactNode;
+}
+
+/** Rich, branded toast for a single new article. */
+function NewArticleToast({
+  article,
+  extraCount,
+  onRead,
+}: {
+  article: NewsArticle;
+  extraCount: number;
+  onRead: () => void;
+}) {
+  const label = categoryLabels[article.category as NewsCategory] ?? 'Insurance News';
+  return (
+    <div className="flex gap-3 w-full max-w-[380px]">
+      {article.image_url ? (
+        <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-secondary">
+          <img
+            src={article.image_url}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      ) : (
+        <div className="w-16 h-16 rounded-lg flex-shrink-0 bg-primary/10 flex items-center justify-center">
+          <Newspaper className="h-6 w-6 text-primary" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+            </span>
+            New • {label}
+          </span>
+          {article.source_name && (
+            <span className="text-[10px] text-muted-foreground truncate">
+              · {article.source_name}
+            </span>
+          )}
+        </div>
+        <p className="text-sm font-semibold leading-snug text-foreground line-clamp-2">
+          {sanitizeText(article.title)}
+        </p>
+        {extraCount > 0 && (
+          <p className="text-xs text-muted-foreground mt-1">
+            +{extraCount} more new {extraCount === 1 ? 'story' : 'stories'}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={onRead}
+          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+        >
+          Read now <ExternalLink className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function NewArticleAlertProvider({ children }: ProviderProps) {
@@ -42,22 +106,27 @@ export function NewArticleAlertProvider({ children }: ProviderProps) {
 
     fresh.forEach((a) => seenIdsRef.current.add(a.id));
 
-    // Notify on the most recent fresh article (single toast to avoid spam)
     const latest = fresh[0];
     const extraCount = fresh.length - 1;
-    const description = extraCount > 0
-      ? `${latest.title} +${extraCount} more new ${extraCount === 1 ? 'story' : 'stories'}`
-      : latest.title;
 
-    toast(`New insurance news`, {
-      description,
-      icon: <Newspaper className="h-4 w-4 text-primary" />,
-      duration: 8000,
-      action: {
-        label: 'Read',
-        onClick: () => openArticle(latest),
+    toast.custom(
+      (id) => (
+        <div className="bg-background border border-border/60 rounded-xl shadow-2xl p-3.5 backdrop-blur-xl ring-1 ring-primary/10">
+          <NewArticleToast
+            article={latest}
+            extraCount={extraCount}
+            onRead={() => {
+              openArticle(latest);
+              toast.dismiss(id);
+            }}
+          />
+        </div>
+      ),
+      {
+        duration: 10000,
+        position: 'top-right',
       },
-    });
+    );
   }, [openArticle]);
 
   return (
