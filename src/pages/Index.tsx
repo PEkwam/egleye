@@ -10,7 +10,9 @@ import { NPRASection } from '@/components/NPRASection';
 import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
 import { MobileDashboard } from '@/components/MobileDashboard';
 import { AINewsDigest } from '@/components/AINewsDigest';
-import { NewArticleAlertProvider, useTrackArticles } from '@/components/NewArticleAlertProvider';
+import { NewArticleAlertProvider, useTrackArticles, useNewArticleAlerts } from '@/components/NewArticleAlertProvider';
+import { DesktopAlertsButton } from '@/components/DesktopAlertsButton';
+import { supabase } from '@/integrations/supabase/client';
 
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
