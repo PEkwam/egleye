@@ -841,6 +841,62 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          audience: string
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          is_active: boolean
+          label: string | null
+          last_error: string | null
+          last_success_at: string | null
+          p256dh: string
+          subscriber_id: string | null
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          audience?: string
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          p256dh: string
+          subscriber_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          audience?: string
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          p256dh?: string
+          subscriber_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "news_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_settings: {
         Row: {
           created_at: string
