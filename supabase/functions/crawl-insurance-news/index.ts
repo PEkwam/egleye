@@ -596,8 +596,8 @@ Deno.serve(async (req) => {
 
     console.log(`Unique articles after deduplication: ${uniqueArticles.length}`);
 
+    let insertedArticles: any[] = [];
     if (uniqueArticles.length > 0) {
-      // Insert articles, ignoring duplicates (based on source_url unique constraint)
       const { data: inserted, error: insertError } = await supabase
         .from('news_articles')
         .upsert(uniqueArticles, {
@@ -609,8 +609,20 @@ Deno.serve(async (req) => {
       if (insertError) {
         console.error('Error inserting articles:', insertError);
       } else {
-        console.log(`Inserted/updated ${inserted?.length || 0} articles`);
+        insertedArticles = inserted ?? [];
+        console.log(`Inserted/updated ${insertedArticles.length} articles`);
       }
+    }
+
+    // Fan out desktop push notifications for newly inserted articles (cap to 5)
+    try {
+      for (const art of insertedArticles.slice(0, 5)) {
+        await supabase.functions.invoke('web-push', {
+          body: { action: 'send_article', articleId: art.id, audience: 'all' },
+        });
+      }
+    } catch (pushErr) {
+      console.error('web-push fan-out failed', pushErr);
     }
 
     const modeLabel = nicOnly ? 'NIC-only' : pensionOnly ? 'Pension-only' : 'Full';

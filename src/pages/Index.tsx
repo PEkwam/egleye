@@ -10,7 +10,9 @@ import { NPRASection } from '@/components/NPRASection';
 import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
 import { MobileDashboard } from '@/components/MobileDashboard';
 import { AINewsDigest } from '@/components/AINewsDigest';
-import { NewArticleAlertProvider, useTrackArticles } from '@/components/NewArticleAlertProvider';
+import { NewArticleAlertProvider, useTrackArticles, useNewArticleAlerts } from '@/components/NewArticleAlertProvider';
+import { DesktopAlertsButton } from '@/components/DesktopAlertsButton';
+import { supabase } from '@/integrations/supabase/client';
 
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
@@ -47,6 +49,38 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
 
   // Detect newly-arrived articles for the in-app toast alert
   useTrackArticles(articles);
+  const { openArticle } = useNewArticleAlerts();
+
+  // Deep-link: open reader modal when arriving via ?article=ID (push notification click)
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const articleId = url.searchParams.get('article');
+    if (!articleId) return;
+    (async () => {
+      const { data } = await supabase.from('news_articles').select('*').eq('id', articleId).maybeSingle();
+      if (data) {
+        openArticle(data as unknown as NewsArticle);
+        url.searchParams.delete('article');
+        window.history.replaceState({}, '', url.toString());
+      }
+    })();
+  }, [openArticle]);
+
+  // Listen for messages from the push service worker (already-open tab path)
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = async (event: MessageEvent) => {
+      if (event.data?.type !== 'OPEN_ARTICLE' || !event.data.articleId) return;
+      const { data } = await supabase
+        .from('news_articles')
+        .select('*')
+        .eq('id', event.data.articleId)
+        .maybeSingle();
+      if (data) openArticle(data as unknown as NewsArticle);
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
+  }, [openArticle]);
 
   // Manual refresh handler
   const handleRefresh = useCallback(async () => {
@@ -152,13 +186,16 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
               <InsurerComparison />
             </div>
           </div>
-          <div className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 sm:py-1.5 rounded-full font-semibold flex items-center gap-1.5 flex-shrink-0 border border-primary/15 shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-50"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            <span className="hidden sm:inline">Insurance News Only</span>
-            <span className="sm:hidden">Live</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <DesktopAlertsButton audience="public" />
+            <div className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 sm:py-1.5 rounded-full font-semibold flex items-center gap-1.5 border border-primary/15 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-50"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              </span>
+              <span className="hidden sm:inline">Insurance News Only</span>
+              <span className="sm:hidden">Live</span>
+            </div>
           </div>
         </div>
       </div>
