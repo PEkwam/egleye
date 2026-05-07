@@ -54,7 +54,7 @@ export function DesktopAlertsButton({ audience = 'public', className }: Props) {
             description: 'New articles will appear in your system tray / notification centre.',
           });
         } else {
-          toast.error('Could not enable alerts', { description: result.reason });
+          toast.error('Could not enable alerts', { description: 'reason' in result ? result.reason : undefined });
         }
       }
     } catch (err) {
