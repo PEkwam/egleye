@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SubscriberManager } from '@/components/admin/SubscriberManager';
 import { EmailDeliveryDashboard } from '@/components/admin/EmailDeliveryDashboard';
+import { PushNotificationsPanel } from '@/components/admin/PushNotificationsPanel';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
 import { RenameInsurerTool } from '@/components/admin/RenameInsurerTool';
@@ -2714,6 +2715,7 @@ const DataAdmin = () => {
             {activeSection === 'subscribers' && (
               <div className="space-y-6">
                 <SubscriberManager />
+                <PushNotificationsPanel />
                 <EmailDeliveryDashboard />
               </div>
             )}
