@@ -9,6 +9,14 @@ export const isPushSupported = () =>
   'PushManager' in window &&
   'Notification' in window;
 
+export const isInIframe = (): boolean => {
+  try {
+    return typeof window !== 'undefined' && window.self !== window.top;
+  } catch {
+    return true;
+  }
+};
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
