@@ -103,11 +103,13 @@ export function ExecutiveDashboard({
       icon: Clock,
       value: stats.todayCount,
       label: "Today's News",
+      sparkColor: 'hsl(var(--primary))',
+      sparkData: stats.series.all.slice(-7),
+      delta: stats.delta.all,
       gradient: 'from-primary/15 via-primary/8 to-primary/3',
       border: 'border-primary/25 hover:border-primary/50',
       iconBg: 'bg-gradient-to-br from-primary to-primary/80',
       iconShadow: 'shadow-primary/30',
-      textColor: 'text-primary',
       glowColor: 'hover:shadow-primary/15',
     },
     {
@@ -115,11 +117,13 @@ export function ExecutiveDashboard({
       icon: Shield,
       value: stats.regulatorCount,
       label: 'NIC Updates',
+      sparkColor: 'hsl(var(--destructive))',
+      sparkData: stats.series.regulator.slice(-7),
+      delta: stats.delta.regulator,
       gradient: 'from-destructive/12 via-destructive/6 to-destructive/2',
       border: 'border-destructive/20 hover:border-destructive/45',
       iconBg: 'bg-gradient-to-br from-destructive to-destructive/80',
       iconShadow: 'shadow-destructive/30',
-      textColor: 'text-destructive',
       glowColor: 'hover:shadow-destructive/15',
     },
     {
@@ -127,11 +131,13 @@ export function ExecutiveDashboard({
       icon: Building2,
       value: stats.enterpriseCount,
       label: 'Enterprise',
+      sparkColor: 'hsl(var(--accent))',
+      sparkData: stats.series.enterprise.slice(-7),
+      delta: stats.delta.enterprise,
       gradient: 'from-accent/15 via-accent/8 to-accent/3',
       border: 'border-accent/25 hover:border-accent/50',
       iconBg: 'bg-gradient-to-br from-accent to-accent/80',
       iconShadow: 'shadow-accent/30',
-      textColor: 'text-accent-foreground',
       glowColor: 'hover:shadow-accent/15',
     },
     {
@@ -139,11 +145,13 @@ export function ExecutiveDashboard({
       icon: BarChart3,
       value: stats.weekCount,
       label: 'This Week',
+      sparkColor: 'hsl(var(--muted-foreground))',
+      sparkData: stats.series.all.slice(-7),
+      delta: stats.delta.all,
       gradient: 'from-secondary/50 via-secondary/25 to-secondary/10',
       border: 'border-border hover:border-primary/30',
       iconBg: 'bg-gradient-to-br from-muted-foreground/80 to-muted-foreground/60',
       iconShadow: 'shadow-muted-foreground/20',
-      textColor: 'text-muted-foreground',
       glowColor: 'hover:shadow-muted-foreground/10',
     },
   ];
@@ -152,7 +160,7 @@ export function ExecutiveDashboard({
     <section className="relative overflow-hidden">
       {/* Ambient glow */}
       <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-      
+
       <div className="container mx-auto px-4 py-6 md:py-8 relative">
         {/* Executive Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
@@ -176,34 +184,47 @@ export function ExecutiveDashboard({
           )}
         </div>
 
-        {/* Key Metrics Grid */}
+        {/* Key Metrics Grid - Bento with sparklines */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4 mb-6 md:mb-8">
-          {metricCards.map((card, index) => (
-            <Link key={index} to={card.href} className="group">
-              <Card className={`relative overflow-hidden bg-gradient-to-br ${card.gradient} border ${card.border} transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${card.glowColor} h-full`}>
-                {/* Decorative corner glow */}
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-foreground/3 to-transparent rounded-bl-[60px] group-hover:scale-125 transition-transform duration-500" />
-                <CardContent className="p-3 sm:p-4 md:p-6 relative">
-                  <div className="flex items-center gap-2.5 sm:gap-3">
-                    <div className={`p-2 sm:p-2.5 ${card.iconBg} rounded-xl shadow-lg ${card.iconShadow} group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}>
-                      <card.icon className="h-4 w-4 text-primary-foreground" />
+          {metricCards.map((card, index) => {
+            const positive = card.delta >= 0;
+            return (
+              <Link key={index} to={card.href} className="group">
+                <Card className={`relative overflow-hidden bg-gradient-to-br ${card.gradient} border ${card.border} transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${card.glowColor} h-full`}>
+                  {/* Decorative corner glow */}
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-foreground/3 to-transparent rounded-bl-[60px] group-hover:scale-125 transition-transform duration-500" />
+                  <CardContent className="p-3 sm:p-4 md:p-5 relative">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className={`p-2 sm:p-2.5 ${card.iconBg} rounded-xl shadow-lg ${card.iconShadow} group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}>
+                        <card.icon className="h-4 w-4 text-primary-foreground" />
+                      </div>
+                      {card.sparkData.some(v => v > 0) && (
+                        <span
+                          className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
+                            positive
+                              ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                              : 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20'
+                          }`}
+                        >
+                          {positive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                          {positive ? '+' : ''}{card.delta}%
+                        </span>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tabular-nums">{card.value}</p>
-                      <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate">{card.label}</p>
-                    </div>
-                  </div>
-                  {/* Subtle progress indicator */}
-                  <div className="mt-3 h-0.5 w-full bg-border/50 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${card.iconBg} rounded-full transition-all duration-1000`} 
-                      style={{ width: `${Math.min(100, (card.value / Math.max(stats.totalCount, 1)) * 100 + 15)}%` }}
+                    <CountUp
+                      value={card.value}
+                      className="text-2xl sm:text-3xl md:text-[2rem] font-bold text-foreground tabular-nums leading-none block"
                     />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                    <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate mt-1">{card.label}</p>
+                    {/* Sparkline */}
+                    <div className="mt-2 -mx-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                      <Sparkline data={card.sparkData} color={card.sparkColor} height={28} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Priority Alert - Latest Regulator News */}
