@@ -51,8 +51,24 @@ export async function enableDesktopPush(opts: {
 } = {}): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (!isPushSupported()) return { ok: false, reason: 'Your browser does not support push notifications.' };
 
+  if (isInIframe()) {
+    return {
+      ok: false,
+      reason:
+        'Browsers block notification permission inside the Lovable preview iframe. Open the app in its own tab (or visit the published URL) and try again.',
+    };
+  }
+
   const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return { ok: false, reason: 'Permission was not granted.' };
+  if (permission !== 'granted') {
+    return {
+      ok: false,
+      reason:
+        permission === 'denied'
+          ? 'Notifications are blocked for this site. Enable them in your browser site settings (lock icon in the address bar) and try again.'
+          : 'Permission was dismissed. Click again and choose "Allow" in the browser prompt.',
+    };
+  }
 
   // Fetch VAPID public key
   const { data: keyResp, error: keyErr } = await supabase.functions.invoke('web-push', {
