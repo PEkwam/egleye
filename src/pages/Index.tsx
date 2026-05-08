@@ -12,6 +12,8 @@ import { MobileDashboard } from '@/components/MobileDashboard';
 import { AINewsDigest } from '@/components/AINewsDigest';
 import { NewArticleAlertProvider, useTrackArticles, useNewArticleAlerts } from '@/components/NewArticleAlertProvider';
 import { DesktopAlertsButton } from '@/components/DesktopAlertsButton';
+import { CommandPalette } from '@/components/CommandPalette';
+import { ScrollProgressBar } from '@/components/ScrollProgressBar';
 import { supabase } from '@/integrations/supabase/client';
 
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
@@ -157,6 +159,8 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
 
   return (
     <div className="min-h-screen bg-background mesh-gradient">
+      <ScrollProgressBar />
+      <CommandPalette />
       {/* Breaking News Ticker */}
       <BreakingTicker articles={tickerArticles} />
       
