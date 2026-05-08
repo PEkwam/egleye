@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, AlertTriangle, Building2, Clock, FileText, Shield, ChevronRight, Zap, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, Building2, Clock, Shield, ChevronRight, Zap, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { NewsArticle } from '@/types/news';
-import { format, isToday, isThisWeek } from 'date-fns';
+import { format, isToday, isThisWeek, subDays, startOfDay } from 'date-fns';
 import { sanitizeText } from '@/lib/utils/text';
+import { Sparkline } from '@/components/Sparkline';
+import { CountUp } from '@/components/CountUp';
 
 interface ExecutiveDashboardProps {
   articles: NewsArticle[];
@@ -23,8 +25,8 @@ export function ExecutiveDashboard({
   const stats = useMemo(() => {
     const today = articles.filter(a => a.published_at && isToday(new Date(a.published_at)));
     const thisWeek = articles.filter(a => a.published_at && isThisWeek(new Date(a.published_at)));
-    
-    const criticalUpdates = regulatorArticles.filter(a => 
+
+    const criticalUpdates = regulatorArticles.filter(a =>
       a.published_at && (isToday(new Date(a.published_at)) || isThisWeek(new Date(a.published_at)))
     );
 
@@ -32,6 +34,32 @@ export function ExecutiveDashboard({
       acc[article.category] = (acc[article.category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
+
+    // Build per-day series for sparklines (last 14 days)
+    const buildSeries = (list: NewsArticle[], days = 14) => {
+      const buckets = new Array(days).fill(0);
+      const today0 = startOfDay(new Date());
+      list.forEach(a => {
+        if (!a.published_at) return;
+        const d = startOfDay(new Date(a.published_at));
+        const diff = Math.floor((today0.getTime() - d.getTime()) / 86400000);
+        if (diff >= 0 && diff < days) buckets[days - 1 - diff] += 1;
+      });
+      return buckets;
+    };
+
+    // Week-over-week delta helper
+    const wowDelta = (series: number[]) => {
+      if (series.length < 14) return 0;
+      const last = series.slice(-7).reduce((s, n) => s + n, 0);
+      const prev = series.slice(-14, -7).reduce((s, n) => s + n, 0);
+      if (prev === 0) return last > 0 ? 100 : 0;
+      return Math.round(((last - prev) / prev) * 100);
+    };
+
+    const allSeries = buildSeries(articles);
+    const regSeries = buildSeries(regulatorArticles);
+    const entSeries = buildSeries(enterpriseArticles);
 
     return {
       todayCount: today.length,
@@ -43,6 +71,12 @@ export function ExecutiveDashboard({
       byCategory,
       latestRegulator: regulatorArticles[0],
       latestUpdate: articles[0],
+      series: { all: allSeries, regulator: regSeries, enterprise: entSeries },
+      delta: {
+        all: wowDelta(allSeries),
+        regulator: wowDelta(regSeries),
+        enterprise: wowDelta(entSeries),
+      },
     };
   }, [articles, regulatorArticles, enterpriseArticles]);
 
