@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, BellRing, Loader2 } from 'lucide-react';
+import { Bell, BellOff, BellRing, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -8,6 +8,7 @@ import {
   getCurrentSubscription,
   getPermissionStatus,
   isPushSupported,
+  isInIframe,
 } from '@/lib/push';
 
 interface Props {
@@ -39,7 +40,23 @@ export function DesktopAlertsButton({ audience = 'public', className }: Props) {
 
   if (!supported) return null;
 
+  const inIframe = isInIframe();
+
+  const openInNewTab = () => {
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const onClick = async () => {
+    if (inIframe && !enabled) {
+      toast.info('Open the app in its own tab', {
+        description:
+          'Browsers block notification permission inside the Lovable preview iframe. Click "Open in tab" to continue.',
+        action: { label: 'Open in tab', onClick: openInNewTab },
+        duration: 8000,
+      });
+      return;
+    }
     setBusy(true);
     try {
       if (enabled) {
@@ -54,7 +71,10 @@ export function DesktopAlertsButton({ audience = 'public', className }: Props) {
             description: 'New articles will appear in your system tray / notification centre.',
           });
         } else {
-          toast.error('Could not enable alerts', { description: 'reason' in result ? result.reason : undefined });
+          toast.error('Could not enable alerts', {
+            description: 'reason' in result ? result.reason : undefined,
+            duration: 8000,
+          });
         }
       }
     } catch (err) {
@@ -66,7 +86,7 @@ export function DesktopAlertsButton({ audience = 'public', className }: Props) {
     }
   };
 
-  const Icon = busy ? Loader2 : enabled ? BellRing : Bell;
+  const Icon = busy ? Loader2 : inIframe && !enabled ? ExternalLink : enabled ? BellRing : Bell;
   return (
     <Button
       type="button"
@@ -75,11 +95,17 @@ export function DesktopAlertsButton({ audience = 'public', className }: Props) {
       onClick={onClick}
       disabled={busy}
       className={className}
-      title={enabled ? 'Desktop alerts enabled — click to disable' : 'Get insurance news in your system tray'}
+      title={
+        inIframe && !enabled
+          ? 'Open the app in its own tab to enable desktop alerts'
+          : enabled
+            ? 'Desktop alerts enabled — click to disable'
+            : 'Get insurance news in your system tray'
+      }
     >
       <Icon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
       <span className="hidden sm:inline ml-1.5">
-        {enabled ? 'Alerts on' : 'Desktop alerts'}
+        {enabled ? 'Alerts on' : inIframe ? 'Open in tab to enable' : 'Desktop alerts'}
       </span>
     </Button>
   );
