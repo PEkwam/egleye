@@ -107,8 +107,11 @@ export function Header({
                 placeholder="Search news, insurers, regulators..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 h-10 bg-muted/50 border-0 rounded-full focus:bg-muted focus:ring-2 focus:ring-primary/20 text-sm"
+                className="w-full pl-10 pr-16 h-10 bg-muted/50 border-0 rounded-full focus:bg-muted focus:ring-2 focus:ring-primary/20 text-sm"
               />
+              <kbd className="hidden xl:inline-flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 px-1.5 h-6 text-[10px] font-medium text-muted-foreground bg-background/80 border border-border/60 rounded-md pointer-events-none select-none">
+                <span className="text-sm leading-none">⌘</span>K
+              </kbd>
             </div>
           </form>
 
