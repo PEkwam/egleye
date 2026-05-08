@@ -23,7 +23,13 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
+
+const toggleDark = () => {
+  const root = document.documentElement;
+  root.classList.toggle('dark');
+};
+const isDark = () =>
+  typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
 /**
  * Global ⌘K / Ctrl+K command palette for fast navigation.
@@ -32,7 +38,7 @@ import { useTheme } from 'next-themes';
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { setTheme, theme } = useTheme();
+  const [dark, setDark] = useState(isDark());
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -118,12 +124,13 @@ export function CommandPalette() {
         <CommandGroup heading="Preferences">
           <CommandItem
             onSelect={() => {
-              setTheme(theme === 'dark' ? 'light' : 'dark');
+              toggleDark();
+              setDark(isDark());
               setOpen(false);
             }}
           >
-            {theme === 'dark' ? <Sun /> : <Moon />}
-            <span>Toggle {theme === 'dark' ? 'Light' : 'Dark'} Mode</span>
+            {dark ? <Sun /> : <Moon />}
+            <span>Toggle {dark ? 'Light' : 'Dark'} Mode</span>
           </CommandItem>
           <CommandItem
             onSelect={() => {
