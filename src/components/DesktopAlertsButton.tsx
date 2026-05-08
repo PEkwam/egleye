@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, BellRing, Loader2 } from 'lucide-react';
+import { Bell, BellOff, BellRing, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -8,6 +8,7 @@ import {
   getCurrentSubscription,
   getPermissionStatus,
   isPushSupported,
+  isInIframe,
 } from '@/lib/push';
 
 interface Props {
