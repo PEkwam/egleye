@@ -157,6 +157,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
 
   const wordCount = (article.content || article.description || '').split(' ').length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const insight = useMemo(() => buildInsight(article), [article]);
 
   if (variant === 'compact') {
     return (
@@ -186,7 +187,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
             <CredibilityBadge sourceName={article.source_name} />
             <span className="text-[10px] text-muted-foreground">{readingTime} min</span>
           </div>
-          <h3 className="font-semibold text-sm text-foreground line-clamp-2 group-hover:text-primary transition-colors font-display">
+          <h3 className="font-serif font-semibold text-base text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
             {sanitizeText(article.title)}
           </h3>
           <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
@@ -237,7 +238,7 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
             </span>
           </div>
           
-          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white font-display mb-2 md:mb-4 group-hover:text-accent transition-colors leading-tight line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
+          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-[2.5rem] font-bold text-white font-serif mb-2 md:mb-4 group-hover:text-accent transition-colors leading-[1.1] tracking-tight line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
             {sanitizeText(article.title)}
           </h2>
           
@@ -284,9 +285,15 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
       </div>
 
       <div className="flex flex-col flex-1 p-5">
-        <h3 className="text-lg font-semibold font-display text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-3">
+        <h3 className="text-lg md:text-xl font-serif font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-2 leading-[1.2] tracking-tight">
           {sanitizeText(article.title)}
         </h3>
+        {insight && (
+          <div className="inline-flex items-center gap-1 self-start text-[10px] font-medium text-primary bg-primary/8 border border-primary/15 rounded-full px-2 py-0.5 mb-2.5">
+            <Sparkles className="h-2.5 w-2.5" />
+            <span className="truncate max-w-[180px]">{insight}</span>
+          </div>
+        )}
         {article.description && (
           <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-4">{sanitizeText(article.description)}</p>
         )}
