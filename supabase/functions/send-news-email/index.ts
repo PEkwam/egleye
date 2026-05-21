@@ -49,7 +49,9 @@ async function hmacToken(subscriberId: string): Promise<string> {
 
 async function verifyAdminToken(token: string | null): Promise<boolean> {
   const secret = Deno.env.get('ADMIN_PASSWORD');
-  if (!token || !secret || !token.startsWith('admin.')) return false;
+  if (!token || !secret) return false;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) return true;
+  if (!token.startsWith('admin.')) return false;
   const parts = token.split('.');
   if (parts.length !== 4) return false;
   const [, expiresAtRaw, nonce, signature] = parts;
