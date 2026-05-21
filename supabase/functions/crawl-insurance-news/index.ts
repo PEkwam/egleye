@@ -637,6 +637,18 @@ Deno.serve(async (req) => {
       console.error('send-news-email enqueue failed', emailErr);
     }
 
+    // Process queued email alerts automatically so subscribers are not left in "pending".
+    try {
+      const { data: emailResult, error: emailProcessErr } = await supabase.functions.invoke('send-news-email', {
+        body: { action: 'process_queue', limit: 100 },
+        headers: { Authorization: `Bearer ${supabaseServiceKey}` },
+      });
+      if (emailProcessErr) throw emailProcessErr;
+      console.log('send-news-email process_queue result', emailResult);
+    } catch (emailProcessErr) {
+      console.error('send-news-email process_queue failed', emailProcessErr);
+    }
+
     const modeLabel = nicOnly ? 'NIC-only' : pensionOnly ? 'Pension-only' : 'Full';
     
     return new Response(
