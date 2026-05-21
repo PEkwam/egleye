@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anyone can register a push subscription" ON public.push_subscriptions;
