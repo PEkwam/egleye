@@ -175,6 +175,7 @@ Deno.serve(async (req) => {
     // ---- New: list send attempts (for delivery dashboard) ----
     if (action === 'list_sends') {
       const limit = Math.min(Number(body.limit ?? 100), 500);
+      const offset = Math.max(Number(body.offset ?? 0), 0);
       const status = body.status as string | undefined;
 
       let query = supabase
@@ -183,7 +184,7 @@ Deno.serve(async (req) => {
           'id, status, attempts, error_message, queued_at, sent_at, failed_at, created_at, updated_at, subscriber_id, article_id'
         )
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .range(offset, offset + limit - 1);
 
       if (status && ['pending', 'sent', 'failed', 'skipped'].includes(status)) {
         query = query.eq('status', status);
@@ -223,7 +224,14 @@ Deno.serve(async (req) => {
         if (c.status in totals) totals[c.status as keyof typeof totals] += 1;
       });
 
-      return json({ sends: enriched, totals });
+      // Total matching rows for pagination
+      let countQuery = supabase.from('news_subscriber_sends').select('*', { count: 'exact', head: true });
+      if (status && ['pending', 'sent', 'failed', 'skipped'].includes(status)) {
+        countQuery = countQuery.eq('status', status);
+      }
+      const { count: totalCount } = await countQuery;
+
+      return json({ sends: enriched, totals, totalCount: totalCount ?? 0 });
     }
 
     // ---- New: retry a failed send (resets to pending) ----

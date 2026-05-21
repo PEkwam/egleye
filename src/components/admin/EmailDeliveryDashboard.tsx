@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import {
   Mail, RefreshCw, Send, AlertCircle, CheckCircle2, Clock, SkipForward, RotateCw, Inbox, Play, TestTube,
 } from 'lucide-react';
@@ -28,6 +36,7 @@ interface SendRow {
 interface SendsResponse {
   sends: SendRow[];
   totals: { pending: number; sent: number; failed: number; skipped: number };
+  totalCount: number;
 }
 
 async function callManage(action: string, payload: Record<string, unknown> = {}) {
@@ -53,6 +62,13 @@ export function EmailDeliveryDashboard() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [testEmail, setTestEmail] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   async function callSender(action: string, payload: Record<string, unknown> = {}) {
     const token = sessionStorage.getItem('admin_token');
@@ -73,10 +89,11 @@ export function EmailDeliveryDashboard() {
   });
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['email-delivery-sends', statusFilter],
+    queryKey: ['email-delivery-sends', statusFilter, page],
     queryFn: async () => {
       const result = await callManage('list_sends', {
-        limit: 100,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
         status: statusFilter === 'all' ? undefined : statusFilter,
       });
       return result as SendsResponse;
@@ -86,6 +103,7 @@ export function EmailDeliveryDashboard() {
 
   const totals = data?.totals ?? { pending: 0, sent: 0, failed: 0, skipped: 0 };
   const sends = data?.sends ?? [];
+  const totalPages = Math.max(1, Math.ceil((data?.totalCount ?? 0) / pageSize));
 
   const retryMutation = useMutation({
     mutationFn: (id: string) => callManage('retry_send', { id }),
@@ -226,7 +244,11 @@ export function EmailDeliveryDashboard() {
             </SelectContent>
           </Select>
           <span className="text-xs text-muted-foreground ml-auto">
-            Showing {sends.length} most recent
+            {(data?.totalCount ?? 1) > 1
+              ? `Page ${page} of ${totalPages} · ${data?.totalCount ?? 0} total`
+              : sends.length > 1
+              ? `Showing ${sends.length} items`
+              : 'Showing 1 item'}
           </span>
         </div>
 
@@ -300,6 +322,39 @@ export function EmailDeliveryDashboard() {
               );
             })}
           </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }}
+                  className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <PaginationItem key={p}>
+                  <PaginationLink
+                    href="#"
+                    isActive={p === page}
+                    onClick={(e) => { e.preventDefault(); setPage(p); }}
+                  >
+                    {p}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)); }}
+                  className={page === totalPages ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         )}
       </CardContent>
     </Card>
