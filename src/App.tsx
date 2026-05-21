@@ -30,6 +30,7 @@ const NPRAPensions = lazy(() => import("./pages/NPRAPensions"));
 const PensionDashboard = lazy(() => import("./pages/PensionDashboard"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 const queryClient = new QueryClient();
 
