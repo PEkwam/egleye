@@ -62,6 +62,13 @@ export function EmailDeliveryDashboard() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [testEmail, setTestEmail] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   async function callSender(action: string, payload: Record<string, unknown> = {}) {
     const token = sessionStorage.getItem('admin_token');
@@ -82,10 +89,11 @@ export function EmailDeliveryDashboard() {
   });
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['email-delivery-sends', statusFilter],
+    queryKey: ['email-delivery-sends', statusFilter, page],
     queryFn: async () => {
       const result = await callManage('list_sends', {
-        limit: 100,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
         status: statusFilter === 'all' ? undefined : statusFilter,
       });
       return result as SendsResponse;
