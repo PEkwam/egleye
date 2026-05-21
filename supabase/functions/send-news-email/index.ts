@@ -1,7 +1,7 @@
 // Gmail-powered news alert sender.
 // Actions:
-//   - enqueue_article  { articleId }            (called by crawler, no admin token)
-//   - process_queue    { limit?: number = 25 }  (admin token)
+//   - enqueue_article  { articleId }            (crawler service-role or admin token)
+//   - process_queue    { limit?: number = 25 }  (crawler service-role or admin token)
 //   - send_test        { email, articleId? }    (admin token)
 //   - status                                    (admin token) -> returns connected gmail address + daily count
 
