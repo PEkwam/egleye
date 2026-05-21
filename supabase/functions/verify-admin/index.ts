@@ -42,6 +42,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Constant-ish delay + extra penalty on failure to slow brute force attempts
+    await new Promise((r) => setTimeout(r, 1500));
     return new Response(JSON.stringify({ error: 'Invalid password' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
