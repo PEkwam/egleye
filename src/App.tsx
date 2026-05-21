@@ -30,6 +30,7 @@ const NPRAPensions = lazy(() => import("./pages/NPRAPensions"));
 const PensionDashboard = lazy(() => import("./pages/PensionDashboard"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
                 <Route path="/brokers-dashboard" element={<BrokersDashboard />} />
                 <Route path="/npra-pensions" element={<NPRAPensions />} />
                 <Route path="/pension-dashboard" element={<PensionDashboard />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

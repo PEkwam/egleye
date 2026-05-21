@@ -625,6 +625,17 @@ Deno.serve(async (req) => {
       console.error('web-push fan-out failed', pushErr);
     }
 
+    // Enqueue email alerts (Gmail) for newly inserted articles (cap to 5)
+    try {
+      for (const art of insertedArticles.slice(0, 5)) {
+        await supabase.functions.invoke('send-news-email', {
+          body: { action: 'enqueue_article', articleId: art.id },
+        });
+      }
+    } catch (emailErr) {
+      console.error('send-news-email enqueue failed', emailErr);
+    }
+
     const modeLabel = nicOnly ? 'NIC-only' : pensionOnly ? 'Pension-only' : 'Full';
     
     return new Response(
