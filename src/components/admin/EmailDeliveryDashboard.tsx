@@ -105,6 +105,24 @@ export function EmailDeliveryDashboard() {
     onError: (err: Error) => toast.error(err.message || 'Bulk retry failed'),
   });
 
+  const processMutation = useMutation({
+    mutationFn: () => callSender('process_queue', { limit: 25 }) as Promise<{ processed: number; sent: number; failed: number }>,
+    onSuccess: (res) => {
+      toast.success(`Processed ${res.processed} · ${res.sent} sent · ${res.failed} failed`);
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Processing failed'),
+  });
+
+  const testMutation = useMutation({
+    mutationFn: (email: string) => callSender('send_test', { email }) as Promise<{ ok: boolean; from?: string }>,
+    onSuccess: (res) => {
+      toast.success(`Test email sent from ${res.from ?? 'Gmail'}`);
+      setTestEmail('');
+    },
+    onError: (err: Error) => toast.error(err.message || 'Test send failed'),
+  });
+
   return (
     <Card>
       <CardHeader>
