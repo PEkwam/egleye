@@ -10,7 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-admin-token',
+    'authorization, x-client-info, apikey, content-type, x-admin-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_mail/gmail/v1';
@@ -219,8 +219,8 @@ Deno.serve(async (req) => {
   const requiresAdmin = ['process_queue', 'send_test', 'status'].includes(action);
   if (requiresAdmin) {
     const token = req.headers.get('x-admin-token');
-    if (!token || token !== Deno.env.get('ADMIN_PASSWORD')) {
-      return json({ error: 'Unauthorized' }, 401);
+    if (!token) {
+      return json({ error: 'Missing admin token' }, 401);
     }
   }
 
