@@ -35,12 +35,12 @@ export function useSiteSettings() {
 
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      const { error } = await supabase
-        .from('site_settings')
-        .update({ setting_value: value })
-        .eq('setting_key', key);
-      
+      const { data, error } = await supabase.functions.invoke('update-site-setting', {
+        body: { key, value },
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['site-settings'] });
