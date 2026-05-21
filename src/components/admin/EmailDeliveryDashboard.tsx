@@ -172,11 +172,9 @@ export function EmailDeliveryDashboard() {
             <Mail className="h-3 w-3" />
             {gmailStatus.data?.connected
               ? `Gmail: ${gmailStatus.data.profile?.emailAddress ?? 'connected'}`
-              : gmailStatus.data?.status === 403
-                ? 'Gmail: permission update needed'
-                : 'Gmail: not connected'}
+              : 'Gmail: not connected'}
           </Badge>
-          {gmailStatus.data?.error && (
+          {!gmailStatus.data?.connected && gmailStatus.data?.error && (
             <span className="text-xs text-muted-foreground max-w-sm">
               {gmailStatus.data.error}
             </span>
