@@ -138,7 +138,7 @@ function buildPlain(article: Article, brand: SiteBrand, unsubUrl: string): strin
 }
 
 async function buildRawMessage(opts: {
-  from: string;
+  from?: string;
   fromName: string;
   to: string;
   subject: string;
@@ -148,14 +148,14 @@ async function buildRawMessage(opts: {
 }): Promise<string> {
   const boundary = `b_${crypto.randomUUID().replace(/-/g, '')}`;
   const headers = [
-    `From: ${opts.fromName} <${opts.from}>`,
+    opts.from ? `From: ${opts.fromName} <${opts.from}>` : null,
     `To: ${opts.to}`,
     `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(opts.subject)))}?=`,
     `MIME-Version: 1.0`,
     `List-Unsubscribe: <${opts.unsubUrl}>`,
     `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
-  ].join('\r\n');
+  ].filter(Boolean).join('\r\n');
   const body = [
     `--${boundary}`,
     `Content-Type: text/plain; charset="UTF-8"`,
@@ -240,7 +240,8 @@ Deno.serve(async (req) => {
   try {
     if (action === 'status') {
       const result = await getGmailProfile();
-      return json({ connected: !!result.profile, profile: result.profile, error: result.error, status: result.status });
+      const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
+      return json({ connected: hasConnectorSecrets, profile: result.profile, error: result.error, status: result.status });
     }
 
     if (action === 'enqueue_article') {
@@ -293,9 +294,8 @@ Deno.serve(async (req) => {
       const text = buildPlain(article, brand, unsubUrl);
 
       const { profile } = await getGmailProfile();
-      const fromEmail = profile?.emailAddress ?? 'me@gmail.com';
       const raw = await buildRawMessage({
-        from: fromEmail,
+        from: profile?.emailAddress,
         fromName: brand.siteName,
         to: email,
         subject: `[TEST] ${article.title}`,
@@ -303,7 +303,7 @@ Deno.serve(async (req) => {
       });
       const result = await sendViaGmail(raw);
       if (result.error) return json({ ok: false, error: result.error }, 502);
-      return json({ ok: true, messageId: result.id, from: fromEmail });
+      return json({ ok: true, messageId: result.id, from: profile?.emailAddress ?? 'connected Gmail account' });
     }
 
     if (action === 'process_queue') {
@@ -329,8 +329,8 @@ Deno.serve(async (req) => {
       ]);
       const subMap = new Map((subs ?? []).map((s: any) => [s.id, s]));
       const artMap = new Map((arts ?? []).map((a: any) => [a.id, a]));
-      const fromEmail = gmail.profile?.emailAddress;
-      if (!fromEmail) return json({ error: gmail.error || 'Gmail not connected' }, 500);
+      const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
+      if (!hasConnectorSecrets) return json({ error: 'Gmail not connected' }, 500);
 
       let sent = 0, failed = 0;
       for (const row of pending) {
@@ -350,7 +350,7 @@ Deno.serve(async (req) => {
         const html = buildHtml(art, sub, brand, unsubUrl);
         const text = buildPlain(art, brand, unsubUrl);
         const raw = await buildRawMessage({
-          from: fromEmail, fromName: brand.siteName, to: sub.email,
+          from: gmail.profile?.emailAddress, fromName: brand.siteName, to: sub.email,
           subject: art.title, html, text, unsubUrl,
         });
         const result = await sendViaGmail(raw);
