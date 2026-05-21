@@ -335,6 +335,7 @@ export function PensionDataManager() {
         toast.info('PDF uploaded. Parsing data...');
         
         const { data: result, error } = await supabase.functions.invoke('parse-npra-pdf', {
+          headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
           body: {
             year: parseInt(selectedYear),
             storagePath,

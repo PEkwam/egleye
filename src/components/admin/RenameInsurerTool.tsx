@@ -175,6 +175,7 @@ export function RenameInsurerTool() {
     setLastResult(null);
     try {
       const { data, error } = await supabase.functions.invoke('rename-insurer', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
         body: {
           oldInsurerId: selected.insurer_id,
           newInsurerId: newId.trim(),

@@ -17,7 +17,7 @@ const isEmail = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
 async function verifyAdminToken(token: string | null): Promise<boolean> {
   const secret = Deno.env.get('ADMIN_PASSWORD');
   if (!token || !secret) return false;
-  if (!token.startsWith('admin.')) return true;
+  if (!token.startsWith('admin.')) return false;
   const parts = token.split('.');
   if (parts.length !== 4) return false;
   const [, expiresAtRaw, nonce, signature] = parts;

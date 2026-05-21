@@ -565,7 +565,9 @@ const DataAdmin = () => {
   const handleSyncInsurers = async () => {
     setIsSyncingInsurers(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-nic-npra-insurers');
+      const { data, error } = await supabase.functions.invoke('sync-nic-npra-insurers', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       
       if (error) throw error;
       
@@ -583,7 +585,9 @@ const DataAdmin = () => {
   const handleSyncLogos = async () => {
     setIsSyncingLogos(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-insurer-logos');
+      const { data, error } = await supabase.functions.invoke('sync-insurer-logos', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       
       if (error) throw error;
       
@@ -601,7 +605,9 @@ const DataAdmin = () => {
   const handleSyncYears = async () => {
     setIsSyncingYears(true);
     try {
-      const { data, error } = await supabase.functions.invoke('scrape-insurer-years');
+      const { data, error } = await supabase.functions.invoke('scrape-insurer-years', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       
       if (error) throw error;
       
@@ -801,6 +807,7 @@ const DataAdmin = () => {
     setIsImportingPension(true);
     try {
       const { data, error } = await supabase.functions.invoke('parse-npra-pdf', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
         body: { year: parseInt(pensionImportYear) }
       });
       
@@ -835,6 +842,7 @@ const DataAdmin = () => {
         );
         
         const { data, error } = await supabase.functions.invoke('parse-npra-pdf', {
+          headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
           body: { 
             year: parseInt(pensionImportYear),
             fileContent: base64,
@@ -2033,7 +2041,8 @@ const DataAdmin = () => {
                 size="sm"
                 className="gap-1.5 text-destructive hover:text-destructive-foreground hover:bg-destructive/90 border-destructive/30"
                 onClick={() => {
-                  sessionStorage.removeItem('adminToken');
+                  sessionStorage.removeItem('admin_token');
+                  sessionStorage.removeItem('admin_login_time');
                   navigate('/admin-login');
                   toast.success('Logged out successfully');
                 }}

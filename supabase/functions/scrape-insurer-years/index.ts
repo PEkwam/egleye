@@ -2,8 +2,22 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-token',
 };
+
+async function verifyAdminToken(token: string | null): Promise<boolean> {
+  const secret = Deno.env.get('ADMIN_PASSWORD');
+  if (!token || !secret || !token.startsWith('admin.')) return false;
+  const parts = token.split('.');
+  if (parts.length !== 4) return false;
+  const [, expiresAtRaw, nonce, signature] = parts;
+  const expiresAt = Number(expiresAtRaw);
+  if (!Number.isFinite(expiresAt) || expiresAt < Date.now() || !nonce || !signature) return false;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${expiresAtRaw}.${nonce}`));
+  const expected = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return expected === signature;
+}
 
 // Known establishment years for Ghana insurers from NIC Annual Reports and public records
 // Source: NIC Annual Reports 2022, 2023 - Corporate Information sections
@@ -180,6 +194,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  if (!(await verifyAdminToken(req.headers.get('x-admin-token')))) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
