@@ -2033,7 +2033,8 @@ const DataAdmin = () => {
                 size="sm"
                 className="gap-1.5 text-destructive hover:text-destructive-foreground hover:bg-destructive/90 border-destructive/30"
                 onClick={() => {
-                  sessionStorage.removeItem('adminToken');
+                  sessionStorage.removeItem('admin_token');
+                  sessionStorage.removeItem('admin_login_time');
                   navigate('/admin-login');
                   toast.success('Logged out successfully');
                 }}
