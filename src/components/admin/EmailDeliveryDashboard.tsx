@@ -36,6 +36,7 @@ interface SendRow {
 interface SendsResponse {
   sends: SendRow[];
   totals: { pending: number; sent: number; failed: number; skipped: number };
+  totalCount: number;
 }
 
 async function callManage(action: string, payload: Record<string, unknown> = {}) {
