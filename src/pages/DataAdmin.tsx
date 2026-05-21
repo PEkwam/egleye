@@ -2724,8 +2724,10 @@ const DataAdmin = () => {
             {activeSection === 'subscribers' && (
               <div className="space-y-6">
                 <SubscriberManager />
-                <PushNotificationsPanel />
-                <EmailDeliveryDashboard />
+                <div className="max-w-5xl mx-auto space-y-6">
+                  <PushNotificationsPanel />
+                  <EmailDeliveryDashboard />
+                </div>
               </div>
             )}
 
