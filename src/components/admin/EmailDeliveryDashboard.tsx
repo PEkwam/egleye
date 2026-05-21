@@ -103,6 +103,7 @@ export function EmailDeliveryDashboard() {
 
   const totals = data?.totals ?? { pending: 0, sent: 0, failed: 0, skipped: 0 };
   const sends = data?.sends ?? [];
+  const totalPages = Math.max(1, Math.ceil((data?.totalCount ?? 0) / pageSize));
 
   const retryMutation = useMutation({
     mutationFn: (id: string) => callManage('retry_send', { id }),
