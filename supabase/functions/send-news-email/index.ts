@@ -293,6 +293,35 @@ Deno.serve(async (req) => {
       const articleId = String(body.articleId || '');
       if (!articleId) return json({ error: 'Missing articleId' }, 400);
 
+      // Safety net: only insurance/pension-related articles get emailed to subscribers.
+      // The crawler also filters, but this guards against TEST/manual inserts and drift.
+      const { data: art, error: aErr } = await supabase
+        .from('news_articles')
+        .select('title, description, content, category')
+        .eq('id', articleId)
+        .single();
+      if (aErr) throw aErr;
+
+      const haystack = `${art?.title ?? ''} ${art?.description ?? ''} ${art?.content ?? ''}`.toLowerCase();
+      const INSURANCE_TERMS = [
+        'insurance', 'insurer', 'insured', 'assurance', 'underwrit', 'policyholder',
+        'premium', 'claims', 'reinsurance', 'actuar', 'annuity', 'annuities',
+        'bancassurance', 'microinsurance', 'broker', 'brokerage',
+        'pension', 'pensions', 'retirement', 'ssnit', 'npra', 'trustee',
+        'provident fund', 'gratuity', 'tier 1', 'tier 2', 'tier 3',
+        'nic', 'national insurance commission', 'solvency',
+        // Local insurer/brand names
+        'enterprise life', 'enterprise group', 'enterprise insurance', 'enterprise trustees',
+        'acacia health', 'sic life', 'sic insurance', 'starlife', 'star assurance',
+        'glico', 'hollard', 'old mutual', 'allianz', 'prudential', 'vanguard assurance',
+        'donewell', 'metropolitan life',
+      ];
+      const isInsuranceRelated = INSURANCE_TERMS.some((kw) => haystack.includes(kw));
+      if (!isInsuranceRelated) {
+        console.log(`[enqueue_article] Skipping non-insurance article ${articleId}: "${art?.title?.slice(0, 80)}"`);
+        return json({ enqueued: 0, skipped: true, reason: 'not_insurance_related' });
+      }
+
       const { data: subs, error: sErr } = await supabase
         .from('news_subscribers')
         .select('id')
