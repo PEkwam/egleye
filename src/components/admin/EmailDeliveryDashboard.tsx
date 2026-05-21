@@ -330,15 +330,17 @@ export function EmailDeliveryDashboard() {
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }}
                   className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <PaginationItem key={p}>
                   <PaginationLink
+                    href="#"
                     isActive={p === page}
-                    onClick={() => setPage(p)}
+                    onClick={(e) => { e.preventDefault(); setPage(p); }}
                   >
                     {p}
                   </PaginationLink>
@@ -346,7 +348,8 @@ export function EmailDeliveryDashboard() {
               ))}
               <PaginationItem>
                 <PaginationNext
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)); }}
                   className={page === totalPages ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
