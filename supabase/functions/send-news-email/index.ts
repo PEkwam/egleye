@@ -10,7 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-admin-token',
+    'authorization, x-client-info, apikey, content-type, x-admin-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_mail/gmail/v1';
@@ -45,6 +45,29 @@ async function hmacToken(subscriberId: string): Promise<string> {
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(subscriberId));
   const hex = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
   return hex.slice(0, 32);
+}
+
+async function verifyAdminToken(token: string | null): Promise<boolean> {
+  const secret = Deno.env.get('ADMIN_PASSWORD');
+  if (!token || !secret) return false;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) return true;
+  if (!token.startsWith('admin.')) return false;
+  const parts = token.split('.');
+  if (parts.length !== 4) return false;
+  const [, expiresAtRaw, nonce, signature] = parts;
+  const expiresAt = Number(expiresAtRaw);
+  if (!Number.isFinite(expiresAt) || expiresAt < Date.now() || !nonce || !signature) return false;
+  const payload = `${expiresAtRaw}.${nonce}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const expected = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return expected === signature;
 }
 
 function escapeHtml(s: string): string {
@@ -138,7 +161,7 @@ function buildPlain(article: Article, brand: SiteBrand, unsubUrl: string): strin
 }
 
 async function buildRawMessage(opts: {
-  from: string;
+  from?: string;
   fromName: string;
   to: string;
   subject: string;
@@ -148,14 +171,14 @@ async function buildRawMessage(opts: {
 }): Promise<string> {
   const boundary = `b_${crypto.randomUUID().replace(/-/g, '')}`;
   const headers = [
-    `From: ${opts.fromName} <${opts.from}>`,
+    opts.from ? `From: ${opts.fromName} <${opts.from}>` : null,
     `To: ${opts.to}`,
     `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(opts.subject)))}?=`,
     `MIME-Version: 1.0`,
     `List-Unsubscribe: <${opts.unsubUrl}>`,
     `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
-  ].join('\r\n');
+  ].filter(Boolean).join('\r\n');
   const body = [
     `--${boundary}`,
     `Content-Type: text/plain; charset="UTF-8"`,
@@ -174,18 +197,31 @@ async function buildRawMessage(opts: {
   return b64urlEncode(`${headers}\r\n\r\n${body}`);
 }
 
-async function getGmailProfile(): Promise<{ emailAddress: string; messagesTotal?: number } | null> {
+type GmailProfileResult = {
+  profile: { emailAddress: string; messagesTotal?: number } | null;
+  error?: string;
+  status?: number;
+};
+
+async function getGmailProfile(): Promise<GmailProfileResult> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   const GOOGLE_MAIL_API_KEY = Deno.env.get('GOOGLE_MAIL_API_KEY');
-  if (!LOVABLE_API_KEY || !GOOGLE_MAIL_API_KEY) return null;
+  if (!LOVABLE_API_KEY || !GOOGLE_MAIL_API_KEY) return { profile: null, error: 'Gmail connector secrets are not available', status: 500 };
   const res = await fetch(`${GATEWAY_URL}/users/me/profile`, {
     headers: {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       'X-Connection-Api-Key': GOOGLE_MAIL_API_KEY,
     },
   });
-  if (!res.ok) return null;
-  return await res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      profile: null,
+      error: data?.error?.message || `Gmail profile check failed with HTTP ${res.status}`,
+      status: res.status,
+    };
+  }
+  return { profile: data };
 }
 
 async function sendViaGmail(raw: string): Promise<{ id?: string; error?: string; status: number }> {
@@ -219,15 +255,21 @@ Deno.serve(async (req) => {
   const requiresAdmin = ['process_queue', 'send_test', 'status'].includes(action);
   if (requiresAdmin) {
     const token = req.headers.get('x-admin-token');
-    if (!token || token !== Deno.env.get('ADMIN_PASSWORD')) {
+    if (!(await verifyAdminToken(token))) {
       return json({ error: 'Unauthorized' }, 401);
     }
   }
 
   try {
     if (action === 'status') {
-      const profile = await getGmailProfile();
-      return json({ connected: !!profile, profile });
+      const result = await getGmailProfile();
+      const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
+      return json({
+        connected: hasConnectorSecrets,
+        profile: result.profile,
+        error: hasConnectorSecrets ? undefined : result.error,
+        status: result.status,
+      });
     }
 
     if (action === 'enqueue_article') {
@@ -279,10 +321,9 @@ Deno.serve(async (req) => {
       const html = buildHtml(article, fakeSub, brand, unsubUrl);
       const text = buildPlain(article, brand, unsubUrl);
 
-      const profile = await getGmailProfile();
-      const fromEmail = profile?.emailAddress ?? 'me@gmail.com';
+      const { profile } = await getGmailProfile();
       const raw = await buildRawMessage({
-        from: fromEmail,
+        from: profile?.emailAddress,
         fromName: brand.siteName,
         to: email,
         subject: `[TEST] ${article.title}`,
@@ -290,7 +331,7 @@ Deno.serve(async (req) => {
       });
       const result = await sendViaGmail(raw);
       if (result.error) return json({ ok: false, error: result.error }, 502);
-      return json({ ok: true, messageId: result.id, from: fromEmail });
+      return json({ ok: true, messageId: result.id, from: profile?.emailAddress ?? 'connected Gmail account' });
     }
 
     if (action === 'process_queue') {
@@ -308,7 +349,7 @@ Deno.serve(async (req) => {
 
       const subIds = [...new Set(pending.map((r) => r.subscriber_id))];
       const artIds = [...new Set(pending.map((r) => r.article_id))];
-      const [{ data: subs }, { data: arts }, brand, profile] = await Promise.all([
+      const [{ data: subs }, { data: arts }, brand, gmail] = await Promise.all([
         supabase.from('news_subscribers').select('id, email, name, is_active').in('id', subIds),
         supabase.from('news_articles').select('id, title, description, source_url, source_name, image_url, category, published_at').in('id', artIds),
         loadBrand(),
@@ -316,8 +357,8 @@ Deno.serve(async (req) => {
       ]);
       const subMap = new Map((subs ?? []).map((s: any) => [s.id, s]));
       const artMap = new Map((arts ?? []).map((a: any) => [a.id, a]));
-      const fromEmail = profile?.emailAddress;
-      if (!fromEmail) return json({ error: 'Gmail not connected' }, 500);
+      const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
+      if (!hasConnectorSecrets) return json({ error: 'Gmail not connected' }, 500);
 
       let sent = 0, failed = 0;
       for (const row of pending) {
@@ -337,7 +378,7 @@ Deno.serve(async (req) => {
         const html = buildHtml(art, sub, brand, unsubUrl);
         const text = buildPlain(art, brand, unsubUrl);
         const raw = await buildRawMessage({
-          from: fromEmail, fromName: brand.siteName, to: sub.email,
+          from: gmail.profile?.emailAddress, fromName: brand.siteName, to: sub.email,
           subject: art.title, html, text, unsubUrl,
         });
         const result = await sendViaGmail(raw);

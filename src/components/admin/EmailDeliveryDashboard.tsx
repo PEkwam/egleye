@@ -68,7 +68,7 @@ export function EmailDeliveryDashboard() {
 
   const gmailStatus = useQuery({
     queryKey: ['gmail-status'],
-    queryFn: () => callSender('status') as Promise<{ connected: boolean; profile?: { emailAddress: string } }>,
+    queryFn: () => callSender('status') as Promise<{ connected: boolean; profile?: { emailAddress: string } | null; error?: string; status?: number }>,
     refetchInterval: 60000,
   });
 
@@ -174,6 +174,11 @@ export function EmailDeliveryDashboard() {
               ? `Gmail: ${gmailStatus.data.profile?.emailAddress ?? 'connected'}`
               : 'Gmail: not connected'}
           </Badge>
+          {!gmailStatus.data?.connected && gmailStatus.data?.error && (
+            <span className="text-xs text-muted-foreground max-w-sm">
+              {gmailStatus.data.error}
+            </span>
+          )}
           <div className="flex items-center gap-2 ml-auto">
             <Input
               type="email"
