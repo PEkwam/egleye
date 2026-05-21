@@ -63,7 +63,7 @@ export default function Unsubscribe() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MailOff className="h-5 w-5 text-primary" />
+            <Mail className="h-5 w-5 text-primary" />
             Email preferences
           </CardTitle>
         </CardHeader>
