@@ -241,7 +241,12 @@ Deno.serve(async (req) => {
     if (action === 'status') {
       const result = await getGmailProfile();
       const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
-      return json({ connected: hasConnectorSecrets, profile: result.profile, error: result.error, status: result.status });
+      return json({
+        connected: hasConnectorSecrets,
+        profile: result.profile,
+        error: hasConnectorSecrets ? undefined : result.error,
+        status: result.status,
+      });
     }
 
     if (action === 'enqueue_article') {
