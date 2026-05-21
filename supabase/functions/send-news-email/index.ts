@@ -70,6 +70,13 @@ async function verifyAdminToken(token: string | null): Promise<boolean> {
   return expected === signature;
 }
 
+function isServiceRoleCall(req: Request): boolean {
+  const auth = req.headers.get('authorization') ?? '';
+  const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  return !!serviceKey && bearer === serviceKey;
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
@@ -255,17 +262,15 @@ Deno.serve(async (req) => {
   const requiresAdmin = ['process_queue', 'send_test', 'status'].includes(action);
   if (requiresAdmin) {
     const token = req.headers.get('x-admin-token');
-    if (!(await verifyAdminToken(token))) {
+    const internalQueueProcessor = action === 'process_queue' && isServiceRoleCall(req);
+    if (!internalQueueProcessor && !(await verifyAdminToken(token))) {
       return json({ error: 'Unauthorized' }, 401);
     }
   }
 
   // enqueue_article is internal: require service-role bearer OR a valid admin token
   if (action === 'enqueue_article') {
-    const auth = req.headers.get('authorization') ?? '';
-    const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const hasServiceRole = !!serviceKey && bearer === serviceKey;
+    const hasServiceRole = isServiceRoleCall(req);
     const hasAdmin = await verifyAdminToken(req.headers.get('x-admin-token'));
     if (!hasServiceRole && !hasAdmin) {
       return json({ error: 'Unauthorized' }, 401);
