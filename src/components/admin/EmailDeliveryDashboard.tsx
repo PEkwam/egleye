@@ -52,6 +52,25 @@ const statusConfig: Record<SendRow['status'], { label: string; icon: typeof Chec
 export function EmailDeliveryDashboard() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [testEmail, setTestEmail] = useState('');
+
+  async function callSender(action: string, payload: Record<string, unknown> = {}) {
+    const token = sessionStorage.getItem('admin_token');
+    if (!token) throw new Error('Not authenticated');
+    const { data, error } = await supabase.functions.invoke('send-news-email', {
+      body: { action, ...payload },
+      headers: { 'x-admin-token': token },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+
+  const gmailStatus = useQuery({
+    queryKey: ['gmail-status'],
+    queryFn: () => callSender('status') as Promise<{ connected: boolean; profile?: { emailAddress: string } }>,
+    refetchInterval: 60000,
+  });
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['email-delivery-sends', statusFilter],
