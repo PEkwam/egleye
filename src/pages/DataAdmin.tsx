@@ -605,7 +605,9 @@ const DataAdmin = () => {
   const handleSyncYears = async () => {
     setIsSyncingYears(true);
     try {
-      const { data, error } = await supabase.functions.invoke('scrape-insurer-years');
+      const { data, error } = await supabase.functions.invoke('scrape-insurer-years', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       
       if (error) throw error;
       
