@@ -842,6 +842,7 @@ const DataAdmin = () => {
         );
         
         const { data, error } = await supabase.functions.invoke('parse-npra-pdf', {
+          headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
           body: { 
             year: parseInt(pensionImportYear),
             fileContent: base64,
