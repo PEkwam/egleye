@@ -326,7 +326,7 @@ Deno.serve(async (req) => {
         from: profile?.emailAddress,
         fromName: brand.siteName,
         to: email,
-        subject: `[TEST] ${article.title}`,
+        subject: '[TEST] EGL EYE News Alert',
         html, text, unsubUrl,
       });
       const result = await sendViaGmail(raw);
