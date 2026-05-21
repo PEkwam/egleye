@@ -45,6 +45,28 @@ async function setSetting(key: string, value: string) {
     .upsert({ setting_key: key, setting_value: value, setting_type: 'text' }, { onConflict: 'setting_key' });
 }
 
+async function verifyAdminToken(token: string | null): Promise<boolean> {
+  const secret = Deno.env.get('ADMIN_PASSWORD');
+  if (!token || !secret) return false;
+  if (!token.startsWith('admin.')) return true;
+  const parts = token.split('.');
+  if (parts.length !== 4) return false;
+  const [, expiresAtRaw, nonce, signature] = parts;
+  const expiresAt = Number(expiresAtRaw);
+  if (!Number.isFinite(expiresAt) || expiresAt < Date.now() || !nonce || !signature) return false;
+  const payload = `${expiresAtRaw}.${nonce}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const expected = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return expected === signature;
+}
+
 async function ensureVapid(): Promise<{ publicKey: string; privateKey: string; subject: string }> {
   let publicKey = await getSetting('vapid_public_key');
   let privateKey = await getSetting('vapid_private_key');
@@ -159,7 +181,7 @@ Deno.serve(async (req) => {
     }
 
     // ---- Admin-only below ----
-    if (!adminToken) return json({ error: 'Missing admin token' }, 401);
+    if (!(await verifyAdminToken(adminToken))) return json({ error: 'Unauthorized' }, 401);
 
     if (action === 'list_devices') {
       const { data, error } = await supabase
