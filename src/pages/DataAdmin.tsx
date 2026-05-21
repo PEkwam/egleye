@@ -565,7 +565,9 @@ const DataAdmin = () => {
   const handleSyncInsurers = async () => {
     setIsSyncingInsurers(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-nic-npra-insurers');
+      const { data, error } = await supabase.functions.invoke('sync-nic-npra-insurers', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       
       if (error) throw error;
       
