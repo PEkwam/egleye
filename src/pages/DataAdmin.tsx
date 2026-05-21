@@ -585,7 +585,9 @@ const DataAdmin = () => {
   const handleSyncLogos = async () => {
     setIsSyncingLogos(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-insurer-logos');
+      const { data, error } = await supabase.functions.invoke('sync-insurer-logos', {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       
       if (error) throw error;
       
