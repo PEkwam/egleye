@@ -136,7 +136,17 @@ export function EmailDeliveryDashboard() {
               Monitor news alert delivery, inspect failures, and retry failed sends.
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => processMutation.mutate()}
+              disabled={processMutation.isPending || totals.pending === 0}
+              className="gap-1.5"
+            >
+              <Play className={`h-3.5 w-3.5 ${processMutation.isPending ? 'animate-pulse' : ''}`} />
+              Process queue ({totals.pending})
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -150,6 +160,37 @@ export function EmailDeliveryDashboard() {
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-1.5">
               <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Gmail sender status + test */}
+        <div className="mt-4 p-3 rounded-lg border border-border/60 bg-muted/30 flex flex-wrap items-center gap-3">
+          <Badge variant="outline" className={gmailStatus.data?.connected
+            ? 'gap-1.5 bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+            : 'gap-1.5 bg-amber-500/10 text-amber-600 border-amber-500/30'}>
+            <Mail className="h-3 w-3" />
+            {gmailStatus.data?.connected
+              ? `Gmail: ${gmailStatus.data.profile?.emailAddress ?? 'connected'}`
+              : 'Gmail: not connected'}
+          </Badge>
+          <div className="flex items-center gap-2 ml-auto">
+            <Input
+              type="email"
+              placeholder="you@example.com"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              className="h-8 w-56 text-xs"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => testMutation.mutate(testEmail)}
+              disabled={testMutation.isPending || !testEmail || !gmailStatus.data?.connected}
+              className="gap-1.5"
+            >
+              <TestTube className="h-3.5 w-3.5" />
+              Send test
             </Button>
           </div>
         </div>
