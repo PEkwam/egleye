@@ -326,7 +326,7 @@ Deno.serve(async (req) => {
         from: profile?.emailAddress,
         fromName: brand.siteName,
         to: email,
-        subject: `[TEST] ${article.title}`,
+        subject: '[TEST] EGL EYE News Alert',
         html, text, unsubUrl,
       });
       const result = await sendViaGmail(raw);
@@ -379,7 +379,7 @@ Deno.serve(async (req) => {
         const text = buildPlain(art, brand, unsubUrl);
         const raw = await buildRawMessage({
           from: gmail.profile?.emailAddress, fromName: brand.siteName, to: sub.email,
-          subject: art.title, html, text, unsubUrl,
+          subject: 'EGL EYE News Alert', html, text, unsubUrl,
         });
         const result = await sendViaGmail(raw);
 
