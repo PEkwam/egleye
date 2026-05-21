@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, MailOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 type State =
