@@ -49,12 +49,12 @@ export function DesktopAlertsButton({ audience = 'public', className }: Props) {
 
   const onClick = async () => {
     if (inIframe && !enabled) {
-      toast.info('Open the app in its own tab', {
+      toast.info('Opening in a new tab…', {
         description:
-          'Browsers block notification permission inside the Lovable preview iframe. Click "Open in tab" to continue.',
-        action: { label: 'Open in tab', onClick: openInNewTab },
-        duration: 8000,
+          'Browsers block notification permission inside the preview iframe. Click the button again in the new tab to enable alerts.',
+        duration: 7000,
       });
+      openInNewTab();
       return;
     }
     setBusy(true);
