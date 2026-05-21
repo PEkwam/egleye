@@ -244,7 +244,11 @@ export function EmailDeliveryDashboard() {
             </SelectContent>
           </Select>
           <span className="text-xs text-muted-foreground ml-auto">
-            Showing {sends.length} most recent
+            {(data?.totalCount ?? 1) > 1
+              ? `Page ${page} of ${totalPages} · ${data?.totalCount ?? 0} total`
+              : sends.length > 1
+              ? `Showing ${sends.length} items`
+              : 'Showing 1 item'}
           </span>
         </div>
 
