@@ -260,6 +260,18 @@ Deno.serve(async (req) => {
     }
   }
 
+  // enqueue_article is internal: require service-role bearer OR a valid admin token
+  if (action === 'enqueue_article') {
+    const auth = req.headers.get('authorization') ?? '';
+    const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const hasServiceRole = !!serviceKey && bearer === serviceKey;
+    const hasAdmin = await verifyAdminToken(req.headers.get('x-admin-token'));
+    if (!hasServiceRole && !hasAdmin) {
+      return json({ error: 'Unauthorized' }, 401);
+    }
+  }
+
   try {
     if (action === 'status') {
       const result = await getGmailProfile();
