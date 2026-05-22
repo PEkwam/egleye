@@ -429,6 +429,16 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Freshness guard: never email stale articles, even if already queued.
+        const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
+        if (!pubAtMs || pubAtMs < new Date(MIN_PUBLISHED_AT).getTime()) {
+          await supabase.from('news_subscriber_sends').update({
+            status: 'skipped', error_message: 'stale article (pre-2026)',
+            sent_at: new Date().toISOString(),
+          }).eq('id', row.id);
+          continue;
+        }
+
         const token = await hmacToken(sub.id);
         const unsubUrl = `${SITE_URL}/unsubscribe?id=${sub.id}&t=${token}`;
         const html = buildHtml(art, sub, brand, unsubUrl);
