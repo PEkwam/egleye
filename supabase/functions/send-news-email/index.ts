@@ -300,10 +300,17 @@ Deno.serve(async (req) => {
       // The crawler also filters, but this guards against TEST/manual inserts and drift.
       const { data: art, error: aErr } = await supabase
         .from('news_articles')
-        .select('title, description, content, category')
+        .select('title, description, content, category, published_at')
         .eq('id', articleId)
         .single();
       if (aErr) throw aErr;
+
+      // Freshness guard: never email articles older than the cutoff.
+      const pubAt = art?.published_at ? new Date(art.published_at).getTime() : 0;
+      if (!pubAt || pubAt < new Date(MIN_PUBLISHED_AT).getTime()) {
+        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at})`);
+        return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
+      }
 
       const haystack = `${art?.title ?? ''} ${art?.description ?? ''} ${art?.content ?? ''}`.toLowerCase();
       const INSURANCE_TERMS = [
