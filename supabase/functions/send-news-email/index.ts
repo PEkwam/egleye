@@ -15,6 +15,9 @@ const corsHeaders = {
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_mail/gmail/v1';
 const SITE_URL = (Deno.env.get('SITE_URL') ?? 'https://egleye.lovable.app').replace(/\/+$/, '');
+// Subscribers only receive fresh news. Anything published before this cutoff
+// (or with no published_at at all) is treated as stale and never emailed.
+const MIN_PUBLISHED_AT = '2026-01-01T00:00:00Z';
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -297,10 +300,17 @@ Deno.serve(async (req) => {
       // The crawler also filters, but this guards against TEST/manual inserts and drift.
       const { data: art, error: aErr } = await supabase
         .from('news_articles')
-        .select('title, description, content, category')
+        .select('title, description, content, category, published_at')
         .eq('id', articleId)
         .single();
       if (aErr) throw aErr;
+
+      // Freshness guard: never email articles older than the cutoff.
+      const pubAt = art?.published_at ? new Date(art.published_at).getTime() : 0;
+      if (!pubAt || pubAt < new Date(MIN_PUBLISHED_AT).getTime()) {
+        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at})`);
+        return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
+      }
 
       const haystack = `${art?.title ?? ''} ${art?.description ?? ''} ${art?.content ?? ''}`.toLowerCase();
       const INSURANCE_TERMS = [
@@ -414,6 +424,16 @@ Deno.serve(async (req) => {
         if (!sub || !sub.is_active || !art) {
           await supabase.from('news_subscriber_sends').update({
             status: 'skipped', error_message: !sub ? 'subscriber missing' : !art ? 'article missing' : 'subscriber inactive',
+            sent_at: new Date().toISOString(),
+          }).eq('id', row.id);
+          continue;
+        }
+
+        // Freshness guard: never email stale articles, even if already queued.
+        const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
+        if (!pubAtMs || pubAtMs < new Date(MIN_PUBLISHED_AT).getTime()) {
+          await supabase.from('news_subscriber_sends').update({
+            status: 'skipped', error_message: 'stale article (pre-2026)',
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
