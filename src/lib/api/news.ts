@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { NewsArticle, NewsCategory } from '@/types/news';
 import type { TimeRange } from '@/components/TimeFilter';
 import { startOfDay, startOfWeek, startOfMonth, format } from 'date-fns';
-import { filterInsuranceArticles, isInsuranceRelated } from '@/lib/utils/insuranceFilter';
+import { filterInsuranceArticles } from '@/lib/utils/insuranceFilter';
 
 // Minimum date for news - January 2025
 const MIN_NEWS_DATE = '2025-01-01';
