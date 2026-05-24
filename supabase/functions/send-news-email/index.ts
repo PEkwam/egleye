@@ -434,9 +434,9 @@ Deno.serve(async (req) => {
 
         // Freshness guard: never email stale articles, even if already queued.
         const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
-        if (!pubAtMs || pubAtMs < new Date(MIN_PUBLISHED_AT).getTime()) {
+        if (!pubAtMs || pubAtMs < minPublishedAtMs()) {
           await supabase.from('news_subscriber_sends').update({
-            status: 'skipped', error_message: 'stale article (pre-2026)',
+            status: 'skipped', error_message: 'stale article (outside freshness window)',
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
