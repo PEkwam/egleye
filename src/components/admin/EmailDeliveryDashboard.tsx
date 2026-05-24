@@ -15,8 +15,15 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import {
-  Mail, RefreshCw, Send, AlertCircle, CheckCircle2, Clock, SkipForward, RotateCw, Inbox, Play, TestTube,
+  Mail, RefreshCw, Send, AlertCircle, CheckCircle2, Clock, SkipForward, RotateCw, Inbox, Play, TestTube, Trash2,
 } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -132,6 +139,30 @@ export function EmailDeliveryDashboard() {
     onError: (err: Error) => toast.error(err.message || 'Processing failed'),
   });
 
+  type DeleteRange = 'week' | 'month' | 'older_than_month' | 'all';
+  const rangeLabels: Record<DeleteRange, string> = {
+    week: 'past week',
+    month: 'past month',
+    older_than_month: 'older than 30 days',
+    all: 'ALL history',
+  };
+  const [pendingDelete, setPendingDelete] = useState<DeleteRange | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (range: DeleteRange) =>
+      callManage('delete_sends', { range }) as Promise<{ deleted: number }>,
+    onSuccess: (res) => {
+      toast.success(`Deleted ${res.deleted} delivery record${res.deleted === 1 ? '' : 's'}`);
+      setPendingDelete(null);
+      setPage(1);
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Delete failed');
+      setPendingDelete(null);
+    },
+  });
+
   const testMutation = useMutation({
     mutationFn: (email: string) => callSender('send_test', { email }) as Promise<{ ok: boolean; from?: string }>,
     onSuccess: (res) => {
@@ -142,6 +173,7 @@ export function EmailDeliveryDashboard() {
   });
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -179,6 +211,30 @@ export function EmailDeliveryDashboard() {
               <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear history
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Delete delivery records</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setPendingDelete('week')}>Past week</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setPendingDelete('month')}>Past month</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setPendingDelete('older_than_month')}>
+                  Older than 30 days
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={() => setPendingDelete('all')}
+                >
+                  All history
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -358,6 +414,28 @@ export function EmailDeliveryDashboard() {
         )}
       </CardContent>
     </Card>
+    <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete delivery history?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete delivery records from the {pendingDelete ? rangeLabels[pendingDelete] : ''}.
+            Subscribers and articles are not affected. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); if (pendingDelete) deleteMutation.mutate(pendingDelete); }}
+            disabled={deleteMutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

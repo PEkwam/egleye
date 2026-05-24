@@ -263,6 +263,34 @@ Deno.serve(async (req) => {
       return json({ success: true, retried: count ?? 0 });
     }
 
+    // ---- Delete sends history (by range and optional status) ----
+    // range: 'week' | 'month' | 'older_than_month' | 'all'
+    // status: optional 'sent' | 'failed' | 'pending' | 'skipped'
+    if (action === 'delete_sends') {
+      const range = String(body.range ?? 'older_than_month');
+      const status = body.status ? String(body.status) : null;
+      let q = supabase.from('news_subscriber_sends').delete({ count: 'exact' });
+      const now = Date.now();
+      const day = 24 * 60 * 60 * 1000;
+      if (range === 'week') {
+        q = q.gte('created_at', new Date(now - 7 * day).toISOString());
+      } else if (range === 'month') {
+        q = q.gte('created_at', new Date(now - 30 * day).toISOString());
+      } else if (range === 'older_than_month') {
+        q = q.lt('created_at', new Date(now - 30 * day).toISOString());
+      } else if (range !== 'all') {
+        return json({ error: 'Invalid range' }, 400);
+      }
+      if (status) q = q.eq('status', status);
+      // Supabase delete requires a filter; ensure we always have one.
+      if (range === 'all' && !status) {
+        q = q.not('id', 'is', null);
+      }
+      const { error, count } = await q;
+      if (error) throw error;
+      return json({ success: true, deleted: count ?? 0 });
+    }
+
     return json({ error: 'Unknown action' }, 400);
   } catch (err) {
     console.error('manage-subscribers error', err);
