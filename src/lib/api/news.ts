@@ -58,7 +58,8 @@ export const newsApi = {
       throw error;
     }
 
-    return (data || []) as NewsArticle[];
+    // Defense-in-depth: enforce insurance-only news at the display layer.
+    return filterInsuranceArticles((data || []) as NewsArticle[]);
   },
 
   async getFeaturedArticle(timeRange?: TimeRange): Promise<NewsArticle | null> {
