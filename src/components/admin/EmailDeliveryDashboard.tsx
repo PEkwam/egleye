@@ -173,6 +173,7 @@ export function EmailDeliveryDashboard() {
   });
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-4 flex-wrap">
