@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { NewsArticle, NewsCategory } from '@/types/news';
 import type { TimeRange } from '@/components/TimeFilter';
 import { startOfDay, startOfWeek, startOfMonth, format } from 'date-fns';
+import { filterInsuranceArticles } from '@/lib/utils/insuranceFilter';
 
 // Minimum date for news - January 2025
 const MIN_NEWS_DATE = '2025-01-01';
@@ -57,40 +58,34 @@ export const newsApi = {
       throw error;
     }
 
-    return (data || []) as NewsArticle[];
+    // Defense-in-depth: enforce insurance-only news at the display layer.
+    return filterInsuranceArticles((data || []) as NewsArticle[]);
   },
 
   async getFeaturedArticle(timeRange?: TimeRange): Promise<NewsArticle | null> {
     const minDate = timeRange ? getTimeRangeDate(timeRange) : MIN_NEWS_DATE;
-    
-    const { data, error } = await supabase
+
+    // Pull a few candidates so we can drop any non-insurance items at the edge.
+    const { data: featured } = await supabase
       .from('news_articles')
       .select('*')
       .eq('is_featured', true)
       .gte('published_at', minDate)
       .order('published_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
 
-    if (error) {
-      console.error('Error fetching featured article:', error);
-      return null;
-    }
+    const featuredInsurance = filterInsuranceArticles((featured || []) as NewsArticle[]);
+    if (featuredInsurance.length > 0) return featuredInsurance[0];
 
-    // If no featured article for this time range, get the latest article
-    if (!data) {
-      const { data: latestArticle } = await supabase
-        .from('news_articles')
-        .select('*')
-        .gte('published_at', minDate)
-        .order('published_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      return latestArticle as NewsArticle | null;
-    }
+    const { data: latest } = await supabase
+      .from('news_articles')
+      .select('*')
+      .gte('published_at', minDate)
+      .order('published_at', { ascending: false })
+      .limit(20);
 
-    return data as NewsArticle | null;
+    const latestInsurance = filterInsuranceArticles((latest || []) as NewsArticle[]);
+    return latestInsurance[0] ?? null;
   },
 
   async searchArticles(query: string): Promise<NewsArticle[]> {
@@ -100,14 +95,14 @@ export const newsApi = {
       .gte('published_at', MIN_NEWS_DATE)
       .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
       .order('published_at', { ascending: false })
-      .limit(20);
+      .limit(40);
 
     if (error) {
       console.error('Error searching articles:', error);
       throw error;
     }
 
-    return (data || []) as NewsArticle[];
+    return filterInsuranceArticles((data || []) as NewsArticle[]);
   },
 
   async triggerNewsCrawl(): Promise<{ success: boolean; message: string }> {
