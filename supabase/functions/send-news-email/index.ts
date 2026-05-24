@@ -15,9 +15,12 @@ const corsHeaders = {
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_mail/gmail/v1';
 const SITE_URL = (Deno.env.get('SITE_URL') ?? 'https://egleye.lovable.app').replace(/\/+$/, '');
-// Subscribers only receive fresh news. Anything published before this cutoff
-// (or with no published_at at all) is treated as stale and never emailed.
-const MIN_PUBLISHED_AT = '2026-01-01T00:00:00Z';
+// Subscribers only receive FRESH news. Rolling window: anything older than
+// the last 7 days (or with no published_at at all) is treated as stale.
+const FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+function minPublishedAtMs(): number {
+  return Date.now() - FRESHNESS_WINDOW_MS;
+}
 
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
