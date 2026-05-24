@@ -308,9 +308,9 @@ Deno.serve(async (req) => {
         .single();
       if (aErr) throw aErr;
 
-      // Freshness guard: never email articles older than the cutoff.
+      // Freshness guard: never email articles older than the rolling window.
       const pubAt = art?.published_at ? new Date(art.published_at).getTime() : 0;
-      if (!pubAt || pubAt < new Date(MIN_PUBLISHED_AT).getTime()) {
+      if (!pubAt || pubAt < minPublishedAtMs()) {
         console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at})`);
         return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
       }
