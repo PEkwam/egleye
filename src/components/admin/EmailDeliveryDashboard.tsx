@@ -414,6 +414,28 @@ export function EmailDeliveryDashboard() {
         )}
       </CardContent>
     </Card>
+    <AlertDialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete delivery history?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete delivery records from the {pendingDelete ? rangeLabels[pendingDelete] : ''}.
+            Subscribers and articles are not affected. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); if (pendingDelete) deleteMutation.mutate(pendingDelete); }}
+            disabled={deleteMutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
