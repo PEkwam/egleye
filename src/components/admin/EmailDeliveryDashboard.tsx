@@ -139,6 +139,30 @@ export function EmailDeliveryDashboard() {
     onError: (err: Error) => toast.error(err.message || 'Processing failed'),
   });
 
+  type DeleteRange = 'week' | 'month' | 'older_than_month' | 'all';
+  const rangeLabels: Record<DeleteRange, string> = {
+    week: 'past week',
+    month: 'past month',
+    older_than_month: 'older than 30 days',
+    all: 'ALL history',
+  };
+  const [pendingDelete, setPendingDelete] = useState<DeleteRange | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (range: DeleteRange) =>
+      callManage('delete_sends', { range }) as Promise<{ deleted: number }>,
+    onSuccess: (res) => {
+      toast.success(`Deleted ${res.deleted} delivery record${res.deleted === 1 ? '' : 's'}`);
+      setPendingDelete(null);
+      setPage(1);
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Delete failed');
+      setPendingDelete(null);
+    },
+  });
+
   const testMutation = useMutation({
     mutationFn: (email: string) => callSender('send_test', { email }) as Promise<{ ok: boolean; from?: string }>,
     onSuccess: (res) => {
