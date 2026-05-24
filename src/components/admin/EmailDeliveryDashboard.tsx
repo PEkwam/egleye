@@ -210,6 +210,30 @@ export function EmailDeliveryDashboard() {
               <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear history
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Delete delivery records</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setPendingDelete('week')}>Past week</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setPendingDelete('month')}>Past month</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setPendingDelete('older_than_month')}>
+                  Older than 30 days
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={() => setPendingDelete('all')}
+                >
+                  All history
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
