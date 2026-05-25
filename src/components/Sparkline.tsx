@@ -1,18 +1,36 @@
-import { Area, AreaChart, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { format, subDays } from 'date-fns';
 
 interface SparklineProps {
   data: number[];
   color?: string;
   height?: number;
+  /** Show a hover tooltip with per-day counts. Assumes the last value is today. */
+  showTooltip?: boolean;
+  /** Singular label for what each datapoint represents, e.g. "article". */
+  itemLabel?: string;
 }
 
 /**
- * Minimal area sparkline. Pass an array of numeric values (e.g. last 7 days).
- * Color accepts an HSL var name like "hsl(var(--primary))".
+ * Minimal area sparkline. Pass an array of numeric values (e.g. last 7 days,
+ * oldest first). When `showTooltip` is true, hovering reveals the date and
+ * count for each day so a flat line at high totals (older items) makes sense.
  */
-export function Sparkline({ data, color = 'hsl(var(--primary))', height = 32 }: SparklineProps) {
+export function Sparkline({
+  data,
+  color = 'hsl(var(--primary))',
+  height = 32,
+  showTooltip = false,
+  itemLabel = 'article',
+}: SparklineProps) {
   if (!data || data.length === 0) return <div style={{ height }} />;
-  const series = data.map((v, i) => ({ i, v }));
+
+  const today = new Date();
+  const series = data.map((v, i) => {
+    const daysAgo = data.length - 1 - i;
+    const d = subDays(today, daysAgo);
+    return { i, v, date: d, dateLabel: format(d, 'MMM d') };
+  });
   const id = `spark-${color.replace(/[^a-z]/gi, '')}`;
 
   return (
@@ -25,6 +43,31 @@ export function Sparkline({ data, color = 'hsl(var(--primary))', height = 32 }: 
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
+          {showTooltip && (
+            <Tooltip
+              cursor={{ stroke: color, strokeOpacity: 0.4, strokeWidth: 1 }}
+              wrapperStyle={{ outline: 'none', zIndex: 50 }}
+              contentStyle={{
+                background: 'hsl(var(--popover))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 8,
+                fontSize: 11,
+                padding: '6px 8px',
+                boxShadow: '0 4px 12px hsl(var(--foreground) / 0.08)',
+              }}
+              labelStyle={{ color: 'hsl(var(--muted-foreground))', marginBottom: 2 }}
+              itemStyle={{ color: 'hsl(var(--foreground))', padding: 0 }}
+              labelFormatter={(_, payload) => {
+                const p = payload?.[0]?.payload as { dateLabel?: string } | undefined;
+                return p?.dateLabel ?? '';
+              }}
+              formatter={(value: number) => [
+                `${value} ${itemLabel}${value === 1 ? '' : 's'}`,
+                '',
+              ]}
+              separator=""
+            />
+          )}
           <Area
             type="monotone"
             dataKey="v"
