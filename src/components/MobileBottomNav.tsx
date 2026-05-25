@@ -57,11 +57,11 @@ export const MobileBottomNav = () => {
                   active ? "text-foreground" : "text-muted-foreground active:scale-95 active:bg-muted/30"
                 )}
               >
-                {/* Active top indicator pill */}
+                {/* Active top indicator pill — uses bg-current driven by item.color */}
                 <span
                   className={cn(
-                    "absolute top-0 left-1/2 -translate-x-1/2 h-1 rounded-b-full transition-all duration-300",
-                    active ? cn("w-8", item.bgColor.replace('/15', '').replace('bg-', 'bg-')) : "w-0"
+                    "absolute top-0 left-1/2 -translate-x-1/2 h-1 rounded-b-full bg-current transition-all duration-300",
+                    active ? cn("w-8", item.color) : "w-0 opacity-0"
                   )}
                 />
                 <div className={cn(
