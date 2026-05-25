@@ -23,14 +23,15 @@ export function TimeFilter({ selected, onChange }: TimeFilterProps) {
         <button
           key={id}
           onClick={() => onChange(id)}
+          aria-pressed={selected === id}
           className={cn(
-            'inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 text-[11px] md:text-sm font-medium rounded-full transition-all duration-200',
+            'inline-flex items-center gap-1 md:gap-1.5 px-3 md:px-3 min-h-9 md:min-h-0 md:py-1.5 text-xs md:text-sm font-medium rounded-full transition-all duration-200 active:scale-95',
             selected === id
               ? 'bg-primary text-primary-foreground shadow-md'
               : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
           )}
         >
-          <Icon className="h-3 w-3 md:h-3.5 md:w-3.5" />
+          <Icon className="h-3.5 w-3.5 md:h-3.5 md:w-3.5" />
           <span className="hidden sm:inline">{label}</span>
           <span className="sm:hidden">{shortLabel}</span>
         </button>
