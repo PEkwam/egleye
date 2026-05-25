@@ -32,7 +32,7 @@ const isDark = () =>
   typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
 /**
- * Global ⌘K / Ctrl+K command palette for fast navigation.
+ * Global ⌘F / Ctrl+F command palette for fast navigation.
  * Mount once near the app root.
  */
 export function CommandPalette() {
@@ -42,7 +42,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+      if ((e.key === 'f' || e.key === 'F') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((o) => !o);
       }
@@ -58,7 +58,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search dashboards, news, settings… (⌘K)" />
+      <CommandInput placeholder="Search dashboards, news, settings… (⌘F)" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
 
