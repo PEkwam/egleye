@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+/* Fonts moved to index.html <link> tags with preconnect — loading them from
+   here via @import is render-blocking and delays first paint. */
 
 /* InsureWatch - Modern Insurance News Portal Design System */
 
@@ -623,4 +624,27 @@
   .safe-bottom {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom));
   }
+}
+
+/* Respect users who set "Reduce motion" at the OS level — disables all
+   non-essential animations and transitions for a calmer experience. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Smooth in-page anchor scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better text rendering on macOS / iOS */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
