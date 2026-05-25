@@ -60,7 +60,7 @@ const App = () => (
           <ScrollToTop />
           <RoutePrefetcher />
           <SwipeNavigationProvider />
-          <div className="pb-16 md:pb-0">
+          <div className="pb-16 md:pb-0 safe-bottom md:!pb-0">
             <Suspense fallback={<LazyFallback />}>
               <Routes>
                 <Route path="/" element={<Index />} />
