@@ -58,6 +58,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <RoutePrefetcher />
           <SwipeNavigationProvider />
           <div className="pb-16 md:pb-0">
             <Suspense fallback={<LazyFallback />}>
