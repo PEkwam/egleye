@@ -45,18 +45,28 @@ export function Sparkline({
           </defs>
           {showTooltip && (
             <Tooltip
-              cursor={{ stroke: color, strokeOpacity: 0.4, strokeWidth: 1 }}
+              cursor={{ stroke: color, strokeOpacity: 0.6, strokeWidth: 1.5 }}
               wrapperStyle={{ outline: 'none', zIndex: 50 }}
               contentStyle={{
-                background: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 8,
-                fontSize: 11,
-                padding: '6px 8px',
-                boxShadow: '0 4px 12px hsl(var(--foreground) / 0.08)',
+                background: 'hsl(var(--foreground))',
+                color: 'hsl(var(--background))',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '6px 10px',
+                boxShadow: '0 8px 24px hsl(var(--foreground) / 0.25)',
               }}
-              labelStyle={{ color: 'hsl(var(--muted-foreground))', marginBottom: 2 }}
-              itemStyle={{ color: 'hsl(var(--foreground))', padding: 0 }}
+              labelStyle={{
+                color: 'hsl(var(--background))',
+                opacity: 0.7,
+                fontWeight: 500,
+                fontSize: 10,
+                marginBottom: 2,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+              }}
+              itemStyle={{ color: 'hsl(var(--background))', padding: 0, fontWeight: 700 }}
               labelFormatter={(_, payload) => {
                 const p = payload?.[0]?.payload as { dateLabel?: string } | undefined;
                 return p?.dateLabel ?? '';
