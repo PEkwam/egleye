@@ -38,14 +38,15 @@ export function NewsFilterBar({ activeCategory, onCategoryChange, searchQuery, o
                 placeholder="Search insurance news..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-9 h-9 text-sm"
+                className="pl-9 h-10 md:h-9 text-base md:text-sm"
                 autoFocus
               />
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 flex-shrink-0"
+              aria-label="Close search"
+              className="h-10 w-10 md:h-9 md:w-9 flex-shrink-0"
               onClick={() => { setShowSearch(false); onSearchChange(''); }}
             >
               <X className="h-4 w-4" />
