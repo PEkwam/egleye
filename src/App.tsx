@@ -9,6 +9,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { SwipeNavigationProvider } from "@/components/SwipeNavigationProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { RoutePrefetcher } from "@/components/RoutePrefetcher";
 import { hydrateInsurersFromDB } from "@/types/insurers";
 
 // Hydrate the insurer roster from the DB before first paint so renames done
@@ -57,6 +58,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <RoutePrefetcher />
           <SwipeNavigationProvider />
           <div className="pb-16 md:pb-0">
             <Suspense fallback={<LazyFallback />}>
