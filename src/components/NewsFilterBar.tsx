@@ -55,27 +55,34 @@ export function NewsFilterBar({ activeCategory, onCategoryChange, searchQuery, o
 
         {/* Category pills + search toggle */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 flex-1 overflow-x-auto scrollbar-hide pb-0.5">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => onCategoryChange(cat)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all ${
-                  activeCategory === cat
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
-                }`}
-              >
-                {categoryAllLabels[cat]}
-              </button>
-            ))}
+          {/* Scrollable pills with edge fades to hint at overflow */}
+          <div className="relative flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5 -mx-1 px-1">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => onCategoryChange(cat)}
+                  aria-pressed={activeCategory === cat}
+                  className={`px-3.5 min-h-9 md:min-h-0 md:py-1.5 inline-flex items-center text-xs font-medium rounded-full whitespace-nowrap transition-all active:scale-95 ${
+                    activeCategory === cat
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
+                  }`}
+                >
+                  {categoryAllLabels[cat]}
+                </button>
+              ))}
+            </div>
+            {/* Right fade to hint that more pills exist off-screen */}
+            <div className="md:hidden pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent" />
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {!showSearch && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                aria-label="Search news"
+                className="h-10 w-10 md:h-9 md:w-9"
                 onClick={() => setShowSearch(true)}
               >
                 <Search className="h-4 w-4" />
