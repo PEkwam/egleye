@@ -29,14 +29,17 @@ const AdminLogin = () => {
       if (error) throw error;
 
       if (data?.success && data?.token) {
+        setPassword('');
         sessionStorage.setItem('admin_token', data.token);
         sessionStorage.setItem('admin_login_time', Date.now().toString());
         toast.success('Admin access granted');
         navigate('/data-admin', { replace: true });
       } else {
+        setPassword('');
         toast.error(data?.error || 'Invalid password');
       }
     } catch {
+      setPassword('');
       toast.error('Authentication failed. Please try again.');
     } finally {
       setIsLoading(false);
