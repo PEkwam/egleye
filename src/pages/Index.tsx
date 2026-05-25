@@ -207,66 +207,63 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
       </div>
 
       <main>
-        {/* Mobile Dashboard removed - Market Overview cards taken off home */}
+        <Suspense fallback={<SectionFallback />}>
+          {/* Executive Dashboard */}
+          {showSections && (
+            <ExecutiveDashboard
+              articles={articles}
+              regulatorArticles={regulatorArticles}
+              enterpriseArticles={enterpriseArticles}
+              isLoading={isLoading}
+            />
+          )}
 
-        {/* Executive Dashboard */}
-        {showSections && (
-          <ExecutiveDashboard
-            articles={articles}
-            regulatorArticles={regulatorArticles}
-            enterpriseArticles={enterpriseArticles}
-            isLoading={isLoading}
+          {/* AI News Digest */}
+          {showSections && <AINewsDigest />}
+
+          {showHero && (
+            <HeroSection
+              featuredArticle={featuredArticle}
+              latestArticles={displayArticles.filter((a) => a.id !== featuredArticle?.id)}
+              isLoading={isLoading}
+            />
+          )}
+
+          {/* NIC Regulatory Section */}
+          {showSections && (
+            <NICSection
+              articles={regulatorArticles}
+              onViewAll={() => handleCategoryChange('regulator')}
+              isLoading={isLoading}
+            />
+          )}
+
+          {/* NPRA Pension Section */}
+          {showSections && pensionArticles.length > 0 && (
+            <NPRASection
+              articles={pensionArticles}
+              onViewAll={() => handleCategoryChange('pensions')}
+              isLoading={isLoading}
+            />
+          )}
+
+          {showSections && enterpriseArticles.length > 0 && (
+            <EnterpriseSection
+              articles={enterpriseArticles}
+              onViewAll={() => handleCategoryChange('enterprise_group')}
+              isLoading={isLoading}
+            />
+          )}
+
+          <NewsGrid
+            articles={gridArticles}
+            title={gridTitle}
+            category={activeCategory}
+            isLoading={isLoading || isSearching}
           />
-        )}
-
-        {/* AI News Digest */}
-        {showSections && <AINewsDigest />}
-
-
-        {showHero && (
-          <HeroSection
-            featuredArticle={featuredArticle}
-            latestArticles={displayArticles.filter((a) => a.id !== featuredArticle?.id)}
-            isLoading={isLoading}
-          />
-        )}
-
-        {/* Life Insurance Overview removed from home page */}
-
-
-        {/* NIC Regulatory Section */}
-        {showSections && (
-          <NICSection
-            articles={regulatorArticles}
-            onViewAll={() => handleCategoryChange('regulator')}
-            isLoading={isLoading}
-          />
-        )}
-
-        {/* NPRA Pension Section */}
-        {showSections && pensionArticles.length > 0 && (
-          <NPRASection
-            articles={pensionArticles}
-            onViewAll={() => handleCategoryChange('pensions')}
-            isLoading={isLoading}
-          />
-        )}
-
-        {showSections && enterpriseArticles.length > 0 && (
-          <EnterpriseSection
-            articles={enterpriseArticles}
-            onViewAll={() => handleCategoryChange('enterprise_group')}
-            isLoading={isLoading}
-          />
-        )}
-
-        <NewsGrid
-          articles={gridArticles}
-          title={gridTitle}
-          category={activeCategory}
-          isLoading={isLoading || isSearching}
-        />
+        </Suspense>
       </main>
+
 
       <Footer />
     </div>
