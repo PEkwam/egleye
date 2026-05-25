@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, AlertTriangle, Building2, Clock, Shield, ChevronRight, Zap, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, Building2, Clock, Shield, ChevronRight, Zap, BarChart3, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { NewsArticle } from '@/types/news';
 import { format, isToday, isThisWeek, subDays, startOfDay } from 'date-fns';
 import { sanitizeText } from '@/lib/utils/text';
@@ -216,16 +217,42 @@ export function ExecutiveDashboard({
                       className="text-2xl sm:text-3xl md:text-[2rem] font-bold text-foreground tabular-nums leading-none block"
                     />
                     <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate mt-1">{card.label}</p>
-                    {/* Sparkline */}
-                    <div className="mt-2 -mx-1 opacity-90 group-hover:opacity-100 transition-opacity">
-                      <Sparkline data={card.sparkData} color={card.sparkColor} height={28} />
-                    </div>
+                    {/* Sparkline — articles per day for the last 7 days. */}
+                    <Tooltip delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="mt-2 -mx-1 opacity-90 group-hover:opacity-100 transition-opacity cursor-help"
+                          onClick={(e) => e.preventDefault()}
+                          aria-label={`Daily ${card.label} articles over the last 7 days`}
+                        >
+                          <Sparkline
+                            data={card.sparkData}
+                            color={card.sparkColor}
+                            height={28}
+                            showTooltip
+                            itemLabel="article"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+                        <div className="flex items-start gap-1.5">
+                          <Info className="h-3 w-3 mt-0.5 flex-shrink-0 opacity-70" />
+                          <div>
+                            <p className="font-medium mb-0.5">Last 7 days</p>
+                            <p className="text-muted-foreground leading-snug">
+                              Articles published per day. The total ({card.value}) includes older items, so this line can be flat even when the count is high.
+                            </p>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   </CardContent>
                 </Card>
               </Link>
             );
           })}
         </div>
+
 
         {/* Priority Alert - Latest Regulator News */}
         {stats.latestRegulator && (
