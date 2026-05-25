@@ -38,21 +38,32 @@ export const MobileBottomNav = () => {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/98 backdrop-blur-xl border-t border-border/50 shadow-lg md:hidden">
-        <div className="flex items-center justify-around h-16 px-1">
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 bg-card/98 backdrop-blur-xl border-t border-border/50 shadow-lg md:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        aria-label="Primary"
+      >
+        <div className="flex items-stretch justify-around h-16 px-1">
           {primaryNavItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
                 to={item.href}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200",
-                  active 
-                    ? "text-foreground" 
-                    : "text-muted-foreground active:scale-95"
+                  "relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-11 min-h-11 px-1 rounded-xl transition-all duration-200",
+                  active ? "text-foreground" : "text-muted-foreground active:scale-95 active:bg-muted/30"
                 )}
               >
+                {/* Active top indicator pill */}
+                <span
+                  className={cn(
+                    "absolute top-0 left-1/2 -translate-x-1/2 h-1 rounded-b-full transition-all duration-300",
+                    active ? cn("w-8", item.bgColor.replace('/15', '').replace('bg-', 'bg-')) : "w-0"
+                  )}
+                />
                 <div className={cn(
                   "p-1.5 rounded-xl transition-all",
                   active ? item.bgColor : "bg-transparent"
@@ -63,7 +74,7 @@ export const MobileBottomNav = () => {
                   )} />
                 </div>
                 <span className={cn(
-                  "text-[10px] font-medium",
+                  "text-[10px] leading-tight font-medium",
                   active ? cn("font-semibold", item.color) : ""
                 )}>
                   {item.label}
@@ -71,17 +82,23 @@ export const MobileBottomNav = () => {
               </Link>
             );
           })}
-          
+
           {/* More Button */}
-          <button 
+          <button
             onClick={() => setShowMore(true)}
+            aria-label="More navigation options"
+            aria-expanded={showMore}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-2 px-3 rounded-xl transition-all duration-200",
-              isMoreActive 
-                ? "text-primary" 
-                : "text-muted-foreground active:scale-95"
+              "relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-11 min-h-11 px-1 rounded-xl transition-all duration-200",
+              isMoreActive ? "text-primary" : "text-muted-foreground active:scale-95 active:bg-muted/30"
             )}
           >
+            <span
+              className={cn(
+                "absolute top-0 left-1/2 -translate-x-1/2 h-1 rounded-b-full bg-primary transition-all duration-300",
+                isMoreActive ? "w-8" : "w-0"
+              )}
+            />
             <div className={cn(
               "p-1.5 rounded-xl transition-all",
               isMoreActive && "bg-primary/15"
@@ -92,17 +109,15 @@ export const MobileBottomNav = () => {
               )} />
             </div>
             <span className={cn(
-              "text-[10px] font-medium",
+              "text-[10px] leading-tight font-medium",
               isMoreActive && "font-semibold"
             )}>
               More
             </span>
           </button>
         </div>
-        
-        {/* Safe area for iOS devices */}
-        <div className="h-safe-area-inset-bottom bg-card" />
       </nav>
+
       
       {/* More Options Sheet */}
       <Sheet open={showMore} onOpenChange={setShowMore}>
