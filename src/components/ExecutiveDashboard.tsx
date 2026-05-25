@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, AlertTriangle, Building2, Clock, Shield, ChevronRight, Zap, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, Building2, Clock, Shield, ChevronRight, Zap, BarChart3, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { NewsArticle } from '@/types/news';
 import { format, isToday, isThisWeek, subDays, startOfDay } from 'date-fns';
 import { sanitizeText } from '@/lib/utils/text';
