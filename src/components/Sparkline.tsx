@@ -47,6 +47,7 @@ export function Sparkline({
             <Tooltip
               cursor={{ stroke: color, strokeOpacity: 0.6, strokeWidth: 1.5 }}
               wrapperStyle={{ outline: 'none', zIndex: 50 }}
+              position={{ y: -45 }}
               contentStyle={{
                 background: 'hsl(var(--foreground))',
                 color: 'hsl(var(--background))',
