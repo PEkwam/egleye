@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Preconnect to backend origin so first API call skips DNS + TLS handshake -->
+    <link rel="preconnect" href="https://sodvlktbvqaxuxnpgbzb.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://sodvlktbvqaxuxnpgbzb.supabase.co" />
     <!-- TODO: Set the document title to the name of your application -->
     <title>EGL EYE</title>
     <meta name="description" content="A web application that collects and monitors insurance-related information to help EGL access industry news and updates as quickly as possible.">

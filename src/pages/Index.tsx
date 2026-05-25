@@ -1,15 +1,7 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Header } from '@/components/Header';
 import { BreakingTicker } from '@/components/BreakingTicker';
-import { HeroSection } from '@/components/HeroSection';
-import { NewsGrid } from '@/components/NewsGrid';
 import { NewsFilterBar } from '@/components/NewsFilterBar';
-import { EnterpriseSection } from '@/components/EnterpriseSection';
-import { NICSection } from '@/components/NICSection';
-import { NPRASection } from '@/components/NPRASection';
-import { ExecutiveDashboard } from '@/components/ExecutiveDashboard';
-import { MobileDashboard } from '@/components/MobileDashboard';
-import { AINewsDigest } from '@/components/AINewsDigest';
 import { NewArticleAlertProvider, useTrackArticles, useNewArticleAlerts } from '@/components/NewArticleAlertProvider';
 import { DesktopAlertsButton } from '@/components/DesktopAlertsButton';
 import { CommandPalette } from '@/components/CommandPalette';
@@ -18,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
-import { HomeInsurerMetrics } from '@/components/HomeInsurerMetrics';
 import { Footer } from '@/components/Footer';
 import { useNews, useNewsSearch } from '@/hooks/useNews';
 import type { NewsCategory, NewsArticle } from '@/types/news';
@@ -27,6 +18,17 @@ import type { GhanaInsurer, InsuranceCategory } from '@/types/insurers';
 import { toast } from 'sonner';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// Below-the-fold heavy sections — code-split to shrink the initial bundle.
+const HeroSection = lazy(() => import('@/components/HeroSection').then(m => ({ default: m.HeroSection })));
+const NewsGrid = lazy(() => import('@/components/NewsGrid').then(m => ({ default: m.NewsGrid })));
+const EnterpriseSection = lazy(() => import('@/components/EnterpriseSection').then(m => ({ default: m.EnterpriseSection })));
+const NICSection = lazy(() => import('@/components/NICSection').then(m => ({ default: m.NICSection })));
+const NPRASection = lazy(() => import('@/components/NPRASection').then(m => ({ default: m.NPRASection })));
+const ExecutiveDashboard = lazy(() => import('@/components/ExecutiveDashboard').then(m => ({ default: m.ExecutiveDashboard })));
+const AINewsDigest = lazy(() => import('@/components/AINewsDigest').then(m => ({ default: m.AINewsDigest })));
+
+const SectionFallback = () => <div className="container mx-auto px-4 py-8 h-32 animate-pulse bg-muted/20 rounded-lg" />;
 
 // Auto-refresh interval in milliseconds (5 minutes)
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
@@ -205,66 +207,63 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
       </div>
 
       <main>
-        {/* Mobile Dashboard removed - Market Overview cards taken off home */}
+        <Suspense fallback={<SectionFallback />}>
+          {/* Executive Dashboard */}
+          {showSections && (
+            <ExecutiveDashboard
+              articles={articles}
+              regulatorArticles={regulatorArticles}
+              enterpriseArticles={enterpriseArticles}
+              isLoading={isLoading}
+            />
+          )}
 
-        {/* Executive Dashboard */}
-        {showSections && (
-          <ExecutiveDashboard
-            articles={articles}
-            regulatorArticles={regulatorArticles}
-            enterpriseArticles={enterpriseArticles}
-            isLoading={isLoading}
+          {/* AI News Digest */}
+          {showSections && <AINewsDigest />}
+
+          {showHero && (
+            <HeroSection
+              featuredArticle={featuredArticle}
+              latestArticles={displayArticles.filter((a) => a.id !== featuredArticle?.id)}
+              isLoading={isLoading}
+            />
+          )}
+
+          {/* NIC Regulatory Section */}
+          {showSections && (
+            <NICSection
+              articles={regulatorArticles}
+              onViewAll={() => handleCategoryChange('regulator')}
+              isLoading={isLoading}
+            />
+          )}
+
+          {/* NPRA Pension Section */}
+          {showSections && pensionArticles.length > 0 && (
+            <NPRASection
+              articles={pensionArticles}
+              onViewAll={() => handleCategoryChange('pensions')}
+              isLoading={isLoading}
+            />
+          )}
+
+          {showSections && enterpriseArticles.length > 0 && (
+            <EnterpriseSection
+              articles={enterpriseArticles}
+              onViewAll={() => handleCategoryChange('enterprise_group')}
+              isLoading={isLoading}
+            />
+          )}
+
+          <NewsGrid
+            articles={gridArticles}
+            title={gridTitle}
+            category={activeCategory}
+            isLoading={isLoading || isSearching}
           />
-        )}
-
-        {/* AI News Digest */}
-        {showSections && <AINewsDigest />}
-
-
-        {showHero && (
-          <HeroSection
-            featuredArticle={featuredArticle}
-            latestArticles={displayArticles.filter((a) => a.id !== featuredArticle?.id)}
-            isLoading={isLoading}
-          />
-        )}
-
-        {/* Life Insurance Overview removed from home page */}
-
-
-        {/* NIC Regulatory Section */}
-        {showSections && (
-          <NICSection
-            articles={regulatorArticles}
-            onViewAll={() => handleCategoryChange('regulator')}
-            isLoading={isLoading}
-          />
-        )}
-
-        {/* NPRA Pension Section */}
-        {showSections && pensionArticles.length > 0 && (
-          <NPRASection
-            articles={pensionArticles}
-            onViewAll={() => handleCategoryChange('pensions')}
-            isLoading={isLoading}
-          />
-        )}
-
-        {showSections && enterpriseArticles.length > 0 && (
-          <EnterpriseSection
-            articles={enterpriseArticles}
-            onViewAll={() => handleCategoryChange('enterprise_group')}
-            isLoading={isLoading}
-          />
-        )}
-
-        <NewsGrid
-          articles={gridArticles}
-          title={gridTitle}
-          category={activeCategory}
-          isLoading={isLoading || isSearching}
-        />
+        </Suspense>
       </main>
+
 
       <Footer />
     </div>

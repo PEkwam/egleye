@@ -32,7 +32,16 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,          // 1 min — avoid refetch storms on quick navigations
+      gcTime: 5 * 60_000,         // 5 min — keep cached data around when remounting
+      refetchOnWindowFocus: false, // stop noisy refetches when user tabs back
+      retry: 1,
+    },
+  },
+});
 
 const LazyFallback = () => (
   <div className="min-h-screen bg-background">
