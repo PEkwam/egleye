@@ -124,36 +124,110 @@ async function loadBrand(): Promise<SiteBrand> {
   };
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  general: 'Ghana Insurance',
+  enterprise_group: 'Enterprise Group',
+  regulator: 'NIC Regulator',
+  claims: 'Claims',
+  life_insurance: 'Life Insurance',
+  nonlife: 'Non-Life Insurance',
+  pensions: 'NPRA Pensions',
+};
+
 function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, unsubUrl: string): string {
   const articleUrl = `${SITE_URL}/article/${article.id}`;
-  const greeting = subscriber.name ? `Hi ${escapeHtml(subscriber.name.split(' ')[0])},` : 'Hello,';
-  const desc = article.description ? escapeHtml(article.description.slice(0, 280)) : '';
-  const img = article.image_url ? `<img src="${escapeHtml(article.image_url)}" alt="" style="width:100%;max-width:560px;height:auto;border-radius:8px;display:block;margin:0 0 20px"/>` : '';
-  const source = article.source_name ? `<span style="color:#6b7280">${escapeHtml(article.source_name)}</span>` : '';
-  const date = article.published_at ? new Date(article.published_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
-  const meta = [source, date].filter(Boolean).join(' &middot; ');
+  const firstName = subscriber.name ? subscriber.name.split(' ')[0] : '';
+  const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hello,';
+  const desc = article.description ? escapeHtml(article.description.slice(0, 320)) : '';
+  const source = article.source_name ? escapeHtml(article.source_name) : '';
+  const date = article.published_at
+    ? new Date(article.published_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })
+    : '';
+  const categoryLabel = CATEGORY_LABELS[article.category] || 'Insurance';
+  const wordCount = (article.content || article.description || '').split(/\s+/).filter(Boolean).length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const preheader = article.description
+    ? escapeHtml(article.description.slice(0, 140))
+    : `${categoryLabel} update from ${brand.siteName}`;
+
+  const hero = article.image_url
+    ? `<a href="${escapeHtml(articleUrl)}" style="display:block;text-decoration:none">
+         <img src="${escapeHtml(article.image_url)}" alt="" style="width:100%;height:auto;display:block;border:0;border-top-left-radius:14px;border-top-right-radius:14px"/>
+       </a>`
+    : `<div style="height:6px;background:${brand.primary};border-top-left-radius:14px;border-top-right-radius:14px"></div>`;
+
   return `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0;padding:0;background:#f6f7f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
-  <div style="font-size:13px;color:#6b7280;margin-bottom:16px">${escapeHtml(brand.siteName)} &mdash; ${escapeHtml(brand.tagline)}</div>
-  <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:28px">
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.5">${greeting}</p>
-    <p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.5">A new story just landed in your Ghana insurance feed:</p>
-    ${img}
-    <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;font-family:Georgia,'Times New Roman',serif;color:#111827">
-      <a href="${escapeHtml(articleUrl)}" style="color:#111827;text-decoration:none">${escapeHtml(article.title)}</a>
-    </h1>
-    ${meta ? `<div style="margin:0 0 16px;font-size:12px">${meta}</div>` : ''}
-    ${desc ? `<p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#374151">${desc}&hellip;</p>` : ''}
-    <a href="${escapeHtml(articleUrl)}" style="display:inline-block;background:${brand.primary};color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:600">Read full article</a>
-  </div>
-  <div style="margin-top:20px;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6">
-    You're receiving this because you subscribed to ${escapeHtml(brand.siteName)} alerts.<br>
-    <a href="${escapeHtml(unsubUrl)}" style="color:#6b7280">Unsubscribe</a> &middot;
-    <a href="${escapeHtml(SITE_URL)}" style="color:#6b7280">Visit portal</a>
-  </div>
-</div>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
+<title>${escapeHtml(article.title)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#111827;-webkit-font-smoothing:antialiased">
+<div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all">${preheader}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6">
+  <tr><td align="center" style="padding:28px 12px">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%">
+
+      <tr><td style="padding:0 4px 18px 4px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="font-size:14px;font-weight:700;letter-spacing:.04em;color:${brand.primary};text-transform:uppercase">${escapeHtml(brand.siteName)}</td>
+            <td align="right" style="font-size:11px;color:#9ca3af;letter-spacing:.08em;text-transform:uppercase">News Alert</td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <tr><td style="background:#ffffff;border-radius:14px;box-shadow:0 1px 2px rgba(17,24,39,.04),0 8px 24px rgba(17,24,39,.06);overflow:hidden">
+        ${hero}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td style="padding:28px 28px 8px 28px">
+            <span style="display:inline-block;background:${brand.primary};color:#ffffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:999px">${escapeHtml(categoryLabel)}</span>
+          </td></tr>
+          <tr><td style="padding:14px 28px 0 28px">
+            <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.22;font-weight:700;color:#0f172a;letter-spacing:-.01em">
+              <a href="${escapeHtml(articleUrl)}" style="color:#0f172a;text-decoration:none">${escapeHtml(article.title)}</a>
+            </h1>
+          </td></tr>
+          <tr><td style="padding:12px 28px 0 28px;font-size:12px;color:#6b7280;line-height:1.5">
+            ${source ? `<strong style="color:#374151">${source}</strong>` : ''}${source && date ? ' &middot; ' : ''}${date ? escapeHtml(date) : ''}${(source || date) ? ' &middot; ' : ''}${readingTime} min read
+          </td></tr>
+          ${desc ? `<tr><td style="padding:18px 28px 0 28px">
+            <p style="margin:0;font-size:15px;line-height:1.65;color:#334155">${desc}&hellip;</p>
+          </td></tr>` : ''}
+          <tr><td style="padding:24px 28px 4px 28px">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="border-radius:10px;background:${brand.primary}">
+                <a href="${escapeHtml(articleUrl)}" style="display:inline-block;padding:13px 26px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px">Read full article &rarr;</a>
+              </td></tr>
+            </table>
+          </td></tr>
+          <tr><td style="padding:14px 28px 28px 28px;font-size:12px;color:#9ca3af">
+            ${greeting} this just landed in your ${escapeHtml(brand.tagline)} feed.
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <tr><td style="padding:18px 4px 0 4px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px">
+          <tr><td style="padding:16px 18px;font-size:13px;color:#4b5563;line-height:1.5">
+            <strong style="color:#111827">Want more?</strong> Browse the full insurance &amp; pensions feed on
+            <a href="${escapeHtml(SITE_URL)}" style="color:${brand.primary};text-decoration:none;font-weight:600">${escapeHtml(brand.siteName)}</a>.
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <tr><td style="padding:22px 12px 8px 12px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
+        You're receiving this because you subscribed to ${escapeHtml(brand.siteName)} alerts.<br>
+        <a href="${escapeHtml(unsubUrl)}" style="color:#6b7280;text-decoration:underline">Unsubscribe</a>
+        &nbsp;&middot;&nbsp;
+        <a href="${escapeHtml(SITE_URL)}" style="color:#6b7280;text-decoration:underline">Visit portal</a>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
 </body></html>`;
 }
 
