@@ -124,6 +124,12 @@ export function SubscriberManager() {
       toast.error('Please enter a valid email');
       return;
     }
+    const normalized = newEmail.trim().toLowerCase();
+    const exists = subscribers.some((s) => s.email.toLowerCase() === normalized);
+    if (exists) {
+      toast.error('That email is already subscribed');
+      return;
+    }
     createMutation.mutate();
   };
 

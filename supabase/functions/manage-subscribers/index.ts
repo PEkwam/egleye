@@ -120,7 +120,12 @@ Deno.serve(async (req) => {
         .eq('id', id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        if ((error as { code?: string }).code === '23505') {
+          return json({ error: 'Email already subscribed' }, 409);
+        }
+        throw error;
+      }
       return json({ subscriber: data });
     }
 
