@@ -212,21 +212,33 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
               <a href="${escapeHtml(articleUrl)}" style="color:#0f172a;text-decoration:none">${escapeHtml(article.title)}</a>
             </h1>
           </td></tr>
+      <tr><td style="padding:0 4px 14px 4px;font-size:14px;color:#374151;line-height:1.55">
+        ${greeting} this just landed in your <strong style="color:#111827">${escapeHtml(brand.tagline)}</strong> feed.
+      </td></tr>
+
+      <tr><td style="background:#ffffff;border-radius:14px;box-shadow:0 1px 2px rgba(17,24,39,.04),0 8px 24px rgba(17,24,39,.06);overflow:hidden">
+        ${hero}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr><td style="padding:28px 28px 8px 28px">
+            <span style="display:inline-block;background:${brand.primary};color:#ffffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:999px">${escapeHtml(categoryLabel)}</span>
+          </td></tr>
+          <tr><td style="padding:14px 28px 0 28px">
+            <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.22;font-weight:700;color:#0f172a;letter-spacing:-.01em">
+              <a href="${escapeHtml(articleUrl)}" style="color:#0f172a;text-decoration:none">${escapeHtml(article.title)}</a>
+            </h1>
+          </td></tr>
           <tr><td style="padding:12px 28px 0 28px;font-size:12px;color:#6b7280;line-height:1.5">
             ${source ? `<strong style="color:#374151">${source}</strong>` : ''}${source && date ? ' &middot; ' : ''}${date ? escapeHtml(date) : ''}${(source || date) ? ' &middot; ' : ''}${readingTime} min read
           </td></tr>
           ${desc ? `<tr><td style="padding:18px 28px 0 28px">
             <p style="margin:0;font-size:15px;line-height:1.65;color:#334155">${desc}&hellip;</p>
           </td></tr>` : ''}
-          <tr><td style="padding:24px 28px 4px 28px">
+          <tr><td style="padding:24px 28px 28px 28px">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr><td style="border-radius:10px;background:${brand.primary}">
                 <a href="${escapeHtml(articleUrl)}" style="display:inline-block;padding:13px 26px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px">Read full article &rarr;</a>
               </td></tr>
             </table>
-          </td></tr>
-          <tr><td style="padding:14px 28px 28px 28px;font-size:12px;color:#9ca3af">
-            ${greeting} this just landed in your ${escapeHtml(brand.tagline)} feed.
           </td></tr>
         </table>
       </td></tr>
@@ -239,6 +251,7 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
           </td></tr>
         </table>
       </td></tr>
+
 
       <tr><td style="padding:22px 12px 8px 12px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
         You're receiving this because you subscribed to ${escapeHtml(brand.siteName)} alerts.<br>
