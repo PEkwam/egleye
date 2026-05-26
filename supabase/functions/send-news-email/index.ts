@@ -195,9 +195,20 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
 
   // Hero: real image when available; otherwise a branded gradient block
   // showing the category label so the layout never feels thin.
+  // Retina: many CMS images expose a width query (?w=) or WordPress
+  // -600x{H} suffix. We synthesize a 1200px variant for srcset and let
+  // mail clients on hi-DPI displays pick the sharper source.
+  const heroSrc = escapeHtml(article.image_url ?? '');
+  const heroSrc2x = article.image_url
+    ? escapeHtml(
+        article.image_url
+          .replace(/([?&])w=\d+/i, '$1w=1200')
+          .replace(/-\d{3,4}x\d{3,4}(\.(jpe?g|png|webp))/i, '-1200x800$1'),
+      )
+    : '';
   const hero = article.image_url
     ? `<a href="${escapeHtml(articleUrl)}" style="display:block;text-decoration:none">
-         <img src="${escapeHtml(article.image_url)}" alt="" width="600" style="width:100%;max-width:600px;height:auto;display:block;border:0;border-top-left-radius:14px;border-top-right-radius:14px"/>
+         <img src="${heroSrc}" srcset="${heroSrc} 1x, ${heroSrc2x} 2x" alt="" width="600" style="width:100%;max-width:600px;height:auto;display:block;border:0;border-top-left-radius:14px;border-top-right-radius:14px"/>
        </a>`
     : `<a href="${escapeHtml(articleUrl)}" style="display:block;text-decoration:none">
          <div style="background:linear-gradient(135deg, ${brand.primary} 0%, ${brand.primary}cc 60%, #0f172a 100%);border-top-left-radius:14px;border-top-right-radius:14px;padding:56px 28px;text-align:center">
