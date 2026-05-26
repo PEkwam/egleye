@@ -168,13 +168,21 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
   const categoryLabel = CATEGORY_LABELS[article.category] || 'Insurance';
   const wordCount = (article.content || article.description || '').split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
-  const preheader = article.description
-    ? escapeHtml(article.description.slice(0, 140))
-    : `${categoryLabel} update from ${brand.siteName}`;
+  // Smarter preheader: pull the first complete sentence so the inbox preview
+  // sells the story instead of showing a generic line.
+  const rawDesc = (article.description || '').trim();
+  let preheaderText = '';
+  if (rawDesc) {
+    const sentenceMatch = rawDesc.match(/^(.{40,180}?[.!?])(\s|$)/);
+    preheaderText = (sentenceMatch ? sentenceMatch[1] : rawDesc.slice(0, 140)).trim();
+  } else {
+    preheaderText = `${categoryLabel} update from ${brand.siteName}`;
+  }
+  const preheader = escapeHtml(preheaderText);
 
   const hero = article.image_url
     ? `<a href="${escapeHtml(articleUrl)}" style="display:block;text-decoration:none">
-         <img src="${escapeHtml(article.image_url)}" alt="" style="width:100%;height:auto;display:block;border:0;border-top-left-radius:14px;border-top-right-radius:14px"/>
+         <img src="${escapeHtml(article.image_url)}" alt="" width="600" style="width:100%;max-width:600px;height:auto;display:block;border:0;border-top-left-radius:14px;border-top-right-radius:14px"/>
        </a>`
     : `<div style="height:6px;background:${brand.primary};border-top-left-radius:14px;border-top-right-radius:14px"></div>`;
 
@@ -182,56 +190,71 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light only">
-<meta name="supported-color-schemes" content="light">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <title>${escapeHtml(article.title)}</title>
+<style>
+  /* Dark mode — supported in Apple Mail, iOS Mail, Outlook.com,
+     and partially in Gmail (web/Android). Falls back gracefully. */
+  @media (prefers-color-scheme: dark) {
+    body, .eg-bg { background:#0b0f14 !important; }
+    .eg-card { background:#11161d !important; box-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5) !important; }
+    .eg-footer-card { background:#11161d !important; border-color:#1f2933 !important; }
+    .eg-title a { color:#f8fafc !important; }
+    .eg-greeting, .eg-excerpt { color:#cbd5e1 !important; }
+    .eg-greeting strong { color:#f1f5f9 !important; }
+    .eg-meta { color:#94a3b8 !important; }
+    .eg-meta strong { color:#cbd5e1 !important; }
+    .eg-footer-card strong { color:#f1f5f9 !important; }
+    .eg-footer-card td { color:#cbd5e1 !important; }
+    .eg-tagline-strong { color:#f1f5f9 !important; }
+    .eg-fineprint { color:#64748b !important; }
+    .eg-fineprint a { color:#94a3b8 !important; }
+    .eg-brand { color:#ffffff !important; }
+    .eg-alert-tag { color:#64748b !important; }
+  }
+  [data-ogsc] .eg-bg { background:#0b0f14 !important; }
+  [data-ogsc] .eg-card { background:#11161d !important; }
+  [data-ogsc] .eg-title a { color:#f8fafc !important; }
+  [data-ogsc] .eg-greeting, [data-ogsc] .eg-excerpt { color:#cbd5e1 !important; }
+  [data-ogsc] .eg-meta { color:#94a3b8 !important; }
+</style>
 </head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#111827;-webkit-font-smoothing:antialiased">
+<body class="eg-bg" style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#111827;-webkit-font-smoothing:antialiased">
 <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all">${preheader}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="eg-bg" style="background:#f3f4f6">
   <tr><td align="center" style="padding:28px 12px">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%">
 
       <tr><td style="padding:0 4px 18px 4px">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="font-size:14px;font-weight:700;letter-spacing:.04em;color:${brand.primary};text-transform:uppercase">${escapeHtml(brand.siteName)}</td>
-            <td align="right" style="font-size:11px;color:#9ca3af;letter-spacing:.08em;text-transform:uppercase">News Alert</td>
+            <td class="eg-brand" style="font-size:14px;font-weight:700;letter-spacing:.04em;color:${brand.primary};text-transform:uppercase">${escapeHtml(brand.siteName)}</td>
+            <td class="eg-alert-tag" align="right" style="font-size:11px;color:#9ca3af;letter-spacing:.08em;text-transform:uppercase">News Alert</td>
           </tr>
         </table>
       </td></tr>
 
-      <tr><td style="background:#ffffff;border-radius:14px;box-shadow:0 1px 2px rgba(17,24,39,.04),0 8px 24px rgba(17,24,39,.06);overflow:hidden">
-        ${hero}
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr><td style="padding:28px 28px 8px 28px">
-            <span style="display:inline-block;background:${brand.primary};color:#ffffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:999px">${escapeHtml(categoryLabel)}</span>
-          </td></tr>
-          <tr><td style="padding:14px 28px 0 28px">
-            <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.22;font-weight:700;color:#0f172a;letter-spacing:-.01em">
-              <a href="${escapeHtml(articleUrl)}" style="color:#0f172a;text-decoration:none">${escapeHtml(article.title)}</a>
-            </h1>
-          </td></tr>
-      <tr><td style="padding:0 4px 14px 4px;font-size:14px;color:#374151;line-height:1.55">
-        ${greeting} this just landed in your <strong style="color:#111827">${escapeHtml(brand.tagline)}</strong> feed.
+      <tr><td class="eg-greeting" style="padding:0 4px 14px 4px;font-size:14px;color:#374151;line-height:1.55">
+        ${greeting} this just landed in your <strong class="eg-tagline-strong" style="color:#111827">${escapeHtml(brand.tagline)}</strong> feed.
       </td></tr>
 
-      <tr><td style="background:#ffffff;border-radius:14px;box-shadow:0 1px 2px rgba(17,24,39,.04),0 8px 24px rgba(17,24,39,.06);overflow:hidden">
+      <tr><td class="eg-card" style="background:#ffffff;border-radius:14px;box-shadow:0 1px 2px rgba(17,24,39,.04),0 8px 24px rgba(17,24,39,.06);overflow:hidden">
         ${hero}
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr><td style="padding:28px 28px 8px 28px">
             <span style="display:inline-block;background:${brand.primary};color:#ffffff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:999px">${escapeHtml(categoryLabel)}</span>
           </td></tr>
-          <tr><td style="padding:14px 28px 0 28px">
+          <tr><td class="eg-title" style="padding:14px 28px 0 28px">
             <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.22;font-weight:700;color:#0f172a;letter-spacing:-.01em">
               <a href="${escapeHtml(articleUrl)}" style="color:#0f172a;text-decoration:none">${escapeHtml(article.title)}</a>
             </h1>
           </td></tr>
-          <tr><td style="padding:12px 28px 0 28px;font-size:12px;color:#6b7280;line-height:1.5">
+          <tr><td class="eg-meta" style="padding:12px 28px 0 28px;font-size:12px;color:#6b7280;line-height:1.5">
             ${source ? `<strong style="color:#374151">${source}</strong>` : ''}${source && date ? ' &middot; ' : ''}${date ? escapeHtml(date) : ''}${(source || date) ? ' &middot; ' : ''}${readingTime} min read
           </td></tr>
           ${desc ? `<tr><td style="padding:18px 28px 0 28px">
-            <p style="margin:0;font-size:15px;line-height:1.65;color:#334155">${desc}&hellip;</p>
+            <p class="eg-excerpt" style="margin:0;font-size:15px;line-height:1.65;color:#334155">${desc}&hellip;</p>
           </td></tr>` : ''}
           <tr><td style="padding:24px 28px 28px 28px">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -244,7 +267,7 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
       </td></tr>
 
       <tr><td style="padding:18px 4px 0 4px">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="eg-footer-card" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px">
           <tr><td style="padding:16px 18px;font-size:13px;color:#4b5563;line-height:1.5">
             <strong style="color:#111827">Want more?</strong> Browse the full insurance &amp; pensions feed on
             <a href="${escapeHtml(SITE_URL)}" style="color:${brand.primary};text-decoration:none;font-weight:600">${escapeHtml(brand.siteName)}</a>.
@@ -252,8 +275,7 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
         </table>
       </td></tr>
 
-
-      <tr><td style="padding:22px 12px 8px 12px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
+      <tr><td class="eg-fineprint" style="padding:22px 12px 8px 12px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
         You're receiving this because you subscribed to ${escapeHtml(brand.siteName)} alerts.<br>
         <a href="${escapeHtml(unsubUrl)}" style="color:#6b7280;text-decoration:underline">Unsubscribe</a>
         &nbsp;&middot;&nbsp;
