@@ -290,16 +290,16 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="eg-footer-card" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px">
           <tr><td style="padding:16px 18px;font-size:13px;color:#4b5563;line-height:1.5">
             <strong style="color:#111827">Want more?</strong> Browse the full insurance &amp; pensions feed on
-            <a href="${escapeHtml(SITE_URL)}" style="color:${brand.primary};text-decoration:none;font-weight:600">${escapeHtml(brand.siteName)}</a>.
+            <a href="${escapeHtml(portalUrl)}" style="color:${brand.primary};text-decoration:none;font-weight:600">${escapeHtml(brand.siteName)}</a>.
           </td></tr>
         </table>
       </td></tr>
 
       <tr><td class="eg-fineprint" style="padding:22px 12px 8px 12px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.7">
-        You're receiving this because you subscribed to ${escapeHtml(brand.siteName)} alerts.<br>
-        <a href="${escapeHtml(unsubUrl)}" style="color:#6b7280;text-decoration:underline">Unsubscribe</a>
+        <strong style="color:#6b7280;font-weight:600">Why am I getting this?</strong> You subscribed to ${escapeHtml(brand.siteName)} alerts${firstName ? ` as ${escapeHtml(firstName)}` : ''} — we only send when fresh ${escapeHtml(brand.tagline)} news lands.<br>
+        <a href="${escapeHtml(unsubUrl)}" style="color:#6b7280;text-decoration:underline">Unsubscribe in one click</a>
         &nbsp;&middot;&nbsp;
-        <a href="${escapeHtml(SITE_URL)}" style="color:#6b7280;text-decoration:underline">Visit portal</a>
+        <a href="${escapeHtml(portalUrl)}" style="color:#6b7280;text-decoration:underline">Visit portal</a>
       </td></tr>
 
     </table>
@@ -309,7 +309,7 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
 }
 
 function buildPlain(article: Article, brand: SiteBrand, unsubUrl: string): string {
-  const url = `${SITE_URL}/article/${article.id}`;
+  const url = withUtm(`${SITE_URL}/article/${article.id}`);
   return [
     `${brand.siteName} - ${brand.tagline}`,
     '',
