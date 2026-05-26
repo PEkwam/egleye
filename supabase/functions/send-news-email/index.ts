@@ -156,8 +156,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   pensions: 'NPRA Pensions',
 };
 
+function withUtm(url: string, campaign = 'news_alert'): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('utm_source', 'newsletter');
+    u.searchParams.set('utm_medium', 'email');
+    u.searchParams.set('utm_campaign', campaign);
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, unsubUrl: string): string {
-  const articleUrl = `${SITE_URL}/article/${article.id}`;
+  const articleUrl = withUtm(`${SITE_URL}/article/${article.id}`);
+  const portalUrl = withUtm(SITE_URL, 'news_alert_footer');
   const firstName = subscriber.name ? subscriber.name.split(' ')[0] : '';
   const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hello,';
   const desc = article.description ? escapeHtml(article.description.slice(0, 320)) : '';
@@ -180,11 +193,18 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
   }
   const preheader = escapeHtml(preheaderText);
 
+  // Hero: real image when available; otherwise a branded gradient block
+  // showing the category label so the layout never feels thin.
   const hero = article.image_url
     ? `<a href="${escapeHtml(articleUrl)}" style="display:block;text-decoration:none">
          <img src="${escapeHtml(article.image_url)}" alt="" width="600" style="width:100%;max-width:600px;height:auto;display:block;border:0;border-top-left-radius:14px;border-top-right-radius:14px"/>
        </a>`
-    : `<div style="height:6px;background:${brand.primary};border-top-left-radius:14px;border-top-right-radius:14px"></div>`;
+    : `<a href="${escapeHtml(articleUrl)}" style="display:block;text-decoration:none">
+         <div style="background:linear-gradient(135deg, ${brand.primary} 0%, ${brand.primary}cc 60%, #0f172a 100%);border-top-left-radius:14px;border-top-right-radius:14px;padding:56px 28px;text-align:center">
+           <div style="font-size:11px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.78);text-transform:uppercase;margin-bottom:10px">${escapeHtml(categoryLabel)}</div>
+           <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-.01em">${escapeHtml(brand.siteName)} News Alert</div>
+         </div>
+       </a>`;
 
   return `<!doctype html>
 <html lang="en"><head>
