@@ -730,7 +730,7 @@ Deno.serve(async (req) => {
       const fallback = nicOnly ? NIC_RSS_FEEDS
         : pensionOnly ? PENSION_RSS_FEEDS
         : [...LOCAL_GHANA_FEEDS, ...GOOGLE_NEWS_RSS_FEEDS, ...PENSION_RSS_FEEDS];
-      feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general' }));
+      feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general', consecutive_errors: 0, next_eligible_at: null }));
     }
 
     sourcesRun = feedsToProcess.length;
