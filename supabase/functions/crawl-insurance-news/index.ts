@@ -506,7 +506,7 @@ async function fetchRSSFeed(
   sourceName: string,
   includeKeywords: string[],
   excludeKeywords: string[]
-): Promise<NewsArticle[]> {
+): Promise<{ articles: NewsArticle[]; status: 'ok' | 'error'; error?: string }> {
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
     
@@ -518,16 +518,48 @@ async function fetchRSSFeed(
     });
 
     if (!response.ok) {
-      console.error(`RSS fetch failed for ${sourceName}: ${response.status}`);
-      return [];
+      const msg = `HTTP ${response.status}`;
+      console.error(`RSS fetch failed for ${sourceName}: ${msg}`);
+      return { articles: [], status: 'error', error: msg };
     }
 
     const xml = await response.text();
-    return parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
+    const articles = parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
+    return { articles, status: 'ok' };
   } catch (error) {
-    console.error(`Error fetching RSS from ${sourceName}:`, error);
-    return [];
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`Error fetching RSS from ${sourceName}:`, msg);
+    return { articles: [], status: 'error', error: msg };
   }
+}
+
+// --- Fuzzy title matching helpers (for smarter dedupe) ---
+function normalizeTitle(t: string): string {
+  return t
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const STOPWORDS = new Set([
+  'the','a','an','and','or','of','for','to','in','on','at','by','with','from',
+  'is','are','was','were','be','been','as','that','this','it','its','has','have',
+  'will','can','new','says','said','ghana','ghanas','ghanaian'
+]);
+
+function tokenSet(t: string): Set<string> {
+  return new Set(
+    normalizeTitle(t).split(' ').filter(w => w.length > 2 && !STOPWORDS.has(w))
+  );
+}
+
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
 }
 
 Deno.serve(async (req) => {
