@@ -562,6 +562,104 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : inter / union;
 }
 
+// --- OpenGraph image fallback ---
+async function fetchOgImage(pageUrl: string): Promise<string | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(pageUrl, {
+      signal: ctrl.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; GhanaInsuranceNewsBot/1.0)',
+        'Accept': 'text/html,*/*',
+      },
+      redirect: 'follow',
+    });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const reader = res.body?.getReader();
+    if (!reader) return null;
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (total < 120_000) {
+      const { done, value } = await reader.read();
+      if (done || !value) break;
+      chunks.push(value);
+      total += value.length;
+    }
+    try { await reader.cancel(); } catch { /* noop */ }
+    const merged = chunks.reduce((acc, c) => {
+      const m = new Uint8Array(acc.length + c.length); m.set(acc); m.set(c, acc.length); return m;
+    }, new Uint8Array());
+    const html = new TextDecoder().decode(merged);
+    const og = html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+      || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    if (!og) return null;
+    let url = og[1].trim();
+    if (url.startsWith('//')) url = 'https:' + url;
+    else if (url.startsWith('/')) {
+      try { url = new URL(url, pageUrl).toString(); } catch { /* noop */ }
+    }
+    return url || null;
+  } catch {
+    return null;
+  }
+}
+
+// --- AI relevance + category classifier (Lovable AI Gateway) ---
+type AiVerdict = { keep: boolean; category: string };
+async function classifyWithAI(articles: NewsArticle[]): Promise<AiVerdict[] | null> {
+  const apiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!apiKey || articles.length === 0) return null;
+  try {
+    const items = articles.map((a, i) => ({
+      i,
+      title: (a.title || '').slice(0, 200),
+      desc: (a.description || '').slice(0, 280),
+      source: a.source_name || '',
+    }));
+    const sys = `You classify Ghana insurance / pension news. Return STRICT JSON:
+{"results":[{"i":number,"keep":boolean,"category":"general"|"enterprise_group"|"regulator"|"life_insurance"|"nonlife"|"pensions"|"claims"}]}
+keep=true ONLY if the article is genuinely about Ghana insurance, reinsurance, pensions, NIC, NPRA, SSNIT, insurers, brokers, claims, or related regulation. Otherwise keep=false. Pick the most specific category.`;
+    const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: JSON.stringify(items) },
+        ],
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!res.ok) { console.warn('AI classify failed', res.status); return null; }
+    const data = await res.json();
+    const txt = data?.choices?.[0]?.message?.content;
+    if (!txt) return null;
+    const parsed = JSON.parse(txt);
+    const out: AiVerdict[] = articles.map(() => ({ keep: true, category: 'general' }));
+    for (const r of parsed.results ?? []) {
+      if (typeof r.i === 'number' && r.i >= 0 && r.i < articles.length) {
+        out[r.i] = { keep: !!r.keep, category: String(r.category || 'general') };
+      }
+    }
+    return out;
+  } catch (e) {
+    console.warn('AI classify error', e);
+    return null;
+  }
+}
+
+// --- Smart backoff helpers ---
+function computeBackoffMs(consecutiveErrors: number): number {
+  // 0 err -> 0; 1 -> 30m, 2 -> 1h, 3 -> 2h, 4 -> 4h, max 6h
+  if (consecutiveErrors <= 0) return 0;
+  const mins = Math.min(30 * Math.pow(2, consecutiveErrors - 1), 360);
+  return mins * 60_000;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
