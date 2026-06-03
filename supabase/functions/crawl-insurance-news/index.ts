@@ -562,6 +562,104 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : inter / union;
 }
 
+// --- OpenGraph image fallback ---
+async function fetchOgImage(pageUrl: string): Promise<string | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(pageUrl, {
+      signal: ctrl.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; GhanaInsuranceNewsBot/1.0)',
+        'Accept': 'text/html,*/*',
+      },
+      redirect: 'follow',
+    });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const reader = res.body?.getReader();
+    if (!reader) return null;
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (total < 120_000) {
+      const { done, value } = await reader.read();
+      if (done || !value) break;
+      chunks.push(value);
+      total += value.length;
+    }
+    try { await reader.cancel(); } catch { /* noop */ }
+    const merged = chunks.reduce((acc, c) => {
+      const m = new Uint8Array(acc.length + c.length); m.set(acc); m.set(c, acc.length); return m;
+    }, new Uint8Array());
+    const html = new TextDecoder().decode(merged);
+    const og = html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+      || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    if (!og) return null;
+    let url = og[1].trim();
+    if (url.startsWith('//')) url = 'https:' + url;
+    else if (url.startsWith('/')) {
+      try { url = new URL(url, pageUrl).toString(); } catch { /* noop */ }
+    }
+    return url || null;
+  } catch {
+    return null;
+  }
+}
+
+// --- AI relevance + category classifier (Lovable AI Gateway) ---
+type AiVerdict = { keep: boolean; category: string };
+async function classifyWithAI(articles: NewsArticle[]): Promise<AiVerdict[] | null> {
+  const apiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!apiKey || articles.length === 0) return null;
+  try {
+    const items = articles.map((a, i) => ({
+      i,
+      title: (a.title || '').slice(0, 200),
+      desc: (a.description || '').slice(0, 280),
+      source: a.source_name || '',
+    }));
+    const sys = `You classify Ghana insurance / pension news. Return STRICT JSON:
+{"results":[{"i":number,"keep":boolean,"category":"general"|"enterprise_group"|"regulator"|"life_insurance"|"nonlife"|"pensions"|"claims"}]}
+keep=true ONLY if the article is genuinely about Ghana insurance, reinsurance, pensions, NIC, NPRA, SSNIT, insurers, brokers, claims, or related regulation. Otherwise keep=false. Pick the most specific category.`;
+    const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: JSON.stringify(items) },
+        ],
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!res.ok) { console.warn('AI classify failed', res.status); return null; }
+    const data = await res.json();
+    const txt = data?.choices?.[0]?.message?.content;
+    if (!txt) return null;
+    const parsed = JSON.parse(txt);
+    const out: AiVerdict[] = articles.map(() => ({ keep: true, category: 'general' }));
+    for (const r of parsed.results ?? []) {
+      if (typeof r.i === 'number' && r.i >= 0 && r.i < articles.length) {
+        out[r.i] = { keep: !!r.keep, category: String(r.category || 'general') };
+      }
+    }
+    return out;
+  } catch (e) {
+    console.warn('AI classify error', e);
+    return null;
+  }
+}
+
+// --- Smart backoff helpers ---
+function computeBackoffMs(consecutiveErrors: number): number {
+  // 0 err -> 0; 1 -> 30m, 2 -> 1h, 3 -> 2h, 4 -> 4h, max 6h
+  if (consecutiveErrors <= 0) return 0;
+  const mins = Math.min(30 * Math.pow(2, consecutiveErrors - 1), 360);
+  return mins * 60_000;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -612,12 +710,14 @@ Deno.serve(async (req) => {
 
     console.log(`Starting crawl. Mode=${modeLabel} Trigger=${triggerSource}`);
 
-    // Load active sources from DB (fallback to hard-coded if DB empty)
-    type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string };
+    // Load active sources from DB, honoring smart backoff via next_eligible_at
+    type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
+    const nowIso = new Date().toISOString();
     const { data: dbSources } = await supabase
       .from('news_sources')
-      .select('id, url, category, source_label, mode')
-      .eq('is_enabled', true);
+      .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
+      .eq('is_enabled', true)
+      .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`);
 
     let feedsToProcess: SourceRow[] = (dbSources ?? []).filter((s) => {
       if (nicOnly) return s.mode === 'nic';
@@ -630,7 +730,7 @@ Deno.serve(async (req) => {
       const fallback = nicOnly ? NIC_RSS_FEEDS
         : pensionOnly ? PENSION_RSS_FEEDS
         : [...LOCAL_GHANA_FEEDS, ...GOOGLE_NEWS_RSS_FEEDS, ...PENSION_RSS_FEEDS];
-      feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general' }));
+      feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general', consecutive_errors: 0, next_eligible_at: null }));
     }
 
     sourcesRun = feedsToProcess.length;
@@ -654,21 +754,26 @@ Deno.serve(async (req) => {
 
         if (feed.id) {
           try {
-            // Read current total (no rpc available, simple update)
             const { data: cur } = await supabase
               .from('news_sources')
               .select('articles_found_total')
               .eq('id', feed.id)
               .single();
             const prevTotal = cur?.articles_found_total ?? 0;
+            const isOk = res.status === 'ok';
+            const newErrCount = isOk ? 0 : (feed.consecutive_errors ?? 0) + 1;
+            const backoffMs = computeBackoffMs(newErrCount);
+            const nextEligible = backoffMs > 0 ? new Date(Date.now() + backoffMs).toISOString() : null;
             await supabase
               .from('news_sources')
               .update({
                 last_run_at: new Date().toISOString(),
-                last_status: res.status === 'ok' ? 'ok' : 'error',
+                last_status: isOk ? 'ok' : 'error',
                 last_error: res.error ?? null,
                 last_articles_found: found,
                 articles_found_total: prevTotal + found,
+                consecutive_errors: newErrCount,
+                next_eligible_at: nextEligible,
               })
               .eq('id', feed.id);
           } catch (e) {
@@ -736,6 +841,39 @@ Deno.serve(async (req) => {
     articlesKept = finalArticles.length;
     console.log(`Articles after dedupe: ${articlesKept} (skipped ${duplicatesSkipped} duplicates)`);
 
+    // --- AI relevance + category re-classification (Lovable AI, in batches of 20) ---
+    if (finalArticles.length > 0) {
+      const verdicts: AiVerdict[] = [];
+      for (let i = 0; i < finalArticles.length; i += 20) {
+        const slice = finalArticles.slice(i, i + 20);
+        const v = await classifyWithAI(slice);
+        if (v) verdicts.push(...v); else verdicts.push(...slice.map(() => ({ keep: true, category: '' })));
+      }
+      const aiKept: NewsArticle[] = [];
+      let aiDropped = 0;
+      for (let i = 0; i < finalArticles.length; i++) {
+        const a = finalArticles[i];
+        const v = verdicts[i];
+        if (v && v.keep === false) { aiDropped++; continue; }
+        if (v && v.category) a.category = v.category;
+        aiKept.push(a);
+      }
+      if (aiDropped > 0) console.log(`AI dropped ${aiDropped} borderline articles`);
+      finalArticles.length = 0;
+      finalArticles.push(...aiKept);
+      articlesKept = finalArticles.length;
+    }
+
+    // --- OpenGraph image fallback for articles without an image ---
+    const needsImg = finalArticles.filter((a) => !a.image_url).slice(0, 25);
+    if (needsImg.length > 0) {
+      const ogResults = await Promise.all(needsImg.map((a) => fetchOgImage(a.source_url)));
+      for (let i = 0; i < needsImg.length; i++) {
+        if (ogResults[i]) needsImg[i].image_url = ogResults[i];
+      }
+      console.log(`OG image fallback found ${ogResults.filter(Boolean).length}/${needsImg.length}`);
+    }
+
     let insertedArticles: any[] = [];
     if (finalArticles.length > 0) {
       const { data: inserted, error: insertError } = await supabase
@@ -755,6 +893,44 @@ Deno.serve(async (req) => {
         console.log(`Inserted ${articlesInserted} articles`);
       }
     }
+
+    // --- Auto-feature breaking stories: if 3+ sources covered the same story in last 6h ---
+    try {
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+      const { data: recent6h } = await supabase
+        .from('news_articles')
+        .select('id, title, source_name, is_featured')
+        .gte('published_at', sixHoursAgo)
+        .limit(500);
+      const list = recent6h ?? [];
+      const used = new Set<string>();
+      const toFeature: string[] = [];
+      for (let i = 0; i < list.length; i++) {
+        if (used.has(list[i].id)) continue;
+        const seedToks = tokenSet(list[i].title || '');
+        if (seedToks.size < 3) continue;
+        const cluster = [list[i]];
+        used.add(list[i].id);
+        for (let j = i + 1; j < list.length; j++) {
+          if (used.has(list[j].id)) continue;
+          if (jaccard(seedToks, tokenSet(list[j].title || '')) >= 0.6) {
+            cluster.push(list[j]);
+            used.add(list[j].id);
+          }
+        }
+        const distinctSources = new Set(cluster.map((c: any) => (c.source_name || '').toLowerCase()).filter(Boolean));
+        if (distinctSources.size >= 3) {
+          for (const c of cluster) if (!c.is_featured) toFeature.push(c.id);
+        }
+      }
+      if (toFeature.length > 0) {
+        await supabase.from('news_articles').update({ is_featured: true }).in('id', toFeature);
+        console.log(`Auto-featured ${toFeature.length} breaking-story articles`);
+      }
+    } catch (e) {
+      console.warn('Auto-feature step failed', e);
+    }
+
 
     // Fan out push notifications for newly inserted articles (cap to 5)
     try {

@@ -485,6 +485,7 @@ export type Database = {
         Row: {
           articles_found_total: number
           category: string
+          consecutive_errors: number
           created_at: string
           id: string
           is_enabled: boolean
@@ -495,6 +496,7 @@ export type Database = {
           last_status: string | null
           mode: string
           name: string
+          next_eligible_at: string | null
           source_label: string
           updated_at: string
           url: string
@@ -502,6 +504,7 @@ export type Database = {
         Insert: {
           articles_found_total?: number
           category?: string
+          consecutive_errors?: number
           created_at?: string
           id?: string
           is_enabled?: boolean
@@ -512,6 +515,7 @@ export type Database = {
           last_status?: string | null
           mode?: string
           name: string
+          next_eligible_at?: string | null
           source_label: string
           updated_at?: string
           url: string
@@ -519,6 +523,7 @@ export type Database = {
         Update: {
           articles_found_total?: number
           category?: string
+          consecutive_errors?: number
           created_at?: string
           id?: string
           is_enabled?: boolean
@@ -529,6 +534,7 @@ export type Database = {
           last_status?: string | null
           mode?: string
           name?: string
+          next_eligible_at?: string | null
           source_label?: string
           updated_at?: string
           url?: string
