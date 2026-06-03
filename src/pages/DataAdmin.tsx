@@ -2419,6 +2419,12 @@ const DataAdmin = () => {
                   onTriggerCrawl={handleCrawlNews}
                   isCrawling={isCrawlingNews}
                 />
+
+                {/* News Sources & Run History */}
+                <NewsSourcesPanel
+                  onTriggerCrawl={handleCrawlNews}
+                  isCrawling={isCrawlingNews}
+                />
               </div>
             )}
 
