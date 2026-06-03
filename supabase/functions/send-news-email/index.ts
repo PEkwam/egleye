@@ -108,6 +108,21 @@ function escapeHtml(s: string): string {
   return decodeEntities(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
+// Strip HTML tags (anchors, spans, etc.) that crawlers sometimes embed in
+// description/summary fields. Without this, Outlook renders the raw markup
+// (e.g. `<a href="...">`) as visible text in the email body.
+function stripHtml(s: string): string {
+  if (!s) return '';
+  return decodeEntities(
+    s
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' '),
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 
 interface Article {
   id: string;
@@ -173,21 +188,21 @@ function buildHtml(article: Article, subscriber: Subscriber, brand: SiteBrand, u
   const portalUrl = withUtm(SITE_URL, 'news_alert_footer');
   const firstName = subscriber.name ? subscriber.name.split(' ')[0] : '';
   const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hello,';
-  const desc = article.description ? escapeHtml(article.description.slice(0, 320)) : '';
+  const cleanDesc = article.description ? stripHtml(article.description) : '';
+  const desc = cleanDesc ? escapeHtml(cleanDesc.slice(0, 320)) : '';
   const source = article.source_name ? escapeHtml(article.source_name) : '';
   const date = article.published_at
     ? new Date(article.published_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })
     : '';
   const categoryLabel = CATEGORY_LABELS[article.category] || 'Insurance';
-  const wordCount = (article.content || article.description || '').split(/\s+/).filter(Boolean).length;
+  const wordCount = (article.content || cleanDesc || '').split(/\s+/).filter(Boolean).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
   // Smarter preheader: pull the first complete sentence so the inbox preview
   // sells the story instead of showing a generic line.
-  const rawDesc = (article.description || '').trim();
   let preheaderText = '';
-  if (rawDesc) {
-    const sentenceMatch = rawDesc.match(/^(.{40,180}?[.!?])(\s|$)/);
-    preheaderText = (sentenceMatch ? sentenceMatch[1] : rawDesc.slice(0, 140)).trim();
+  if (cleanDesc) {
+    const sentenceMatch = cleanDesc.match(/^(.{40,180}?[.!?])(\s|$)/);
+    preheaderText = (sentenceMatch ? sentenceMatch[1] : cleanDesc.slice(0, 140)).trim();
   } else {
     preheaderText = `${categoryLabel} update from ${brand.siteName}`;
   }
@@ -327,7 +342,7 @@ function buildPlain(article: Article, brand: SiteBrand, unsubUrl: string): strin
     article.title,
     article.source_name ? `Source: ${article.source_name}` : '',
     '',
-    article.description ? article.description.slice(0, 400) : '',
+    article.description ? stripHtml(article.description).slice(0, 400) : '',
     '',
     `Read: ${url}`,
     '',
