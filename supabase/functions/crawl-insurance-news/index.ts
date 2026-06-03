@@ -841,6 +841,39 @@ Deno.serve(async (req) => {
     articlesKept = finalArticles.length;
     console.log(`Articles after dedupe: ${articlesKept} (skipped ${duplicatesSkipped} duplicates)`);
 
+    // --- AI relevance + category re-classification (Lovable AI, in batches of 20) ---
+    if (finalArticles.length > 0) {
+      const verdicts: AiVerdict[] = [];
+      for (let i = 0; i < finalArticles.length; i += 20) {
+        const slice = finalArticles.slice(i, i + 20);
+        const v = await classifyWithAI(slice);
+        if (v) verdicts.push(...v); else verdicts.push(...slice.map(() => ({ keep: true, category: '' })));
+      }
+      const aiKept: NewsArticle[] = [];
+      let aiDropped = 0;
+      for (let i = 0; i < finalArticles.length; i++) {
+        const a = finalArticles[i];
+        const v = verdicts[i];
+        if (v && v.keep === false) { aiDropped++; continue; }
+        if (v && v.category) a.category = v.category;
+        aiKept.push(a);
+      }
+      if (aiDropped > 0) console.log(`AI dropped ${aiDropped} borderline articles`);
+      finalArticles.length = 0;
+      finalArticles.push(...aiKept);
+      articlesKept = finalArticles.length;
+    }
+
+    // --- OpenGraph image fallback for articles without an image ---
+    const needsImg = finalArticles.filter((a) => !a.image_url).slice(0, 25);
+    if (needsImg.length > 0) {
+      const ogResults = await Promise.all(needsImg.map((a) => fetchOgImage(a.source_url)));
+      for (let i = 0; i < needsImg.length; i++) {
+        if (ogResults[i]) needsImg[i].image_url = ogResults[i];
+      }
+      console.log(`OG image fallback found ${ogResults.filter(Boolean).length}/${needsImg.length}`);
+    }
+
     let insertedArticles: any[] = [];
     if (finalArticles.length > 0) {
       const { data: inserted, error: insertError } = await supabase
@@ -860,6 +893,44 @@ Deno.serve(async (req) => {
         console.log(`Inserted ${articlesInserted} articles`);
       }
     }
+
+    // --- Auto-feature breaking stories: if 3+ sources covered the same story in last 6h ---
+    try {
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+      const { data: recent6h } = await supabase
+        .from('news_articles')
+        .select('id, title, source_name, is_featured')
+        .gte('published_at', sixHoursAgo)
+        .limit(500);
+      const list = recent6h ?? [];
+      const used = new Set<string>();
+      const toFeature: string[] = [];
+      for (let i = 0; i < list.length; i++) {
+        if (used.has(list[i].id)) continue;
+        const seedToks = tokenSet(list[i].title || '');
+        if (seedToks.size < 3) continue;
+        const cluster = [list[i]];
+        used.add(list[i].id);
+        for (let j = i + 1; j < list.length; j++) {
+          if (used.has(list[j].id)) continue;
+          if (jaccard(seedToks, tokenSet(list[j].title || '')) >= 0.6) {
+            cluster.push(list[j]);
+            used.add(list[j].id);
+          }
+        }
+        const distinctSources = new Set(cluster.map((c: any) => (c.source_name || '').toLowerCase()).filter(Boolean));
+        if (distinctSources.size >= 3) {
+          for (const c of cluster) if (!c.is_featured) toFeature.push(c.id);
+        }
+      }
+      if (toFeature.length > 0) {
+        await supabase.from('news_articles').update({ is_featured: true }).in('id', toFeature);
+        console.log(`Auto-featured ${toFeature.length} breaking-story articles`);
+      }
+    } catch (e) {
+      console.warn('Auto-feature step failed', e);
+    }
+
 
     // Fan out push notifications for newly inserted articles (cap to 5)
     try {
