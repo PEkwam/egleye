@@ -342,7 +342,7 @@ function buildPlain(article: Article, brand: SiteBrand, unsubUrl: string): strin
     article.title,
     article.source_name ? `Source: ${article.source_name}` : '',
     '',
-    article.description ? article.description.slice(0, 400) : '',
+    article.description ? stripHtml(article.description).slice(0, 400) : '',
     '',
     `Read: ${url}`,
     '',
