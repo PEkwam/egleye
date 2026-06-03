@@ -430,6 +430,111 @@ export type Database = {
         }
         Relationships: []
       }
+      news_crawl_runs: {
+        Row: {
+          articles_fetched: number
+          articles_inserted: number
+          articles_kept: number
+          created_at: string
+          duplicates_skipped: number
+          error_message: string | null
+          errors: number
+          finished_at: string | null
+          id: string
+          mode: string
+          sources_run: number
+          started_at: string
+          status: string
+          trigger_source: string
+        }
+        Insert: {
+          articles_fetched?: number
+          articles_inserted?: number
+          articles_kept?: number
+          created_at?: string
+          duplicates_skipped?: number
+          error_message?: string | null
+          errors?: number
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          sources_run?: number
+          started_at?: string
+          status?: string
+          trigger_source?: string
+        }
+        Update: {
+          articles_fetched?: number
+          articles_inserted?: number
+          articles_kept?: number
+          created_at?: string
+          duplicates_skipped?: number
+          error_message?: string | null
+          errors?: number
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          sources_run?: number
+          started_at?: string
+          status?: string
+          trigger_source?: string
+        }
+        Relationships: []
+      }
+      news_sources: {
+        Row: {
+          articles_found_total: number
+          category: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          is_local: boolean
+          last_articles_found: number | null
+          last_error: string | null
+          last_run_at: string | null
+          last_status: string | null
+          mode: string
+          name: string
+          source_label: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          articles_found_total?: number
+          category?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          is_local?: boolean
+          last_articles_found?: number | null
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          mode?: string
+          name: string
+          source_label: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          articles_found_total?: number
+          category?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          is_local?: boolean
+          last_articles_found?: number | null
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          mode?: string
+          name?: string
+          source_label?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       news_subscriber_sends: {
         Row: {
           article_id: string

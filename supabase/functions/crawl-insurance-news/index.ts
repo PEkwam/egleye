@@ -506,7 +506,7 @@ async function fetchRSSFeed(
   sourceName: string,
   includeKeywords: string[],
   excludeKeywords: string[]
-): Promise<NewsArticle[]> {
+): Promise<{ articles: NewsArticle[]; status: 'ok' | 'error'; error?: string }> {
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
     
@@ -518,16 +518,48 @@ async function fetchRSSFeed(
     });
 
     if (!response.ok) {
-      console.error(`RSS fetch failed for ${sourceName}: ${response.status}`);
-      return [];
+      const msg = `HTTP ${response.status}`;
+      console.error(`RSS fetch failed for ${sourceName}: ${msg}`);
+      return { articles: [], status: 'error', error: msg };
     }
 
     const xml = await response.text();
-    return parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
+    const articles = parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
+    return { articles, status: 'ok' };
   } catch (error) {
-    console.error(`Error fetching RSS from ${sourceName}:`, error);
-    return [];
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`Error fetching RSS from ${sourceName}:`, msg);
+    return { articles: [], status: 'error', error: msg };
   }
+}
+
+// --- Fuzzy title matching helpers (for smarter dedupe) ---
+function normalizeTitle(t: string): string {
+  return t
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const STOPWORDS = new Set([
+  'the','a','an','and','or','of','for','to','in','on','at','by','with','from',
+  'is','are','was','were','be','been','as','that','this','it','its','has','have',
+  'will','can','new','says','said','ghana','ghanas','ghanaian'
+]);
+
+function tokenSet(t: string): Set<string> {
+  return new Set(
+    normalizeTitle(t).split(' ').filter(w => w.length > 2 && !STOPWORDS.has(w))
+  );
+}
+
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
 }
 
 Deno.serve(async (req) => {
@@ -535,72 +567,180 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // Read body (optional) for trigger metadata
+  let triggerSource = 'manual';
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    if (req.method === 'POST') {
+      const body = await req.json().catch(() => null);
+      if (body?.source) triggerSource = String(body.source).slice(0, 64);
+    }
+  } catch { /* noop */ }
 
-    // Fetch dynamic keywords from database
+  // Check mode from query params
+  const url = new URL(req.url);
+  const nicOnly = url.searchParams.get('nic_only') === 'true';
+  const pensionOnly = url.searchParams.get('pension_only') === 'true';
+  const modeLabel = nicOnly ? 'nic' : pensionOnly ? 'pension' : 'general';
+
+  // Start crawl run record
+  let runId: string | null = null;
+  try {
+    const { data: runRow } = await supabase
+      .from('news_crawl_runs')
+      .insert({ trigger_source: triggerSource, mode: modeLabel, status: 'running' })
+      .select('id')
+      .single();
+    runId = runRow?.id ?? null;
+  } catch (e) {
+    console.warn('Failed to create crawl run row:', e);
+  }
+
+  let articlesFetched = 0;
+  let articlesKept = 0;
+  let articlesInserted = 0;
+  let duplicatesSkipped = 0;
+  let errors = 0;
+  let sourcesRun = 0;
+
+  try {
     const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
-
-    // Pull live insurer name/keyword list so admin renames flow through automatically
     await loadDbKeywords(supabase);
 
-    // Check mode from query params
-    const url = new URL(req.url);
-    const nicOnly = url.searchParams.get('nic_only') === 'true';
-    const pensionOnly = url.searchParams.get('pension_only') === 'true';
+    console.log(`Starting crawl. Mode=${modeLabel} Trigger=${triggerSource}`);
 
-    console.log(`Starting Ghana insurance news crawl... Mode: ${nicOnly ? 'NIC-only' : pensionOnly ? 'Pension-only' : 'Full'} (RSS-only)`);
-    console.log(`Using ${includeKeywords.length} include keywords and ${excludeKeywords.length} exclude keywords`);
+    // Load active sources from DB (fallback to hard-coded if DB empty)
+    type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string };
+    const { data: dbSources } = await supabase
+      .from('news_sources')
+      .select('id, url, category, source_label, mode')
+      .eq('is_enabled', true);
 
-    const allArticles: NewsArticle[] = [];
-    let feedsToProcess: typeof LOCAL_GHANA_FEEDS = [];
+    let feedsToProcess: SourceRow[] = (dbSources ?? []).filter((s) => {
+      if (nicOnly) return s.mode === 'nic';
+      if (pensionOnly) return s.mode === 'pension';
+      return true;
+    });
 
-    if (nicOnly) {
-      feedsToProcess = NIC_RSS_FEEDS;
-    } else if (pensionOnly) {
-      feedsToProcess = PENSION_RSS_FEEDS;
-    } else {
-      // Full mode: All local Ghana feeds + Google News RSS feeds + Pension feeds
-      feedsToProcess = [...LOCAL_GHANA_FEEDS, ...GOOGLE_NEWS_RSS_FEEDS, ...PENSION_RSS_FEEDS];
+    if (feedsToProcess.length === 0) {
+      console.warn('No DB sources available — falling back to hard-coded feed list');
+      const fallback = nicOnly ? NIC_RSS_FEEDS
+        : pensionOnly ? PENSION_RSS_FEEDS
+        : [...LOCAL_GHANA_FEEDS, ...GOOGLE_NEWS_RSS_FEEDS, ...PENSION_RSS_FEEDS];
+      feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general' }));
     }
 
-    // Process RSS feeds in batches
+    sourcesRun = feedsToProcess.length;
+
+    // Process feeds in batches and track per-source stats
+    const allArticles: NewsArticle[] = [];
     const batchSize = 5;
     for (let i = 0; i < feedsToProcess.length; i += batchSize) {
       const batch = feedsToProcess.slice(i, i + batchSize);
       const results = await Promise.all(
-        batch.map(feed => fetchRSSFeed(feed.url, feed.category, feed.source, includeKeywords, excludeKeywords))
+        batch.map((feed) => fetchRSSFeed(feed.url, feed.category, feed.source_label, includeKeywords, excludeKeywords))
       );
-      results.forEach(articles => allArticles.push(...articles));
-      
-      // Small delay between batches to avoid rate limiting
+      // Update per-source rows + accumulate
+      for (let j = 0; j < batch.length; j++) {
+        const feed = batch[j];
+        const res = results[j];
+        const found = res.articles.length;
+        articlesFetched += found;
+        if (res.status === 'error') errors++;
+        allArticles.push(...res.articles);
+
+        if (feed.id) {
+          try {
+            // Read current total (no rpc available, simple update)
+            const { data: cur } = await supabase
+              .from('news_sources')
+              .select('articles_found_total')
+              .eq('id', feed.id)
+              .single();
+            const prevTotal = cur?.articles_found_total ?? 0;
+            await supabase
+              .from('news_sources')
+              .update({
+                last_run_at: new Date().toISOString(),
+                last_status: res.status === 'ok' ? 'ok' : 'error',
+                last_error: res.error ?? null,
+                last_articles_found: found,
+                articles_found_total: prevTotal + found,
+              })
+              .eq('id', feed.id);
+          } catch (e) {
+            console.warn('Failed to update news_sources row', feed.id, e);
+          }
+        }
+      }
       if (i + batchSize < feedsToProcess.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
     console.log(`RSS feeds found: ${allArticles.length} articles`);
 
-    // Deduplicate by title similarity
-    const seenTitles = new Set<string>();
-    const uniqueArticles = allArticles.filter(article => {
-      const normalizedTitle = article.title.toLowerCase().slice(0, 50);
-      if (seenTitles.has(normalizedTitle)) {
-        return false;
-      }
-      seenTitles.add(normalizedTitle);
-      return true;
-    });
+    // --- Smarter dedupe ---
+    // 1. Exact URL dedupe (within batch)
+    const seenUrls = new Set<string>();
+    let batchUniques: NewsArticle[] = [];
+    for (const a of allArticles) {
+      if (seenUrls.has(a.source_url)) continue;
+      seenUrls.add(a.source_url);
+      batchUniques.push(a);
+    }
 
-    console.log(`Unique articles after deduplication: ${uniqueArticles.length}`);
+    // 2. Fuzzy title dedupe within batch (Jaccard >= 0.7)
+    const keptInBatch: NewsArticle[] = [];
+    const keptTokens: Set<string>[] = [];
+    for (const a of batchUniques) {
+      const toks = tokenSet(a.title);
+      let isDup = false;
+      for (const k of keptTokens) {
+        if (jaccard(toks, k) >= 0.7) { isDup = true; break; }
+      }
+      if (!isDup) {
+        keptInBatch.push(a);
+        keptTokens.push(toks);
+      } else {
+        duplicatesSkipped++;
+      }
+    }
+
+    // 3. Fuzzy title dedupe vs articles already in DB (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentDb } = await supabase
+      .from('news_articles')
+      .select('title')
+      .gte('published_at', sevenDaysAgo)
+      .limit(1000);
+    const recentTokens: Set<string>[] = (recentDb ?? []).map((r: any) => tokenSet(r.title));
+
+    const finalArticles: NewsArticle[] = [];
+    for (const a of keptInBatch) {
+      const toks = tokenSet(a.title);
+      let isDup = false;
+      for (const r of recentTokens) {
+        if (jaccard(toks, r) >= 0.85) { isDup = true; break; }
+      }
+      if (!isDup) {
+        finalArticles.push(a);
+      } else {
+        duplicatesSkipped++;
+      }
+    }
+
+    articlesKept = finalArticles.length;
+    console.log(`Articles after dedupe: ${articlesKept} (skipped ${duplicatesSkipped} duplicates)`);
 
     let insertedArticles: any[] = [];
-    if (uniqueArticles.length > 0) {
+    if (finalArticles.length > 0) {
       const { data: inserted, error: insertError } = await supabase
         .from('news_articles')
-        .upsert(uniqueArticles, {
+        .upsert(finalArticles, {
           onConflict: 'source_url',
           ignoreDuplicates: true,
         })
@@ -608,13 +748,15 @@ Deno.serve(async (req) => {
 
       if (insertError) {
         console.error('Error inserting articles:', insertError);
+        errors++;
       } else {
         insertedArticles = inserted ?? [];
-        console.log(`Inserted/updated ${insertedArticles.length} articles`);
+        articlesInserted = insertedArticles.length;
+        console.log(`Inserted ${articlesInserted} articles`);
       }
     }
 
-    // Fan out desktop push notifications for newly inserted articles (cap to 5)
+    // Fan out push notifications for newly inserted articles (cap to 5)
     try {
       for (const art of insertedArticles.slice(0, 5)) {
         await supabase.functions.invoke('web-push', {
@@ -625,7 +767,7 @@ Deno.serve(async (req) => {
       console.error('web-push fan-out failed', pushErr);
     }
 
-    // Enqueue email alerts (Gmail) for newly inserted articles (cap to 5)
+    // Enqueue email alerts (cap to 5)
     try {
       for (const art of insertedArticles.slice(0, 5)) {
         await supabase.functions.invoke('send-news-email', {
@@ -637,42 +779,63 @@ Deno.serve(async (req) => {
       console.error('send-news-email enqueue failed', emailErr);
     }
 
-    // Process queued email alerts automatically so subscribers are not left in "pending".
+    // Process the email queue
     try {
-      const { data: emailResult, error: emailProcessErr } = await supabase.functions.invoke('send-news-email', {
+      await supabase.functions.invoke('send-news-email', {
         body: { action: 'process_queue', limit: 100 },
         headers: { Authorization: `Bearer ${supabaseServiceKey}` },
       });
-      if (emailProcessErr) throw emailProcessErr;
-      console.log('send-news-email process_queue result', emailResult);
     } catch (emailProcessErr) {
       console.error('send-news-email process_queue failed', emailProcessErr);
     }
 
-    const modeLabel = nicOnly ? 'NIC-only' : pensionOnly ? 'Pension-only' : 'Full';
-    
+    // Finalize run record
+    if (runId) {
+      await supabase.from('news_crawl_runs').update({
+        finished_at: new Date().toISOString(),
+        sources_run: sourcesRun,
+        articles_fetched: articlesFetched,
+        articles_kept: articlesKept,
+        articles_inserted: articlesInserted,
+        duplicates_skipped: duplicatesSkipped,
+        errors,
+        status: 'completed',
+      }).eq('id', runId);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Portal Successfully refreshed`,
-        articlesFound: uniqueArticles.length,
-        feedsProcessed: feedsToProcess.length,
+        message: 'Portal successfully refreshed',
+        runId,
         mode: modeLabel,
-        sources: 'RSS only (Local Ghana feeds + Google News RSS)',
-        filters: {
-          includeKeywords: includeKeywords.length,
-          excludeKeywords: excludeKeywords.length,
-        },
+        sourcesRun,
+        articlesFetched,
+        articlesKept,
+        articlesInserted,
+        duplicatesSkipped,
+        errors,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in Ghana news crawl:', error);
+    const msg = error instanceof Error ? error.message : 'Failed to crawl news';
+    if (runId) {
+      await supabase.from('news_crawl_runs').update({
+        finished_at: new Date().toISOString(),
+        sources_run: sourcesRun,
+        articles_fetched: articlesFetched,
+        articles_kept: articlesKept,
+        articles_inserted: articlesInserted,
+        duplicates_skipped: duplicatesSkipped,
+        errors: errors + 1,
+        status: 'failed',
+        error_message: msg,
+      }).eq('id', runId);
+    }
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to crawl news',
-      }),
+      JSON.stringify({ success: false, error: msg }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

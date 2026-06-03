@@ -9,6 +9,7 @@ import { SubscriberManager } from '@/components/admin/SubscriberManager';
 import { EmailDeliveryDashboard } from '@/components/admin/EmailDeliveryDashboard';
 import { PushNotificationsPanel } from '@/components/admin/PushNotificationsPanel';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
+import { NewsSourcesPanel } from '@/components/admin/NewsSourcesPanel';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
 import { RenameInsurerTool } from '@/components/admin/RenameInsurerTool';
 import { Button } from '@/components/ui/button';
@@ -2415,6 +2416,12 @@ const DataAdmin = () => {
 
                 {/* News Filters Section */}
                 <NewsFiltersSection 
+                  onTriggerCrawl={handleCrawlNews}
+                  isCrawling={isCrawlingNews}
+                />
+
+                {/* News Sources & Run History */}
+                <NewsSourcesPanel
                   onTriggerCrawl={handleCrawlNews}
                   isCrawling={isCrawlingNews}
                 />
