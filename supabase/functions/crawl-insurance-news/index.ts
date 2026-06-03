@@ -710,12 +710,14 @@ Deno.serve(async (req) => {
 
     console.log(`Starting crawl. Mode=${modeLabel} Trigger=${triggerSource}`);
 
-    // Load active sources from DB (fallback to hard-coded if DB empty)
-    type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string };
+    // Load active sources from DB, honoring smart backoff via next_eligible_at
+    type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
+    const nowIso = new Date().toISOString();
     const { data: dbSources } = await supabase
       .from('news_sources')
-      .select('id, url, category, source_label, mode')
-      .eq('is_enabled', true);
+      .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
+      .eq('is_enabled', true)
+      .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`);
 
     let feedsToProcess: SourceRow[] = (dbSources ?? []).filter((s) => {
       if (nicOnly) return s.mode === 'nic';
