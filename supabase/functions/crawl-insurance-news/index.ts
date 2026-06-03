@@ -754,21 +754,26 @@ Deno.serve(async (req) => {
 
         if (feed.id) {
           try {
-            // Read current total (no rpc available, simple update)
             const { data: cur } = await supabase
               .from('news_sources')
               .select('articles_found_total')
               .eq('id', feed.id)
               .single();
             const prevTotal = cur?.articles_found_total ?? 0;
+            const isOk = res.status === 'ok';
+            const newErrCount = isOk ? 0 : (feed.consecutive_errors ?? 0) + 1;
+            const backoffMs = computeBackoffMs(newErrCount);
+            const nextEligible = backoffMs > 0 ? new Date(Date.now() + backoffMs).toISOString() : null;
             await supabase
               .from('news_sources')
               .update({
                 last_run_at: new Date().toISOString(),
-                last_status: res.status === 'ok' ? 'ok' : 'error',
+                last_status: isOk ? 'ok' : 'error',
                 last_error: res.error ?? null,
                 last_articles_found: found,
                 articles_found_total: prevTotal + found,
+                consecutive_errors: newErrCount,
+                next_eligible_at: nextEligible,
               })
               .eq('id', feed.id);
           } catch (e) {
