@@ -108,6 +108,21 @@ function escapeHtml(s: string): string {
   return decodeEntities(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
+// Strip HTML tags (anchors, spans, etc.) that crawlers sometimes embed in
+// description/summary fields. Without this, Outlook renders the raw markup
+// (e.g. `<a href="...">`) as visible text in the email body.
+function stripHtml(s: string): string {
+  if (!s) return '';
+  return decodeEntities(
+    s
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' '),
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 
 interface Article {
   id: string;
