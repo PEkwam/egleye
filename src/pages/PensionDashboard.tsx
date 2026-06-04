@@ -215,7 +215,7 @@ export default function PensionDashboard() {
                     Pension fund metrics will appear here once data is uploaded via the Pension Data Manager.
                   </p>
                   <Button variant="outline" asChild>
-                    <Link to="/data-admin">
+                    <Link to="/admin">
                       Go to Data Admin
                     </Link>
                   </Button>

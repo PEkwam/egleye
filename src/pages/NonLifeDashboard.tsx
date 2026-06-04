@@ -222,7 +222,7 @@ const [selectedYear, setSelectedYear] = useState<number | null>(null);
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button asChild>
-                  <Link to="/data-admin">Go to Data Admin</Link>
+                  <Link to="/admin">Go to Data Admin</Link>
                 </Button>
                 <Button variant="outline" asChild>
                   <Link to="/">Return Home</Link>

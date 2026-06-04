@@ -21,7 +21,7 @@ const moreNavItems = [
   { label: 'Brokers', icon: Building2, href: '/brokers-dashboard', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
   { label: 'AI Tracker', icon: Sparkles, href: '/insurance-ai', color: 'text-violet-500', bgColor: 'bg-violet-500/10' },
   { label: 'NPRA Reports', icon: Shield, href: '/npra-pensions', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
-  { label: 'Data Admin', icon: Settings, href: '/data-admin', color: 'text-slate-500', bgColor: 'bg-slate-500/10' },
+  { label: 'Data Admin', icon: Settings, href: '/admin', color: 'text-slate-500', bgColor: 'bg-slate-500/10' },
 ];
 
 export const MobileBottomNav = () => {
