@@ -33,7 +33,7 @@ const AdminLogin = () => {
         sessionStorage.setItem('admin_token', data.token);
         sessionStorage.setItem('admin_login_time', Date.now().toString());
         toast.success('Admin access granted');
-        navigate('/data-admin', { replace: true });
+        navigate('/admin', { replace: true });
       } else {
         setPassword('');
         toast.error(data?.error || 'Invalid password');
