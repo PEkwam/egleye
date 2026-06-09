@@ -157,7 +157,7 @@ export function SubscriberManager() {
       id: editing.id,
       changes: {
         email: normalized,
-        name: editName.trim() || null,
+        name: editName.trim(),
         frequency: editFrequency,
         is_active: editActive,
       },
