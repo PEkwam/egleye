@@ -360,6 +360,7 @@ export function SubscriberManager() {
                   <SubscriberRow
                     key={sub.id}
                     sub={sub}
+                    onEdit={() => openEdit(sub)}
                     onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
                     onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
                     onReset={() => setDialog({ kind: 'reset', sub })}
