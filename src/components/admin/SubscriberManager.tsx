@@ -64,6 +64,11 @@ export function SubscriberManager() {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [dialog, setDialog] = useState<DialogState>(null);
+  const [editing, setEditing] = useState<Subscriber | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editFrequency, setEditFrequency] = useState<'instant' | 'daily'>('instant');
+  const [editActive, setEditActive] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
