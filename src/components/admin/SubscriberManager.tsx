@@ -334,6 +334,78 @@ export function SubscriberManager() {
           </DialogContent>
         </Dialog>
 
+        {/* Edit subscriber dialog */}
+        <Dialog
+          open={editing !== null}
+          onOpenChange={(open) => { if (!open) setEditing(null); }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Pencil className="h-4 w-4 text-primary" />
+                Edit subscriber
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Update email, name, frequency, or active status.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEdit} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-sub-email" className="text-xs">Email *</Label>
+                <Input
+                  id="edit-sub-email"
+                  type="email" value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="name@example.com" maxLength={255} required autoFocus
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-sub-name" className="text-xs">Name (optional)</Label>
+                <Input
+                  id="edit-sub-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Full name" maxLength={100}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Frequency</Label>
+                <Select value={editFrequency} onValueChange={(v) => setEditFrequency(v as 'instant' | 'daily')}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instant">
+                      <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />Instant</span>
+                    </SelectItem>
+                    <SelectItem value="daily">
+                      <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" />Daily digest</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
+                <div className="space-y-0.5">
+                  <Label className="text-xs">Active</Label>
+                  <p className="text-[11px] text-muted-foreground">Inactive subscribers do not receive emails.</p>
+                </div>
+                <Switch checked={editActive} onCheckedChange={setEditActive} />
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)} className="h-8 text-xs">
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={editMutation.isPending} className="h-8 gap-1.5 text-xs">
+                  {editMutation.isPending
+                    ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    : <Pencil className="h-3.5 w-3.5" />}
+                  Save changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         <CardContent className="pt-0">
           {/* Count */}
           <div className="flex items-center justify-between mb-2">
