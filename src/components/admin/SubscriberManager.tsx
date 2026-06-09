@@ -211,49 +211,82 @@ export function SubscriberManager() {
             </div>
             <Button
               size="sm"
-              variant={showAdd ? 'secondary' : 'default'}
-              onClick={() => setShowAdd((v) => !v)}
+              onClick={() => setShowAdd(true)}
               className="h-8 gap-1.5 text-xs"
             >
-              {showAdd ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-              {showAdd ? 'Cancel' : 'Add'}
+              <Plus className="h-3.5 w-3.5" />
+              Add
             </Button>
           </div>
-
-          {/* Inline add row */}
-          {showAdd && (
-            <form
-              onSubmit={handleAdd}
-              className="mt-2 grid grid-cols-1 sm:grid-cols-[2fr_1.4fr_140px_auto] gap-2 p-2.5 rounded-lg border border-border/60 bg-muted/30"
-            >
-              <Input
-                type="email" value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="name@example.com *" maxLength={255} required
-                className="h-8 text-xs"
-              />
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Name (optional)" maxLength={100}
-                className="h-8 text-xs"
-              />
-              <Select value={newFrequency} onValueChange={(v) => setNewFrequency(v as 'instant' | 'daily')}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="instant">Instant</SelectItem>
-                  <SelectItem value="daily">Daily digest</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button type="submit" size="sm" disabled={createMutation.isPending} className="h-8 gap-1.5 text-xs">
-                {createMutation.isPending
-                  ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  : <Plus className="h-3.5 w-3.5" />}
-                Add
-              </Button>
-            </form>
-          )}
         </CardHeader>
+
+        {/* Add subscriber dialog */}
+        <Dialog
+          open={showAdd}
+          onOpenChange={(open) => {
+            setShowAdd(open);
+            if (!open) { setNewEmail(''); setNewName(''); setNewFrequency('instant'); }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Mail className="h-4 w-4 text-primary" />
+                Add subscriber
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Add a new email recipient for insurance news alerts.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAdd} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="new-sub-email" className="text-xs">Email *</Label>
+                <Input
+                  id="new-sub-email"
+                  type="email" value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="name@example.com" maxLength={255} required autoFocus
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-sub-name" className="text-xs">Name (optional)</Label>
+                <Input
+                  id="new-sub-name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Full name" maxLength={100}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Frequency</Label>
+                <Select value={newFrequency} onValueChange={(v) => setNewFrequency(v as 'instant' | 'daily')}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instant">
+                      <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />Instant</span>
+                    </SelectItem>
+                    <SelectItem value="daily">
+                      <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" />Daily digest</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowAdd(false)} className="h-8 text-xs">
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={createMutation.isPending} className="h-8 gap-1.5 text-xs">
+                  {createMutation.isPending
+                    ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    : <Plus className="h-3.5 w-3.5" />}
+                  Add subscriber
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <CardContent className="pt-0">
           {/* Count */}
