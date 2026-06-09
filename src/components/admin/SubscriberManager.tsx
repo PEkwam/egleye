@@ -60,6 +60,8 @@ export function SubscriberManager() {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [dialog, setDialog] = useState<DialogState>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['news-subscribers'],
