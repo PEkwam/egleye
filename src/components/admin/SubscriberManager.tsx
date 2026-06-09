@@ -20,7 +20,7 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   Mail, Plus, Trash2, RefreshCw, Users, Zap, CalendarDays, RotateCcw, FastForward,
-  CheckCircle2, AlertCircle, Clock, MoreHorizontal, Search, X,
+  CheckCircle2, AlertCircle, Clock, MoreHorizontal, Search, X, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
