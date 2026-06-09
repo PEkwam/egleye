@@ -497,9 +497,10 @@ function InlineStat({
 }
 
 function SubscriberRow({
-  sub, onFrequency, onActive, onReset, onCatchUp, onDelete,
+  sub, onEdit, onFrequency, onActive, onReset, onCatchUp, onDelete,
 }: {
   sub: Subscriber;
+  onEdit: () => void;
   onFrequency: (f: 'instant' | 'daily') => void;
   onActive: (a: boolean) => void;
   onReset: () => void;
@@ -509,8 +510,13 @@ function SubscriberRow({
   const stats = sub.send_stats ?? { sent: 0, pending: 0, failed: 0 };
   return (
     <div className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
-      {/* Identity */}
-      <div className="flex-1 min-w-0">
+      {/* Identity (click to edit) */}
+      <button
+        type="button"
+        onClick={onEdit}
+        className="flex-1 min-w-0 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        title="Edit subscriber"
+      >
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-medium truncate">{sub.email}</p>
           {sub.name && (
@@ -526,7 +532,7 @@ function SubscriberRow({
             <span>· Last sent {formatDistanceToNow(new Date(sub.last_sent_at), { addSuffix: true })}</span>
           )}
         </div>
-      </div>
+      </button>
 
       {/* Stats chips */}
       <div className="hidden md:flex items-center gap-1 shrink-0">
