@@ -123,6 +123,47 @@ export function SubscriberManager() {
     onError: (err: Error) => toast.error(err.message || 'Failed to update'),
   });
 
+  const editMutation = useMutation({
+    mutationFn: (vars: { id: string; changes: Partial<Subscriber> }) =>
+      callManage('update', { id: vars.id, ...vars.changes }),
+    onSuccess: () => {
+      toast.success('Subscriber updated');
+      setEditing(null);
+      queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Failed to update'),
+  });
+
+  const openEdit = (s: Subscriber) => {
+    setEditing(s);
+    setEditEmail(s.email);
+    setEditName(s.name ?? '');
+    setEditFrequency(s.frequency);
+    setEditActive(s.is_active);
+  };
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    if (!isValidEmail(editEmail)) { toast.error('Please enter a valid email'); return; }
+    const normalized = editEmail.trim().toLowerCase();
+    if (
+      normalized !== editing.email.toLowerCase() &&
+      subscribers.some((s) => s.email.toLowerCase() === normalized)
+    ) {
+      toast.error('That email is already subscribed'); return;
+    }
+    editMutation.mutate({
+      id: editing.id,
+      changes: {
+        email: normalized,
+        name: editName.trim() || null,
+        frequency: editFrequency,
+        is_active: editActive,
+      },
+    });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => callManage('delete', { id }),
     onSuccess: () => {
