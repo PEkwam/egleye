@@ -572,6 +572,10 @@ function SubscriberRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit details
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onReset}>
             <RotateCcw className="h-3.5 w-3.5 mr-2" /> Reset unread
           </DropdownMenuItem>
