@@ -113,14 +113,18 @@ function escapeHtml(s: string): string {
 // (e.g. `<a href="...">`) as visible text in the email body.
 function stripHtml(s: string): string {
   if (!s) return '';
-  return decodeEntities(
-    s
+  // Decode entities FIRST so that HTML-encoded markup (e.g. `&lt;a href=...&gt;`)
+  // becomes real tags we can strip — otherwise the raw tags survive and render
+  // as visible text in the email body. Run the strip + decode cycle twice to
+  // also catch double-encoded fragments occasionally emitted by Google News RSS.
+  let out = s;
+  for (let i = 0; i < 2; i++) {
+    out = decodeEntities(out)
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<[^>]+>/g, ' '),
-  )
-    .replace(/\s+/g, ' ')
-    .trim();
+      .replace(/<[^>]+>/g, ' ');
+  }
+  return decodeEntities(out).replace(/\s+/g, ' ').trim();
 }
 
 

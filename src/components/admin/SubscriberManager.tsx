@@ -20,7 +20,7 @@ import {
 import { Label } from '@/components/ui/label';
 import {
   Mail, Plus, Trash2, RefreshCw, Users, Zap, CalendarDays, RotateCcw, FastForward,
-  CheckCircle2, AlertCircle, Clock, MoreHorizontal, Search, X,
+  CheckCircle2, AlertCircle, Clock, MoreHorizontal, Search, X, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -64,6 +64,11 @@ export function SubscriberManager() {
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [dialog, setDialog] = useState<DialogState>(null);
+  const [editing, setEditing] = useState<Subscriber | null>(null);
+  const [editEmail, setEditEmail] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editFrequency, setEditFrequency] = useState<'instant' | 'daily'>('instant');
+  const [editActive, setEditActive] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -117,6 +122,47 @@ export function SubscriberManager() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['news-subscribers'] }),
     onError: (err: Error) => toast.error(err.message || 'Failed to update'),
   });
+
+  const editMutation = useMutation({
+    mutationFn: (vars: { id: string; changes: Partial<Subscriber> }) =>
+      callManage('update', { id: vars.id, ...vars.changes }),
+    onSuccess: () => {
+      toast.success('Subscriber updated');
+      setEditing(null);
+      queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Failed to update'),
+  });
+
+  const openEdit = (s: Subscriber) => {
+    setEditing(s);
+    setEditEmail(s.email);
+    setEditName(s.name ?? '');
+    setEditFrequency(s.frequency);
+    setEditActive(s.is_active);
+  };
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    if (!isValidEmail(editEmail)) { toast.error('Please enter a valid email'); return; }
+    const normalized = editEmail.trim().toLowerCase();
+    if (
+      normalized !== editing.email.toLowerCase() &&
+      subscribers.some((s) => s.email.toLowerCase() === normalized)
+    ) {
+      toast.error('That email is already subscribed'); return;
+    }
+    editMutation.mutate({
+      id: editing.id,
+      changes: {
+        email: normalized,
+        name: editName.trim(),
+        frequency: editFrequency,
+        is_active: editActive,
+      },
+    });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => callManage('delete', { id }),
@@ -288,6 +334,78 @@ export function SubscriberManager() {
           </DialogContent>
         </Dialog>
 
+        {/* Edit subscriber dialog */}
+        <Dialog
+          open={editing !== null}
+          onOpenChange={(open) => { if (!open) setEditing(null); }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <Pencil className="h-4 w-4 text-primary" />
+                Edit subscriber
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Update email, name, frequency, or active status.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEdit} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-sub-email" className="text-xs">Email *</Label>
+                <Input
+                  id="edit-sub-email"
+                  type="email" value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="name@example.com" maxLength={255} required autoFocus
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-sub-name" className="text-xs">Name (optional)</Label>
+                <Input
+                  id="edit-sub-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Full name" maxLength={100}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Frequency</Label>
+                <Select value={editFrequency} onValueChange={(v) => setEditFrequency(v as 'instant' | 'daily')}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instant">
+                      <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />Instant</span>
+                    </SelectItem>
+                    <SelectItem value="daily">
+                      <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" />Daily digest</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2">
+                <div className="space-y-0.5">
+                  <Label className="text-xs">Active</Label>
+                  <p className="text-[11px] text-muted-foreground">Inactive subscribers do not receive emails.</p>
+                </div>
+                <Switch checked={editActive} onCheckedChange={setEditActive} />
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)} className="h-8 text-xs">
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={editMutation.isPending} className="h-8 gap-1.5 text-xs">
+                  {editMutation.isPending
+                    ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    : <Pencil className="h-3.5 w-3.5" />}
+                  Save changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         <CardContent className="pt-0">
           {/* Count */}
           <div className="flex items-center justify-between mb-2">
@@ -314,6 +432,7 @@ export function SubscriberManager() {
                   <SubscriberRow
                     key={sub.id}
                     sub={sub}
+                    onEdit={() => openEdit(sub)}
                     onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
                     onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
                     onReset={() => setDialog({ kind: 'reset', sub })}
@@ -450,9 +569,10 @@ function InlineStat({
 }
 
 function SubscriberRow({
-  sub, onFrequency, onActive, onReset, onCatchUp, onDelete,
+  sub, onEdit, onFrequency, onActive, onReset, onCatchUp, onDelete,
 }: {
   sub: Subscriber;
+  onEdit: () => void;
   onFrequency: (f: 'instant' | 'daily') => void;
   onActive: (a: boolean) => void;
   onReset: () => void;
@@ -462,8 +582,13 @@ function SubscriberRow({
   const stats = sub.send_stats ?? { sent: 0, pending: 0, failed: 0 };
   return (
     <div className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
-      {/* Identity */}
-      <div className="flex-1 min-w-0">
+      {/* Identity (click to edit) */}
+      <button
+        type="button"
+        onClick={onEdit}
+        className="flex-1 min-w-0 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        title="Edit subscriber"
+      >
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-medium truncate">{sub.email}</p>
           {sub.name && (
@@ -479,7 +604,7 @@ function SubscriberRow({
             <span>· Last sent {formatDistanceToNow(new Date(sub.last_sent_at), { addSuffix: true })}</span>
           )}
         </div>
-      </div>
+      </button>
 
       {/* Stats chips */}
       <div className="hidden md:flex items-center gap-1 shrink-0">
@@ -519,6 +644,10 @@ function SubscriberRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onEdit}>
+            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit details
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={onReset}>
             <RotateCcw className="h-3.5 w-3.5 mr-2" /> Reset unread
           </DropdownMenuItem>
