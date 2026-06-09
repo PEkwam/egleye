@@ -2735,6 +2735,7 @@ const DataAdmin = () => {
                 <div className="max-w-5xl mx-auto space-y-6">
                   <PushNotificationsPanel />
                   <EmailDeliveryDashboard />
+                  <EmailDeliveryArchive />
                 </div>
               </div>
             )}
