@@ -601,6 +601,57 @@ export type Database = {
           },
         ]
       }
+      news_subscriber_sends_archive: {
+        Row: {
+          archived_at: string
+          article_id: string
+          attempts: number
+          created_at: string
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          message_id: string | null
+          queued_at: string
+          sent_at: string | null
+          status: string
+          subscriber_id: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          archived_at?: string
+          article_id: string
+          attempts?: number
+          created_at: string
+          error_message?: string | null
+          failed_at?: string | null
+          id: string
+          message_id?: string | null
+          queued_at: string
+          sent_at?: string | null
+          status: string
+          subscriber_id: string
+          updated_at: string
+          week_start: string
+        }
+        Update: {
+          archived_at?: string
+          article_id?: string
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          message_id?: string | null
+          queued_at?: string
+          sent_at?: string | null
+          status?: string
+          subscriber_id?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       news_subscribers: {
         Row: {
           created_at: string
@@ -1043,7 +1094,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      archive_old_subscriber_sends: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

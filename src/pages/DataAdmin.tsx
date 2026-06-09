@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SubscriberManager } from '@/components/admin/SubscriberManager';
 import { EmailDeliveryDashboard } from '@/components/admin/EmailDeliveryDashboard';
+import { EmailDeliveryArchive } from '@/components/admin/EmailDeliveryArchive';
 import { PushNotificationsPanel } from '@/components/admin/PushNotificationsPanel';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
 import { NewsSourcesPanel } from '@/components/admin/NewsSourcesPanel';
@@ -2734,6 +2735,7 @@ const DataAdmin = () => {
                 <div className="max-w-5xl mx-auto space-y-6">
                   <PushNotificationsPanel />
                   <EmailDeliveryDashboard />
+                  <EmailDeliveryArchive />
                 </div>
               </div>
             )}
