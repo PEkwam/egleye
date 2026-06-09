@@ -82,6 +82,16 @@ export function SubscriberManager() {
       )
     : subscribers;
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paged = filtered.slice(pageStart, pageStart + pageSize);
+
+  // Reset to page 1 when search or page size changes
+  if (page !== 1 && (search || pageSize) && pageStart >= filtered.length && filtered.length > 0) {
+    // handled via Math.min above
+  }
+
   const createMutation = useMutation({
     mutationFn: () =>
       callManage('create', {
