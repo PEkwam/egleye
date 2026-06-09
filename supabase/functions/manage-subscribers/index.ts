@@ -296,6 +296,74 @@ Deno.serve(async (req) => {
       return json({ success: true, deleted: count ?? 0 });
     }
 
+    // ---- Archive: run the weekly archival job on demand ----
+    if (action === 'run_archive') {
+      const { data, error } = await supabase.rpc('archive_old_subscriber_sends');
+      if (error) throw error;
+      return json({ success: true, moved: data ?? 0 });
+    }
+
+    // ---- Archive: list weeks with aggregate counts ----
+    if (action === 'list_archive_weeks') {
+      const { data: rows, error } = await supabase
+        .from('news_subscriber_sends_archive')
+        .select('week_start, status');
+      if (error) throw error;
+
+      const map = new Map<string, { week_start: string; sent: number; failed: number; pending: number; skipped: number; total: number }>();
+      (rows ?? []).forEach((r: { week_start: string; status: string }) => {
+        const cur = map.get(r.week_start) ?? { week_start: r.week_start, sent: 0, failed: 0, pending: 0, skipped: 0, total: 0 };
+        if (r.status in cur) (cur as Record<string, number>)[r.status] += 1;
+        cur.total += 1;
+        map.set(r.week_start, cur);
+      });
+      const weeks = Array.from(map.values()).sort((a, b) => (a.week_start < b.week_start ? 1 : -1));
+      return json({ weeks });
+    }
+
+    // ---- Archive: list sends for a given week ----
+    if (action === 'list_archive_sends') {
+      const week = String(body.week ?? '');
+      const limit = Math.min(Number(body.limit ?? 100), 500);
+      const offset = Math.max(Number(body.offset ?? 0), 0);
+      const status = body.status as string | undefined;
+      if (!week) return json({ error: 'Missing week' }, 400);
+
+      let query = supabase
+        .from('news_subscriber_sends_archive')
+        .select(
+          'id, status, attempts, error_message, queued_at, sent_at, failed_at, created_at, archived_at, subscriber_id, article_id',
+          { count: 'exact' }
+        )
+        .eq('week_start', week)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (status && ['pending', 'sent', 'failed', 'skipped'].includes(status)) {
+        query = query.eq('status', status);
+      }
+      const { data: sends, count: totalCount, error } = await query;
+      if (error) throw error;
+
+      const subIds = Array.from(new Set((sends ?? []).map((s) => s.subscriber_id)));
+      const artIds = Array.from(new Set((sends ?? []).map((s) => s.article_id)));
+      const [{ data: subs }, { data: arts }] = await Promise.all([
+        subIds.length
+          ? supabase.from('news_subscribers').select('id, email, name').in('id', subIds)
+          : Promise.resolve({ data: [] }),
+        artIds.length
+          ? supabase.from('news_articles').select('id, title, source_name').in('id', artIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const subMap = new Map((subs ?? []).map((s: { id: string }) => [s.id, s]));
+      const artMap = new Map((arts ?? []).map((a: { id: string }) => [a.id, a]));
+      const enriched = (sends ?? []).map((row) => ({
+        ...row,
+        subscriber: subMap.get(row.subscriber_id) ?? null,
+        article: artMap.get(row.article_id) ?? null,
+      }));
+      return json({ sends: enriched, totalCount: totalCount ?? 0 });
+    }
+
     return json({ error: 'Unknown action' }, 400);
   } catch (err) {
     console.error('manage-subscribers error', err);
