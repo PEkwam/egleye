@@ -271,19 +271,60 @@ export function SubscriberManager() {
           )}
 
           {filtered.length > 0 && (
-            <div className="rounded-lg border border-border/60 overflow-hidden divide-y divide-border/40">
-              {filtered.map((sub) => (
-                <SubscriberRow
-                  key={sub.id}
-                  sub={sub}
-                  onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
-                  onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
-                  onReset={() => setDialog({ kind: 'reset', sub })}
-                  onCatchUp={() => setDialog({ kind: 'catchup', sub })}
-                  onDelete={() => setDialog({ kind: 'delete', sub })}
-                />
-              ))}
-            </div>
+            <>
+              <div className="rounded-lg border border-border/60 overflow-hidden divide-y divide-border/40">
+                {paged.map((sub) => (
+                  <SubscriberRow
+                    key={sub.id}
+                    sub={sub}
+                    onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
+                    onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
+                    onReset={() => setDialog({ kind: 'reset', sub })}
+                    onCatchUp={() => setDialog({ kind: 'catchup', sub })}
+                    onDelete={() => setDialog({ kind: 'delete', sub })}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span>
+                    {pageStart + 1}–{Math.min(pageStart + pageSize, filtered.length)} of {filtered.length}
+                  </span>
+                  <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                    <SelectTrigger className="h-7 w-[72px] text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[10, 25, 50, 100].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span>per page</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline" size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  >
+                    Prev
+                  </Button>
+                  <span className="text-[11px] text-muted-foreground tabular-nums px-1">
+                    Page {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline" size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
