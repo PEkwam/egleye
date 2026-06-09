@@ -4,17 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
   Mail, Plus, Trash2, RefreshCw, Users, Zap, CalendarDays, RotateCcw, FastForward,
-  CheckCircle2, AlertCircle, Clock,
+  CheckCircle2, AlertCircle, Clock, MoreHorizontal, Search, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -44,11 +46,20 @@ async function callManage(action: string, payload: Record<string, unknown> = {})
   return data;
 }
 
+type DialogState =
+  | { kind: 'reset'; sub: Subscriber }
+  | { kind: 'catchup'; sub: Subscriber }
+  | { kind: 'delete'; sub: Subscriber }
+  | null;
+
 export function SubscriberManager() {
   const queryClient = useQueryClient();
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [newFrequency, setNewFrequency] = useState<'instant' | 'daily'>('instant');
+  const [showAdd, setShowAdd] = useState(false);
+  const [search, setSearch] = useState('');
+  const [dialog, setDialog] = useState<DialogState>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['news-subscribers'],
@@ -63,6 +74,12 @@ export function SubscriberManager() {
   const instantCount = subscribers.filter((s) => s.is_active && s.frequency === 'instant').length;
   const dailyCount = subscribers.filter((s) => s.is_active && s.frequency === 'daily').length;
 
+  const filtered = search.trim()
+    ? subscribers.filter((s) =>
+        (s.email + ' ' + (s.name ?? '')).toLowerCase().includes(search.trim().toLowerCase()),
+      )
+    : subscribers;
+
   const createMutation = useMutation({
     mutationFn: () =>
       callManage('create', {
@@ -72,9 +89,7 @@ export function SubscriberManager() {
       }),
     onSuccess: () => {
       toast.success('Subscriber added');
-      setNewEmail('');
-      setNewName('');
-      setNewFrequency('instant');
+      setNewEmail(''); setNewName(''); setNewFrequency('instant'); setShowAdd(false);
       queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
     },
     onError: (err: Error) => toast.error(err.message || 'Failed to add subscriber'),
@@ -83,9 +98,7 @@ export function SubscriberManager() {
   const updateMutation = useMutation({
     mutationFn: (vars: { id: string; changes: Partial<Subscriber> }) =>
       callManage('update', { id: vars.id, ...vars.changes }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['news-subscribers'] }),
     onError: (err: Error) => toast.error(err.message || 'Failed to update'),
   });
 
@@ -93,6 +106,7 @@ export function SubscriberManager() {
     mutationFn: (id: string) => callManage('delete', { id }),
     onSuccess: () => {
       toast.success('Subscriber removed');
+      setDialog(null);
       queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
     },
     onError: (err: Error) => toast.error(err.message || 'Failed to remove'),
@@ -102,6 +116,7 @@ export function SubscriberManager() {
     mutationFn: (id: string) => callManage('reset_unread', { id }),
     onSuccess: (res: { cleared: number }) => {
       toast.success(`Unread reset · ${res.cleared} record${res.cleared === 1 ? '' : 's'} cleared`);
+      setDialog(null);
       queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
       queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
     },
@@ -112,6 +127,7 @@ export function SubscriberManager() {
     mutationFn: (id: string) => callManage('mark_caught_up', { id }),
     onSuccess: (res: { marked: number }) => {
       toast.success(`Marked ${res.marked} article${res.marked === 1 ? '' : 's'} as already-sent`);
+      setDialog(null);
       queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
       queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
     },
@@ -120,270 +136,336 @@ export function SubscriberManager() {
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValidEmail(newEmail)) {
-      toast.error('Please enter a valid email');
-      return;
-    }
+    if (!isValidEmail(newEmail)) { toast.error('Please enter a valid email'); return; }
     const normalized = newEmail.trim().toLowerCase();
-    const exists = subscribers.some((s) => s.email.toLowerCase() === normalized);
-    if (exists) {
-      toast.error('That email is already subscribed');
-      return;
+    if (subscribers.some((s) => s.email.toLowerCase() === normalized)) {
+      toast.error('That email is already subscribed'); return;
     }
     createMutation.mutate();
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-primary" />
-              News Alert Subscribers
-            </CardTitle>
-            <CardDescription>
-              Manage who receives email alerts when new insurance news is published.
-            </CardDescription>
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Mail className="h-4 w-4 text-primary" />
+                News Alert Subscribers
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Manage who receives email alerts for new insurance news.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <InlineStat icon={Users} label="Active" value={activeCount} tone="primary" />
+              <InlineStat icon={Zap} label="Instant" value={instantCount} tone="amber" />
+              <InlineStat icon={CalendarDays} label="Daily" value={dailyCount} tone="blue" />
+              <Button
+                variant="ghost" size="icon"
+                onClick={() => refetch()} disabled={isFetching}
+                className="h-8 w-8"
+                title="Refresh"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-1.5">
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Users className="h-3 w-3" /> Active
-            </div>
-            <p className="text-xl font-bold text-primary mt-1">{activeCount}</p>
-          </div>
-          <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Zap className="h-3 w-3" /> Instant
-            </div>
-            <p className="text-xl font-bold text-amber-600 mt-1">{instantCount}</p>
-          </div>
-          <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CalendarDays className="h-3 w-3" /> Daily
-            </div>
-            <p className="text-xl font-bold text-blue-600 mt-1">{dailyCount}</p>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        {/* Add form */}
-        <form onSubmit={handleAdd} className="grid gap-3 p-4 rounded-xl border border-border/60 bg-muted/20">
-          <p className="text-sm font-medium">Add subscriber</p>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="sub-email" className="text-xs">Email *</Label>
+          {/* Toolbar */}
+          <div className="flex items-center gap-2 mt-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                id="sub-email"
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="name@example.com"
-                maxLength={255}
-                required
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search email or name…"
+                className="h-8 pl-8 pr-8 text-xs"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sub-name" className="text-xs">Name (optional)</Label>
-              <Input
-                id="sub-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Jane Doe"
-                maxLength={100}
-              />
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-end">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Alert frequency</Label>
-              <Select value={newFrequency} onValueChange={(v) => setNewFrequency(v as 'instant' | 'daily')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="instant">Instant — every new article</SelectItem>
-                  <SelectItem value="daily">Daily digest — once per day</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" disabled={createMutation.isPending} className="gap-2">
-              {createMutation.isPending ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               )}
-              Add
+            </div>
+            <Button
+              size="sm"
+              variant={showAdd ? 'secondary' : 'default'}
+              onClick={() => setShowAdd((v) => !v)}
+              className="h-8 gap-1.5 text-xs"
+            >
+              {showAdd ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {showAdd ? 'Cancel' : 'Add'}
             </Button>
           </div>
-        </form>
 
-        {/* List */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">
-            {isLoading ? 'Loading…' : `${subscribers.length} subscriber${subscribers.length === 1 ? '' : 's'}`}
-          </p>
+          {/* Inline add row */}
+          {showAdd && (
+            <form
+              onSubmit={handleAdd}
+              className="mt-2 grid grid-cols-1 sm:grid-cols-[2fr_1.4fr_140px_auto] gap-2 p-2.5 rounded-lg border border-border/60 bg-muted/30"
+            >
+              <Input
+                type="email" value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="name@example.com *" maxLength={255} required
+                className="h-8 text-xs"
+              />
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Name (optional)" maxLength={100}
+                className="h-8 text-xs"
+              />
+              <Select value={newFrequency} onValueChange={(v) => setNewFrequency(v as 'instant' | 'daily')}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instant">Instant</SelectItem>
+                  <SelectItem value="daily">Daily digest</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="submit" size="sm" disabled={createMutation.isPending} className="h-8 gap-1.5 text-xs">
+                {createMutation.isPending
+                  ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  : <Plus className="h-3.5 w-3.5" />}
+                Add
+              </Button>
+            </form>
+          )}
+        </CardHeader>
 
-          {!isLoading && subscribers.length === 0 && (
-            <div className="text-center py-10 border border-dashed border-border/50 rounded-xl">
-              <Mail className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">No subscribers yet. Add one above.</p>
+        <CardContent className="pt-0">
+          {/* Count */}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] text-muted-foreground">
+              {isLoading
+                ? 'Loading…'
+                : `${filtered.length} of ${subscribers.length} subscriber${subscribers.length === 1 ? '' : 's'}`}
+            </p>
+          </div>
+
+          {!isLoading && filtered.length === 0 && (
+            <div className="text-center py-8 border border-dashed border-border/50 rounded-lg">
+              <Mail className="h-6 w-6 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-xs text-muted-foreground">
+                {search ? 'No matches for your search.' : 'No subscribers yet. Click Add to get started.'}
+              </p>
             </div>
           )}
 
-          <div className="divide-y divide-border/50 rounded-xl border border-border/60 overflow-hidden">
-            {subscribers.map((sub) => {
-              const stats = sub.send_stats ?? { sent: 0, pending: 0, failed: 0 };
-              return (
-                <div
+          {filtered.length > 0 && (
+            <div className="rounded-lg border border-border/60 overflow-hidden divide-y divide-border/40">
+              {filtered.map((sub) => (
+                <SubscriberRow
                   key={sub.id}
-                  className="flex flex-col gap-3 p-3 sm:p-4 hover:bg-muted/30 transition-colors"
+                  sub={sub}
+                  onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
+                  onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
+                  onReset={() => setDialog({ kind: 'reset', sub })}
+                  onCatchUp={() => setDialog({ kind: 'catchup', sub })}
+                  onDelete={() => setDialog({ kind: 'delete', sub })}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Confirm dialogs */}
+      <AlertDialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
+        <AlertDialogContent>
+          {dialog?.kind === 'reset' && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset unread for {dialog.sub.email}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Clears all delivery records for this subscriber so every existing article becomes
+                  "unread" again. They will be re-queued on the next send cycle. Cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => resetUnreadMutation.mutate(dialog.sub.id)}>
+                  Reset unread
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+          {dialog?.kind === 'catchup' && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Mark {dialog.sub.email} as caught up?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Marks every existing article as already-sent. The subscriber will only receive
+                  articles published from now on. Skips the historical backlog.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => catchUpMutation.mutate(dialog.sub.id)}>
+                  Mark caught up
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+          {dialog?.kind === 'delete' && (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove {dialog.sub.email}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Permanently removes this subscriber. Their delivery history is also deleted.
+                  Cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate(dialog.sub.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm truncate">{sub.email}</p>
-                        {!sub.is_active && (
-                          <Badge variant="outline" className="text-[10px]">Inactive</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
-                        {sub.name && <span className="truncate max-w-[160px]">{sub.name}</span>}
-                        <span>Added {formatDistanceToNow(new Date(sub.created_at), { addSuffix: true })}</span>
-                        {sub.last_sent_at && (
-                          <span>Last sent {formatDistanceToNow(new Date(sub.last_sent_at), { addSuffix: true })}</span>
-                        )}
-                      </div>
-                      {/* Per-subscriber send stats */}
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <Badge variant="outline" className="gap-1 text-[10px] bg-emerald-500/5 text-emerald-700 border-emerald-500/20">
-                          <CheckCircle2 className="h-2.5 w-2.5" />
-                          {stats.sent} sent
-                        </Badge>
-                        <Badge variant="outline" className="gap-1 text-[10px] bg-amber-500/5 text-amber-700 border-amber-500/20">
-                          <Clock className="h-2.5 w-2.5" />
-                          {stats.pending} pending
-                        </Badge>
-                        {stats.failed > 0 && (
-                          <Badge variant="outline" className="gap-1 text-[10px] bg-destructive/5 text-destructive border-destructive/20">
-                            <AlertCircle className="h-2.5 w-2.5" />
-                            {stats.failed} failed
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+                  Remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
 
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <Select
-                        value={sub.frequency}
-                        onValueChange={(v) =>
-                          updateMutation.mutate({ id: sub.id, changes: { frequency: v as 'instant' | 'daily' } })
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-[140px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="instant">
-                            <span className="flex items-center gap-1.5"><Zap className="h-3 w-3" />Instant</span>
-                          </SelectItem>
-                          <SelectItem value="daily">
-                            <span className="flex items-center gap-1.5"><CalendarDays className="h-3 w-3" />Daily</span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+function InlineStat({
+  icon: Icon, label, value, tone,
+}: {
+  icon: typeof Users; label: string; value: number;
+  tone: 'primary' | 'amber' | 'blue';
+}) {
+  const tones = {
+    primary: 'text-primary bg-primary/5 border-primary/15',
+    amber: 'text-amber-600 bg-amber-500/5 border-amber-500/15',
+    blue: 'text-blue-600 bg-blue-500/5 border-blue-500/15',
+  }[tone];
+  return (
+    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs ${tones}`}>
+      <Icon className="h-3 w-3" />
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold tabular-nums">{value}</span>
+    </div>
+  );
+}
 
-                      <div className="flex items-center gap-1.5">
-                        <Switch
-                          checked={sub.is_active}
-                          onCheckedChange={(checked) =>
-                            updateMutation.mutate({ id: sub.id, changes: { is_active: checked } })
-                          }
-                        />
-                        <Label className="text-xs text-muted-foreground">Active</Label>
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          if (confirm(`Remove ${sub.email}?`)) deleteMutation.mutate(sub.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Unread tracking actions */}
-                  <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/30">
-                    <span className="text-[11px] text-muted-foreground">Unread tracking:</span>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
-                          <RotateCcw className="h-3 w-3" />
-                          Reset unread
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Reset unread for {sub.email}?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This clears all delivery records for this subscriber so every existing
-                            article becomes "unread" again. They will be re-queued on the next send
-                            cycle. This cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => resetUnreadMutation.mutate(sub.id)}>
-                            Reset unread
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
-                          <FastForward className="h-3 w-3" />
-                          Mark caught up
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Mark {sub.email} as caught up?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Marks every existing article as already-sent so the subscriber only
-                            receives articles published from now on. Skips the historical backlog.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => catchUpMutation.mutate(sub.id)}>
-                            Mark caught up
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+function SubscriberRow({
+  sub, onFrequency, onActive, onReset, onCatchUp, onDelete,
+}: {
+  sub: Subscriber;
+  onFrequency: (f: 'instant' | 'daily') => void;
+  onActive: (a: boolean) => void;
+  onReset: () => void;
+  onCatchUp: () => void;
+  onDelete: () => void;
+}) {
+  const stats = sub.send_stats ?? { sent: 0, pending: 0, failed: 0 };
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
+      {/* Identity */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-medium truncate">{sub.email}</p>
+          {sub.name && (
+            <span className="text-xs text-muted-foreground truncate max-w-[140px]">· {sub.name}</span>
+          )}
+          {!sub.is_active && (
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5">Inactive</Badge>
+          )}
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground flex-wrap">
+          <span>Added {formatDistanceToNow(new Date(sub.created_at), { addSuffix: true })}</span>
+          {sub.last_sent_at && (
+            <span>· Last sent {formatDistanceToNow(new Date(sub.last_sent_at), { addSuffix: true })}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Stats chips */}
+      <div className="hidden md:flex items-center gap-1 shrink-0">
+        <StatChip icon={CheckCircle2} value={stats.sent} tone="emerald" label="sent" />
+        <StatChip icon={Clock} value={stats.pending} tone="amber" label="pending" />
+        {stats.failed > 0 && (
+          <StatChip icon={AlertCircle} value={stats.failed} tone="destructive" label="failed" />
+        )}
+      </div>
+
+      {/* Controls */}
+      <Select value={sub.frequency} onValueChange={(v) => onFrequency(v as 'instant' | 'daily')}>
+        <SelectTrigger className="h-7 w-[110px] text-xs shrink-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="instant">
+            <span className="flex items-center gap-1.5"><Zap className="h-3 w-3" />Instant</span>
+          </SelectItem>
+          <SelectItem value="daily">
+            <span className="flex items-center gap-1.5"><CalendarDays className="h-3 w-3" />Daily</span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Switch
+        checked={sub.is_active}
+        onCheckedChange={onActive}
+        className="shrink-0"
+        aria-label="Active"
+      />
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onReset}>
+            <RotateCcw className="h-3.5 w-3.5 mr-2" /> Reset unread
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onCatchUp}>
+            <FastForward className="h-3.5 w-3.5 mr-2" /> Mark caught up
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={onDelete}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-2" /> Remove subscriber
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+function StatChip({
+  icon: Icon, value, tone, label,
+}: {
+  icon: typeof CheckCircle2; value: number;
+  tone: 'emerald' | 'amber' | 'destructive'; label: string;
+}) {
+  const tones = {
+    emerald: 'text-emerald-600 bg-emerald-500/5 border-emerald-500/20',
+    amber: 'text-amber-600 bg-amber-500/5 border-amber-500/20',
+    destructive: 'text-destructive bg-destructive/5 border-destructive/20',
+  }[tone];
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] tabular-nums ${tones}`}
+      title={`${value} ${label}`}
+    >
+      <Icon className="h-2.5 w-2.5" />
+      {value}
+    </span>
   );
 }
