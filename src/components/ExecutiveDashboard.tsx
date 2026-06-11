@@ -254,45 +254,6 @@ export function ExecutiveDashboard({
         </div>
 
 
-        {/* Priority Alert - Latest Regulator News */}
-        {stats.latestRegulator && (
-          <Card className="relative overflow-hidden border-l-4 border-l-destructive bg-gradient-to-r from-destructive/6 via-destructive/3 to-transparent mb-6 group hover:shadow-lg transition-all duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/5 rounded-full blur-2xl pointer-events-none" />
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded-md bg-destructive/10">
-                  <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-                </div>
-                <CardTitle className="text-sm font-medium text-destructive">
-                  Latest Regulatory Update
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <a 
-                href={stats.latestRegulator.source_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                <h3 className="font-semibold text-foreground mb-1 line-clamp-2 group-hover:text-primary transition-colors">
-                  {stats.latestRegulator.title}
-                </h3>
-              </a>
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {sanitizeText(stats.latestRegulator.description)}
-              </p>
-              <div className="flex items-center gap-3 mt-3">
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Clock className="h-3 w-3" />
-                  {stats.latestRegulator.published_at &&
-                    format(new Date(stats.latestRegulator.published_at), 'MMM d, yyyy • h:mm a')}
-                </p>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </section>
   );
