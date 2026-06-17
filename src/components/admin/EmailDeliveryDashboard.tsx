@@ -15,7 +15,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import {
-  Mail, RefreshCw, Send, AlertCircle, CheckCircle2, Clock, SkipForward, RotateCw, Inbox, Play, TestTube, Trash2,
+  Mail, RefreshCw, Send, AlertCircle, CheckCircle2, Clock, SkipForward, RotateCw, Inbox, Play, TestTube, Trash2, Users,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -32,11 +32,11 @@ interface SendRow {
   status: 'pending' | 'sent' | 'failed' | 'skipped';
   attempts: number;
   error_message: string | null;
-  queued_at: string;
+  recipient_count: number;
+  latest_at: string;
   sent_at: string | null;
   failed_at: string | null;
   created_at: string;
-  subscriber: { id: string; email: string; name: string | null } | null;
   article: { id: string; title: string; source_name: string | null } | null;
 }
 
@@ -330,7 +330,7 @@ export function EmailDeliveryDashboard() {
             {sends.map((send) => {
               const cfg = statusConfig[send.status];
               const Icon = cfg.icon;
-              const ts = send.sent_at || send.failed_at || send.created_at;
+              const ts = send.latest_at || send.sent_at || send.failed_at || send.created_at;
               return (
                 <div key={send.id} className="p-3 sm:p-4 hover:bg-muted/30 transition-colors">
                   <div className="flex items-start gap-3 flex-wrap">
@@ -338,19 +338,19 @@ export function EmailDeliveryDashboard() {
                       <Icon className="h-3 w-3" />
                       {cfg.label}
                     </Badge>
+                    <Badge variant="outline" className="gap-1 text-[10px] px-2 py-0.5">
+                      <Users className="h-3 w-3" />
+                      {send.recipient_count} recipient{send.recipient_count === 1 ? '' : 's'}
+                    </Badge>
 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         {send.article?.title ?? <span className="italic text-muted-foreground">Article removed</span>}
                       </p>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {send.subscriber?.email ?? <span className="italic">subscriber removed</span>}
-                        </span>
-                        {send.article?.source_name && <span>· {send.article.source_name}</span>}
+                        {send.article?.source_name && <span>{send.article.source_name}</span>}
                         <span>· {formatDistanceToNow(new Date(ts), { addSuffix: true })}</span>
-                        {send.attempts > 0 && <span>· {send.attempts} attempt{send.attempts === 1 ? '' : 's'}</span>}
+                        {send.attempts > 0 && <span>· up to {send.attempts} attempt{send.attempts === 1 ? '' : 's'}</span>}
                       </div>
                       {send.error_message && (
                         <div className="mt-2 px-3 py-2 rounded-md bg-destructive/5 border border-destructive/20">
@@ -360,19 +360,6 @@ export function EmailDeliveryDashboard() {
                         </div>
                       )}
                     </div>
-
-                    {send.status === 'failed' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => retryMutation.mutate(send.id)}
-                        disabled={retryMutation.isPending}
-                        className="gap-1.5 text-xs"
-                      >
-                        <RotateCw className="h-3 w-3" />
-                        Retry
-                      </Button>
-                    )}
                   </div>
                 </div>
               );

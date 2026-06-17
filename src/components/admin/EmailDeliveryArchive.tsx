@@ -9,7 +9,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Archive, ChevronDown, RefreshCw, PlayCircle, Mail, AlertCircle, CheckCircle2, Clock, SkipForward, Inbox } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Archive, ChevronDown, RefreshCw, PlayCircle, Mail, AlertCircle, CheckCircle2, Clock, SkipForward, Inbox, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow, addDays, parseISO } from 'date-fns';
 
@@ -60,6 +64,7 @@ async function callManage(action: string, payload: Record<string, unknown> = {})
 export function EmailDeliveryArchive() {
   const queryClient = useQueryClient();
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
 
   const weeksQuery = useQuery({
     queryKey: ['email-archive-weeks'],
@@ -78,6 +83,19 @@ export function EmailDeliveryArchive() {
       queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
     },
     onError: (err: Error) => toast.error(err.message || 'Archive failed'),
+  });
+
+  const emptyArchive = useMutation({
+    mutationFn: () => callManage('empty_archive') as Promise<{ deleted: number }>,
+    onSuccess: (res) => {
+      toast.success(`Emptied archive · ${res.deleted} record${res.deleted === 1 ? '' : 's'} deleted`);
+      setConfirmEmpty(false);
+      queryClient.invalidateQueries({ queryKey: ['email-archive-weeks'] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Empty archive failed');
+      setConfirmEmpty(false);
+    },
   });
 
   const weeks = weeksQuery.data?.weeks ?? [];
@@ -117,6 +135,16 @@ export function EmailDeliveryArchive() {
               <RefreshCw className={`h-3.5 w-3.5 ${weeksQuery.isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmEmpty(true)}
+              disabled={emptyArchive.isPending || weeks.length === 0}
+              className="gap-1.5 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Empty archive
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -145,6 +173,28 @@ export function EmailDeliveryArchive() {
           />
         ))}
       </CardContent>
+
+      <AlertDialog open={confirmEmpty} onOpenChange={setConfirmEmpty}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Empty delivery archive?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes every archived send record across all weeks.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={emptyArchive.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); emptyArchive.mutate(); }}
+              disabled={emptyArchive.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {emptyArchive.isPending ? 'Emptying…' : 'Empty archive'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
