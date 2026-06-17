@@ -213,6 +213,46 @@ export function SubscriberManager() {
     onError: (err: Error) => toast.error(err.message || 'Catch-up failed'),
   });
 
+  const bulkMutation = useMutation({
+    mutationFn: (op: 'activate' | 'deactivate' | 'set_instant' | 'set_daily' | 'delete') =>
+      callManage('bulk', { op, ids: Array.from(selectedIds) }),
+    onSuccess: (res: { affected: number }, op) => {
+      const verb =
+        op === 'delete' ? 'removed' :
+        op === 'activate' ? 'activated' :
+        op === 'deactivate' ? 'deactivated' :
+        op === 'set_instant' ? 'set to Instant' : 'set to Daily';
+      toast.success(`${res.affected} subscriber${res.affected === 1 ? '' : 's'} ${verb}`);
+      setSelectedIds(new Set());
+      setBulkConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Bulk action failed'),
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const togglePageSelect = (rows: Subscriber[], allChecked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allChecked) rows.forEach((r) => next.delete(r.id));
+      else rows.forEach((r) => next.add(r.id));
+      return next;
+    });
+  };
+  const toggleReveal = (id: string) => {
+    setRevealedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidEmail(newEmail)) { toast.error('Please enter a valid email'); return; }
