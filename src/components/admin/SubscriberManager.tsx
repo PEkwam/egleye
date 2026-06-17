@@ -716,9 +716,14 @@ function InlineStat({
 }
 
 function SubscriberRow({
-  sub, onEdit, onFrequency, onActive, onReset, onCatchUp, onDelete,
+  sub, checked, onToggleCheck, revealed, onToggleReveal,
+  onEdit, onFrequency, onActive, onReset, onCatchUp, onDelete,
 }: {
   sub: Subscriber;
+  checked: boolean;
+  onToggleCheck: () => void;
+  revealed: boolean;
+  onToggleReveal: () => void;
   onEdit: () => void;
   onFrequency: (f: 'instant' | 'daily') => void;
   onActive: (a: boolean) => void;
@@ -727,8 +732,16 @@ function SubscriberRow({
   onDelete: () => void;
 }) {
   const stats = sub.send_stats ?? { sent: 0, pending: 0, failed: 0 };
+  const displayEmail = revealed ? sub.email : maskEmail(sub.email);
   return (
-    <div className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
+    <div className={`flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors ${checked ? 'bg-primary/5' : ''}`}>
+      <Checkbox
+        checked={checked}
+        onCheckedChange={onToggleCheck}
+        aria-label={`Select ${sub.email}`}
+        className="shrink-0"
+      />
+
       {/* Identity (click to edit) */}
       <button
         type="button"
@@ -737,7 +750,7 @@ function SubscriberRow({
         title="Edit subscriber"
       >
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium truncate">{sub.email}</p>
+          <p className="text-sm font-medium truncate font-mono">{displayEmail}</p>
           {sub.name && (
             <span className="text-xs text-muted-foreground truncate max-w-[140px]">· {sub.name}</span>
           )}
@@ -752,6 +765,16 @@ function SubscriberRow({
           )}
         </div>
       </button>
+
+      {/* Reveal toggle */}
+      <Button
+        variant="ghost" size="icon"
+        onClick={(e) => { e.stopPropagation(); onToggleReveal(); }}
+        className="h-7 w-7 shrink-0"
+        title={revealed ? 'Hide email' : 'Reveal email'}
+      >
+        {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      </Button>
 
       {/* Stats chips */}
       <div className="hidden md:flex items-center gap-1 shrink-0">
