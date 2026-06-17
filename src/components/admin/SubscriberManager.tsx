@@ -83,8 +83,11 @@ export function SubscriberManager() {
   const [editActive, setEditActive] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const { data, isLoading, refetch, isFetching } = useQuery({
+  const [expanded, setExpanded] = useState(false);
+  const [revealAll, setRevealAll] = useState(false);
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState<null | 'delete'>(null);
     queryKey: ['news-subscribers'],
     queryFn: async () => {
       const result = await callManage('list');
