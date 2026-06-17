@@ -178,46 +178,80 @@ Deno.serve(async (req) => {
     }
 
     // ---- New: list send attempts (for delivery dashboard) ----
+    // Grouped by (article_id, status): one row per news item per status with
+    // recipient_count + latest timestamp + sample error.
     if (action === 'list_sends') {
       const limit = Math.min(Number(body.limit ?? 100), 500);
       const offset = Math.max(Number(body.offset ?? 0), 0);
       const status = body.status as string | undefined;
 
+      // Pull all rows up to a safe cap so we can group in-memory
       let query = supabase
         .from('news_subscriber_sends')
         .select(
-          'id, status, attempts, error_message, queued_at, sent_at, failed_at, created_at, updated_at, subscriber_id, article_id'
+          'id, status, attempts, error_message, queued_at, sent_at, failed_at, created_at, article_id'
         )
         .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
+        .limit(5000);
       if (status && ['pending', 'sent', 'failed', 'skipped'].includes(status)) {
         query = query.eq('status', status);
       }
-
-      const { data: sends, error } = await query;
+      const { data: rows, error } = await query;
       if (error) throw error;
 
-      // Hydrate subscriber + article info
-      const subIds = Array.from(new Set((sends ?? []).map((s) => s.subscriber_id)));
-      const artIds = Array.from(new Set((sends ?? []).map((s) => s.article_id)));
+      type Group = {
+        id: string;
+        article_id: string;
+        status: string;
+        recipient_count: number;
+        attempts: number;
+        error_message: string | null;
+        latest_at: string;
+        sent_at: string | null;
+        failed_at: string | null;
+        created_at: string;
+      };
+      const groups = new Map<string, Group>();
+      (rows ?? []).forEach((r) => {
+        const key = `${r.article_id}::${r.status}`;
+        const ts = r.sent_at || r.failed_at || r.created_at;
+        const g = groups.get(key);
+        if (!g) {
+          groups.set(key, {
+            id: key,
+            article_id: r.article_id,
+            status: r.status,
+            recipient_count: 1,
+            attempts: r.attempts ?? 0,
+            error_message: r.error_message,
+            latest_at: ts,
+            sent_at: r.sent_at,
+            failed_at: r.failed_at,
+            created_at: r.created_at,
+          });
+        } else {
+          g.recipient_count += 1;
+          if (!g.error_message && r.error_message) g.error_message = r.error_message;
+          if (ts > g.latest_at) g.latest_at = ts;
+          g.attempts = Math.max(g.attempts, r.attempts ?? 0);
+        }
+      });
 
-      const [{ data: subs }, { data: arts }] = await Promise.all([
-        subIds.length
-          ? supabase.from('news_subscribers').select('id, email, name').in('id', subIds)
-          : Promise.resolve({ data: [] }),
-        artIds.length
-          ? supabase.from('news_articles').select('id, title, source_name').in('id', artIds)
-          : Promise.resolve({ data: [] }),
-      ]);
+      const sorted = Array.from(groups.values()).sort((a, b) =>
+        a.latest_at < b.latest_at ? 1 : -1
+      );
+      const totalCount = sorted.length;
+      const page = sorted.slice(offset, offset + limit);
 
-      const subMap = new Map((subs ?? []).map((s: { id: string }) => [s.id, s]));
+      const artIds = Array.from(new Set(page.map((g) => g.article_id)));
+      const { data: arts } = artIds.length
+        ? await supabase.from('news_articles').select('id, title, source_name').in('id', artIds)
+        : { data: [] };
       const artMap = new Map((arts ?? []).map((a: { id: string }) => [a.id, a]));
 
-      const enriched = (sends ?? []).map((row) => ({
-        ...row,
-        subscriber: subMap.get(row.subscriber_id) ?? null,
-        article: artMap.get(row.article_id) ?? null,
+      const enriched = page.map((g) => ({
+        ...g,
+        article: artMap.get(g.article_id) ?? null,
       }));
 
       // Aggregate counters across all rows (not just the page)
@@ -229,14 +263,7 @@ Deno.serve(async (req) => {
         if (c.status in totals) totals[c.status as keyof typeof totals] += 1;
       });
 
-      // Total matching rows for pagination
-      let countQuery = supabase.from('news_subscriber_sends').select('*', { count: 'exact', head: true });
-      if (status && ['pending', 'sent', 'failed', 'skipped'].includes(status)) {
-        countQuery = countQuery.eq('status', status);
-      }
-      const { count: totalCount } = await countQuery;
-
-      return json({ sends: enriched, totals, totalCount: totalCount ?? 0 });
+      return json({ sends: enriched, totals, totalCount });
     }
 
     // ---- New: retry a failed send (resets to pending) ----
@@ -319,6 +346,16 @@ Deno.serve(async (req) => {
       });
       const weeks = Array.from(map.values()).sort((a, b) => (a.week_start < b.week_start ? 1 : -1));
       return json({ weeks });
+    }
+
+    // ---- Archive: delete all archived rows ----
+    if (action === 'empty_archive') {
+      const { error, count } = await supabase
+        .from('news_subscriber_sends_archive')
+        .delete({ count: 'exact' })
+        .not('id', 'is', null);
+      if (error) throw error;
+      return json({ success: true, deleted: count ?? 0 });
     }
 
     // ---- Archive: list sends for a given week ----
