@@ -18,12 +18,24 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Mail, Plus, Trash2, RefreshCw, Users, Zap, CalendarDays, RotateCcw, FastForward,
   CheckCircle2, AlertCircle, Clock, MoreHorizontal, Search, X, Pencil,
+  ChevronDown, ChevronRight, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+
+// Mask "john.doe@example.com" -> "j•••@example.com"
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 0) return '•••';
+  const local = email.slice(0, at);
+  const domain = email.slice(at);
+  const head = local[0] ?? '';
+  return `${head}${'•'.repeat(Math.max(3, Math.min(local.length - 1, 6)))}${domain}`;
+}
 
 interface Subscriber {
   id: string;
