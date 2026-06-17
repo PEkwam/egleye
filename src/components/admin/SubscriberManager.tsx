@@ -268,59 +268,91 @@ export function SubscriberManager() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Mail className="h-4 w-4 text-primary" />
-                News Alert Subscribers
-              </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                Manage who receives email alerts for new insurance news.
-              </CardDescription>
-            </div>
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="min-w-0 flex items-start gap-2 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-expanded={expanded}
+              aria-controls="subscribers-panel"
+            >
+              {expanded
+                ? <ChevronDown className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
+                : <ChevronRight className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />}
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Mail className="h-4 w-4 text-primary" />
+                  News Alert Subscribers
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1">
+                    {subscribers.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  {expanded
+                    ? 'Manage who receives email alerts for new insurance news.'
+                    : 'Click to view and manage subscribers.'}
+                </CardDescription>
+              </div>
+            </button>
             <div className="flex items-center gap-1.5">
               <InlineStat icon={Users} label="Active" value={activeCount} tone="primary" />
               <InlineStat icon={Zap} label="Instant" value={instantCount} tone="amber" />
               <InlineStat icon={CalendarDays} label="Daily" value={dailyCount} tone="blue" />
-              <Button
-                variant="ghost" size="icon"
-                onClick={() => refetch()} disabled={isFetching}
-                className="h-8 w-8"
-                title="Refresh"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-              </Button>
+              {expanded && (
+                <>
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => setRevealAll((v) => !v)}
+                    className="h-8 w-8"
+                    title={revealAll ? 'Hide all emails' : 'Reveal all emails'}
+                  >
+                    {revealAll
+                      ? <EyeOff className="h-3.5 w-3.5" />
+                      : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => refetch()} disabled={isFetching}
+                    className="h-8 w-8"
+                    title="Refresh"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Toolbar */}
-          <div className="flex items-center gap-2 mt-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search email or name…"
-                className="h-8 pl-8 pr-8 text-xs"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label="Clear search"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
+          {/* Toolbar (only when expanded) */}
+          {expanded && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  placeholder="Search email or name…"
+                  className="h-8 pl-8 pr-8 text-xs"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setShowAdd(true)}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </Button>
             </div>
-            <Button
-              size="sm"
-              onClick={() => setShowAdd(true)}
-              className="h-8 gap-1.5 text-xs"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add
-            </Button>
-          </div>
+          )}
         </CardHeader>
 
         {/* Add subscriber dialog */}
