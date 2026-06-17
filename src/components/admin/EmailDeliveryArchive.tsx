@@ -135,6 +135,16 @@ export function EmailDeliveryArchive() {
               <RefreshCw className={`h-3.5 w-3.5 ${weeksQuery.isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmEmpty(true)}
+              disabled={emptyArchive.isPending || weeks.length === 0}
+              className="gap-1.5 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Empty archive
+            </Button>
           </div>
         </div>
       </CardHeader>
