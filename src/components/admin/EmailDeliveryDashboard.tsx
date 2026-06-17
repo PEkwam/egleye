@@ -338,12 +338,9 @@ export function EmailDeliveryDashboard() {
                       <Icon className="h-3 w-3" />
                       {cfg.label}
                     </Badge>
-                    <Badge variant="outline" className="gap-1 text-[10px] px-2 py-0.5">
+                    <Badge variant="outline" className="gap-1 text-[10px] px-2 py-0.5 border-emerald-500/40 text-emerald-600 bg-emerald-500/5 font-semibold">
                       <Users className="h-3 w-3" />
-                      recipient{send.recipient_count === 1 ? '' : 's'}
-                    </Badge>
-                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 border-emerald-500/40 text-emerald-600 bg-emerald-500/5 font-semibold">
-                      {send.recipient_count}
+                      Recipients-{send.recipient_count}
                     </Badge>
 
                     <div className="flex-1 min-w-0">
