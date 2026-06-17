@@ -495,14 +495,51 @@ export function SubscriberManager() {
           </DialogContent>
         </Dialog>
 
-        <CardContent className="pt-0">
-          {/* Count */}
-          <div className="flex items-center justify-between mb-2">
+        {expanded && (
+        <CardContent id="subscribers-panel" className="pt-0">
+          {/* Count + bulk bar */}
+          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
             <p className="text-[11px] text-muted-foreground">
               {isLoading
                 ? 'Loading…'
                 : `${filtered.length} of ${subscribers.length} subscriber${subscribers.length === 1 ? '' : 's'}`}
             </p>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <Badge variant="outline" className="h-6 px-2">
+                  {selectedIds.size} selected
+                </Badge>
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('activate')}>
+                  Activate
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('deactivate')}>
+                  Deactivate
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('set_instant')}>
+                  <Zap className="h-3 w-3" /> Instant
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('set_daily')}>
+                  <CalendarDays className="h-3 w-3" /> Daily
+                </Button>
+                <Button size="sm" variant="destructive" className="h-7 text-xs gap-1"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => setBulkConfirm('delete')}>
+                  <Trash2 className="h-3 w-3" /> Remove
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs"
+                  onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
 
           {!isLoading && filtered.length === 0 && (
@@ -516,20 +553,40 @@ export function SubscriberManager() {
 
           {filtered.length > 0 && (
             <>
-              <div className="rounded-lg border border-border/60 overflow-hidden divide-y divide-border/40">
-                {paged.map((sub) => (
-                  <SubscriberRow
-                    key={sub.id}
-                    sub={sub}
-                    onEdit={() => openEdit(sub)}
-                    onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
-                    onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
-                    onReset={() => setDialog({ kind: 'reset', sub })}
-                    onCatchUp={() => setDialog({ kind: 'catchup', sub })}
-                    onDelete={() => setDialog({ kind: 'delete', sub })}
-                  />
-                ))}
-              </div>
+              {(() => {
+                const pageAllChecked = paged.length > 0 && paged.every((s) => selectedIds.has(s.id));
+                const pageSomeChecked = paged.some((s) => selectedIds.has(s.id));
+                return (
+                  <div className="rounded-lg border border-border/60 overflow-hidden">
+                    <div className="flex items-center gap-3 px-3 py-1.5 bg-muted/30 border-b border-border/40">
+                      <Checkbox
+                        checked={pageAllChecked ? true : (pageSomeChecked ? 'indeterminate' : false)}
+                        onCheckedChange={() => togglePageSelect(paged, pageAllChecked)}
+                        aria-label="Select all on page"
+                      />
+                      <span className="text-[11px] text-muted-foreground">Select all on page</span>
+                    </div>
+                    <div className="divide-y divide-border/40">
+                      {paged.map((sub) => (
+                        <SubscriberRow
+                          key={sub.id}
+                          sub={sub}
+                          checked={selectedIds.has(sub.id)}
+                          onToggleCheck={() => toggleSelect(sub.id)}
+                          revealed={revealAll || revealedIds.has(sub.id)}
+                          onToggleReveal={() => toggleReveal(sub.id)}
+                          onEdit={() => openEdit(sub)}
+                          onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
+                          onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
+                          onReset={() => setDialog({ kind: 'reset', sub })}
+                          onCatchUp={() => setDialog({ kind: 'catchup', sub })}
+                          onDelete={() => setDialog({ kind: 'delete', sub })}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Pagination */}
               <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
@@ -572,6 +629,7 @@ export function SubscriberManager() {
             </>
           )}
         </CardContent>
+        )}
       </Card>
 
       {/* Confirm dialogs */}
