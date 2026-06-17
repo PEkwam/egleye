@@ -137,6 +137,33 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // ---- Bulk operations on multiple subscribers ----
+    if (action === 'bulk') {
+      const ids = Array.isArray(body.ids) ? (body.ids as unknown[]).map(String).filter(Boolean) : [];
+      const op = String(body.op ?? '');
+      if (ids.length === 0) return json({ error: 'No subscribers selected' }, 400);
+      if (op === 'delete') {
+        const { error, count } = await supabase
+          .from('news_subscribers')
+          .delete({ count: 'exact' })
+          .in('id', ids);
+        if (error) throw error;
+        return json({ success: true, affected: count ?? ids.length });
+      }
+      const update: Record<string, unknown> = {};
+      if (op === 'activate') update.is_active = true;
+      else if (op === 'deactivate') update.is_active = false;
+      else if (op === 'set_instant') update.frequency = 'instant';
+      else if (op === 'set_daily') update.frequency = 'daily';
+      else return json({ error: 'Unknown bulk op' }, 400);
+      const { error, count } = await supabase
+        .from('news_subscribers')
+        .update(update, { count: 'exact' })
+        .in('id', ids);
+      if (error) throw error;
+      return json({ success: true, affected: count ?? ids.length });
+    }
+
     // ---- New: per-subscriber unread reset ----
     // Removes all send records for the subscriber so every existing article
     // becomes "unread" again and will be re-queued on the next send cycle.
