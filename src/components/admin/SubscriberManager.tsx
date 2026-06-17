@@ -18,12 +18,24 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Mail, Plus, Trash2, RefreshCw, Users, Zap, CalendarDays, RotateCcw, FastForward,
   CheckCircle2, AlertCircle, Clock, MoreHorizontal, Search, X, Pencil,
+  ChevronDown, ChevronRight, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+
+// Mask "john.doe@example.com" -> "j•••@example.com"
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 0) return '•••';
+  const local = email.slice(0, at);
+  const domain = email.slice(at);
+  const head = local[0] ?? '';
+  return `${head}${'•'.repeat(Math.max(3, Math.min(local.length - 1, 6)))}${domain}`;
+}
 
 interface Subscriber {
   id: string;
@@ -71,6 +83,11 @@ export function SubscriberManager() {
   const [editActive, setEditActive] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [expanded, setExpanded] = useState(false);
+  const [revealAll, setRevealAll] = useState(false);
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState<null | 'delete'>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['news-subscribers'],
@@ -196,6 +213,46 @@ export function SubscriberManager() {
     onError: (err: Error) => toast.error(err.message || 'Catch-up failed'),
   });
 
+  const bulkMutation = useMutation({
+    mutationFn: (op: 'activate' | 'deactivate' | 'set_instant' | 'set_daily' | 'delete') =>
+      callManage('bulk', { op, ids: Array.from(selectedIds) }),
+    onSuccess: (res: { affected: number }, op) => {
+      const verb =
+        op === 'delete' ? 'removed' :
+        op === 'activate' ? 'activated' :
+        op === 'deactivate' ? 'deactivated' :
+        op === 'set_instant' ? 'set to Instant' : 'set to Daily';
+      toast.success(`${res.affected} subscriber${res.affected === 1 ? '' : 's'} ${verb}`);
+      setSelectedIds(new Set());
+      setBulkConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['news-subscribers'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Bulk action failed'),
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const togglePageSelect = (rows: Subscriber[], allChecked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allChecked) rows.forEach((r) => next.delete(r.id));
+      else rows.forEach((r) => next.add(r.id));
+      return next;
+    });
+  };
+  const toggleReveal = (id: string) => {
+    setRevealedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidEmail(newEmail)) { toast.error('Please enter a valid email'); return; }
@@ -211,59 +268,91 @@ export function SubscriberManager() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Mail className="h-4 w-4 text-primary" />
-                News Alert Subscribers
-              </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                Manage who receives email alerts for new insurance news.
-              </CardDescription>
-            </div>
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="min-w-0 flex items-start gap-2 text-left rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-expanded={expanded}
+              aria-controls="subscribers-panel"
+            >
+              {expanded
+                ? <ChevronDown className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
+                : <ChevronRight className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />}
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Mail className="h-4 w-4 text-primary" />
+                  News Alert Subscribers
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1">
+                    {subscribers.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  {expanded
+                    ? 'Manage who receives email alerts for new insurance news.'
+                    : 'Click to view and manage subscribers.'}
+                </CardDescription>
+              </div>
+            </button>
             <div className="flex items-center gap-1.5">
               <InlineStat icon={Users} label="Active" value={activeCount} tone="primary" />
               <InlineStat icon={Zap} label="Instant" value={instantCount} tone="amber" />
               <InlineStat icon={CalendarDays} label="Daily" value={dailyCount} tone="blue" />
-              <Button
-                variant="ghost" size="icon"
-                onClick={() => refetch()} disabled={isFetching}
-                className="h-8 w-8"
-                title="Refresh"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-              </Button>
+              {expanded && (
+                <>
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => setRevealAll((v) => !v)}
+                    className="h-8 w-8"
+                    title={revealAll ? 'Hide all emails' : 'Reveal all emails'}
+                  >
+                    {revealAll
+                      ? <EyeOff className="h-3.5 w-3.5" />
+                      : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={() => refetch()} disabled={isFetching}
+                    className="h-8 w-8"
+                    title="Refresh"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Toolbar */}
-          <div className="flex items-center gap-2 mt-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search email or name…"
-                className="h-8 pl-8 pr-8 text-xs"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label="Clear search"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
+          {/* Toolbar (only when expanded) */}
+          {expanded && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  placeholder="Search email or name…"
+                  className="h-8 pl-8 pr-8 text-xs"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setShowAdd(true)}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </Button>
             </div>
-            <Button
-              size="sm"
-              onClick={() => setShowAdd(true)}
-              className="h-8 gap-1.5 text-xs"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add
-            </Button>
-          </div>
+          )}
         </CardHeader>
 
         {/* Add subscriber dialog */}
@@ -406,14 +495,51 @@ export function SubscriberManager() {
           </DialogContent>
         </Dialog>
 
-        <CardContent className="pt-0">
-          {/* Count */}
-          <div className="flex items-center justify-between mb-2">
+        {expanded && (
+        <CardContent id="subscribers-panel" className="pt-0">
+          {/* Count + bulk bar */}
+          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
             <p className="text-[11px] text-muted-foreground">
               {isLoading
                 ? 'Loading…'
                 : `${filtered.length} of ${subscribers.length} subscriber${subscribers.length === 1 ? '' : 's'}`}
             </p>
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <Badge variant="outline" className="h-6 px-2">
+                  {selectedIds.size} selected
+                </Badge>
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('activate')}>
+                  Activate
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('deactivate')}>
+                  Deactivate
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('set_instant')}>
+                  <Zap className="h-3 w-3" /> Instant
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => bulkMutation.mutate('set_daily')}>
+                  <CalendarDays className="h-3 w-3" /> Daily
+                </Button>
+                <Button size="sm" variant="destructive" className="h-7 text-xs gap-1"
+                  disabled={bulkMutation.isPending}
+                  onClick={() => setBulkConfirm('delete')}>
+                  <Trash2 className="h-3 w-3" /> Remove
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs"
+                  onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
 
           {!isLoading && filtered.length === 0 && (
@@ -427,20 +553,40 @@ export function SubscriberManager() {
 
           {filtered.length > 0 && (
             <>
-              <div className="rounded-lg border border-border/60 overflow-hidden divide-y divide-border/40">
-                {paged.map((sub) => (
-                  <SubscriberRow
-                    key={sub.id}
-                    sub={sub}
-                    onEdit={() => openEdit(sub)}
-                    onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
-                    onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
-                    onReset={() => setDialog({ kind: 'reset', sub })}
-                    onCatchUp={() => setDialog({ kind: 'catchup', sub })}
-                    onDelete={() => setDialog({ kind: 'delete', sub })}
-                  />
-                ))}
-              </div>
+              {(() => {
+                const pageAllChecked = paged.length > 0 && paged.every((s) => selectedIds.has(s.id));
+                const pageSomeChecked = paged.some((s) => selectedIds.has(s.id));
+                return (
+                  <div className="rounded-lg border border-border/60 overflow-hidden">
+                    <div className="flex items-center gap-3 px-3 py-1.5 bg-muted/30 border-b border-border/40">
+                      <Checkbox
+                        checked={pageAllChecked ? true : (pageSomeChecked ? 'indeterminate' : false)}
+                        onCheckedChange={() => togglePageSelect(paged, pageAllChecked)}
+                        aria-label="Select all on page"
+                      />
+                      <span className="text-[11px] text-muted-foreground">Select all on page</span>
+                    </div>
+                    <div className="divide-y divide-border/40">
+                      {paged.map((sub) => (
+                        <SubscriberRow
+                          key={sub.id}
+                          sub={sub}
+                          checked={selectedIds.has(sub.id)}
+                          onToggleCheck={() => toggleSelect(sub.id)}
+                          revealed={revealAll || revealedIds.has(sub.id)}
+                          onToggleReveal={() => toggleReveal(sub.id)}
+                          onEdit={() => openEdit(sub)}
+                          onFrequency={(f) => updateMutation.mutate({ id: sub.id, changes: { frequency: f } })}
+                          onActive={(a) => updateMutation.mutate({ id: sub.id, changes: { is_active: a } })}
+                          onReset={() => setDialog({ kind: 'reset', sub })}
+                          onCatchUp={() => setDialog({ kind: 'catchup', sub })}
+                          onDelete={() => setDialog({ kind: 'delete', sub })}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Pagination */}
               <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
@@ -483,6 +629,7 @@ export function SubscriberManager() {
             </>
           )}
         </CardContent>
+        )}
       </Card>
 
       {/* Confirm dialogs */}
@@ -544,6 +691,27 @@ export function SubscriberManager() {
           )}
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk delete confirm */}
+      <AlertDialog open={bulkConfirm === 'delete'} onOpenChange={(open) => !open && setBulkConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {selectedIds.size} subscriber{selectedIds.size === 1 ? '' : 's'}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Permanently removes the selected subscribers and their delivery history. Cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkMutation.mutate('delete')}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -569,9 +737,14 @@ function InlineStat({
 }
 
 function SubscriberRow({
-  sub, onEdit, onFrequency, onActive, onReset, onCatchUp, onDelete,
+  sub, checked, onToggleCheck, revealed, onToggleReveal,
+  onEdit, onFrequency, onActive, onReset, onCatchUp, onDelete,
 }: {
   sub: Subscriber;
+  checked: boolean;
+  onToggleCheck: () => void;
+  revealed: boolean;
+  onToggleReveal: () => void;
   onEdit: () => void;
   onFrequency: (f: 'instant' | 'daily') => void;
   onActive: (a: boolean) => void;
@@ -580,8 +753,16 @@ function SubscriberRow({
   onDelete: () => void;
 }) {
   const stats = sub.send_stats ?? { sent: 0, pending: 0, failed: 0 };
+  const displayEmail = revealed ? sub.email : maskEmail(sub.email);
   return (
-    <div className="flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors">
+    <div className={`flex items-center gap-3 px-3 py-2 hover:bg-muted/30 transition-colors ${checked ? 'bg-primary/5' : ''}`}>
+      <Checkbox
+        checked={checked}
+        onCheckedChange={onToggleCheck}
+        aria-label={`Select ${sub.email}`}
+        className="shrink-0"
+      />
+
       {/* Identity (click to edit) */}
       <button
         type="button"
@@ -590,7 +771,7 @@ function SubscriberRow({
         title="Edit subscriber"
       >
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium truncate">{sub.email}</p>
+          <p className="text-sm font-medium truncate font-mono">{displayEmail}</p>
           {sub.name && (
             <span className="text-xs text-muted-foreground truncate max-w-[140px]">· {sub.name}</span>
           )}
@@ -605,6 +786,16 @@ function SubscriberRow({
           )}
         </div>
       </button>
+
+      {/* Reveal toggle */}
+      <Button
+        variant="ghost" size="icon"
+        onClick={(e) => { e.stopPropagation(); onToggleReveal(); }}
+        className="h-7 w-7 shrink-0"
+        title={revealed ? 'Hide email' : 'Reveal email'}
+      >
+        {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      </Button>
 
       {/* Stats chips */}
       <div className="hidden md:flex items-center gap-1 shrink-0">
