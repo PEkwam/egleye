@@ -173,6 +173,28 @@ export function EmailDeliveryArchive() {
           />
         ))}
       </CardContent>
+
+      <AlertDialog open={confirmEmpty} onOpenChange={setConfirmEmpty}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Empty delivery archive?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes every archived send record across all weeks.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={emptyArchive.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); emptyArchive.mutate(); }}
+              disabled={emptyArchive.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {emptyArchive.isPending ? 'Emptying…' : 'Empty archive'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
