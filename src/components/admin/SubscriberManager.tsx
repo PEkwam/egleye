@@ -88,6 +88,8 @@ export function SubscriberManager() {
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState<null | 'delete'>(null);
+
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['news-subscribers'],
     queryFn: async () => {
       const result = await callManage('list');
