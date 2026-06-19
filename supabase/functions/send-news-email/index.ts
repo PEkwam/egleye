@@ -681,6 +681,65 @@ Deno.serve(async (req) => {
       return json({ processed: pending.length, sent, failed });
     }
 
+    if (action === 'backfill_recent') {
+      // Scan recent articles within the freshness window and enqueue any
+      // life-insurance items that were missed (e.g. before this filter was
+      // tightened, or if the crawler's enqueue call failed). Returns counts.
+      const sinceIso = new Date(minPublishedAtMs()).toISOString();
+      const { data: recent, error: rErr } = await supabase
+        .from('news_articles')
+        .select('id, title, description, content, category, published_at')
+        .gte('published_at', sinceIso)
+        .order('published_at', { ascending: false })
+        .limit(200);
+      if (rErr) throw rErr;
+
+      const LIFE_PATTERNS: RegExp[] = [
+        /\blife\s+insur(?:ance|er|ers)\b/, /\blife\s+assur(?:ance|er|ers)\b/,
+        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
+        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
+        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
+        /\bbancassur\w*\b/, /\bmicroinsur\w*\b/,
+        /\benterprise\s+life\b/, /\benterprise\s+group\b/, /\benterprise\s+trustees\b/,
+        /\bacacia\s+health\b/, /\bsic\s+life\b/, /\bstar[\s-]?life\b/, /\bstar\s+assurance\b/,
+        /\bglico\s+life\b/, /\bhollard\s+life\b/, /\bold\s+mutual\s+life\b/,
+        /\ballianz\s+life\b/, /\bprudential\s+life\b/, /\bvanguard\s+(?:life|assurance)\b/,
+        /\bmetropolitan\s+life\b/, /\bdosh\s+health\s+insur\w*\b/,
+      ];
+      const eligible = (recent ?? []).filter((a) => {
+        const cat = String(a.category ?? '').toLowerCase();
+        if (cat === 'life_insurance') return true;
+        const hay = `${a.title ?? ''} \n ${a.description ?? ''} \n ${a.content ?? ''}`.toLowerCase();
+        return LIFE_PATTERNS.some((re) => re.test(hay));
+      });
+
+      const { data: subs, error: sErr } = await supabase
+        .from('news_subscribers')
+        .select('id')
+        .eq('is_active', true)
+        .eq('frequency', 'instant');
+      if (sErr) throw sErr;
+
+      if (!subs?.length || !eligible.length) {
+        return json({ scanned: recent?.length ?? 0, eligible: eligible.length, enqueued: 0 });
+      }
+
+      const rows = eligible.flatMap((a) =>
+        subs.map((s) => ({ subscriber_id: s.id, article_id: a.id, status: 'pending' as const })),
+      );
+      const { error: iErr, count } = await supabase
+        .from('news_subscriber_sends')
+        .upsert(rows, { onConflict: 'subscriber_id,article_id', ignoreDuplicates: true, count: 'exact' });
+      if (iErr) throw iErr;
+      return json({
+        scanned: recent?.length ?? 0,
+        eligible: eligible.length,
+        subscribers: subs.length,
+        enqueued: count ?? 0,
+        titles: eligible.slice(0, 20).map((a) => a.title),
+      });
+    }
+
     return json({ error: 'Unknown action' }, 400);
   } catch (err) {
     console.error('send-news-email error', err);
