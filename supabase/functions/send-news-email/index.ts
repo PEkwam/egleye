@@ -496,24 +496,46 @@ Deno.serve(async (req) => {
         return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
       }
 
-      const haystack = `${art?.title ?? ''} ${art?.description ?? ''} ${art?.content ?? ''}`.toLowerCase();
-      const INSURANCE_TERMS = [
-        'insurance', 'insurer', 'insured', 'assurance', 'underwrit', 'policyholder',
-        'premium', 'claims', 'reinsurance', 'actuar', 'annuity', 'annuities',
-        'bancassurance', 'microinsurance', 'broker', 'brokerage',
-        'pension', 'pensions', 'retirement', 'ssnit', 'npra', 'trustee',
-        'provident fund', 'gratuity', 'tier 1', 'tier 2', 'tier 3',
-        'nic', 'national insurance commission', 'solvency',
-        // Local insurer/brand names
-        'enterprise life', 'enterprise group', 'enterprise insurance', 'enterprise trustees',
-        'acacia health', 'sic life', 'sic insurance', 'starlife', 'star assurance',
-        'glico', 'hollard', 'old mutual', 'allianz', 'prudential', 'vanguard assurance',
-        'donewell', 'metropolitan life',
+      // STRICT life-insurance filter with word boundaries — substrings like
+      // "nic" in "Unichem" or "claims" in "denies claims" must NOT trigger
+      // a send. Only clearly life-insurance content goes out to subscribers.
+      const haystack = `${art?.title ?? ''} \n ${art?.description ?? ''} \n ${art?.content ?? ''}`.toLowerCase();
+      const category = String(art?.category ?? '').toLowerCase();
+
+      const LIFE_PATTERNS: RegExp[] = [
+        /\blife\s+insur(?:ance|er|ers)\b/,
+        /\blife\s+assur(?:ance|er|ers)\b/,
+        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
+        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
+        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
+        /\bbancassur\w*\b/,
+        /\bmicroinsur\w*\b/,
+        // Named life insurers / brands operating in Ghana
+        /\benterprise\s+life\b/,
+        /\benterprise\s+group\b/,
+        /\benterprise\s+trustees\b/,
+        /\bacacia\s+health\b/,
+        /\bsic\s+life\b/,
+        /\bstar[\s-]?life\b/,
+        /\bstar\s+assurance\b/,
+        /\bglico\s+life\b/,
+        /\bhollard\s+life\b/,
+        /\bold\s+mutual\s+life\b/,
+        /\ballianz\s+life\b/,
+        /\bprudential\s+life\b/,
+        /\bvanguard\s+(?:life|assurance)\b/,
+        /\bmetropolitan\s+life\b/,
+        /\bdosh\s+health\s+insur\w*\b/,
       ];
-      const isInsuranceRelated = INSURANCE_TERMS.some((kw) => haystack.includes(kw));
-      if (!isInsuranceRelated) {
-        console.log(`[enqueue_article] Skipping non-insurance article ${articleId}: "${art?.title?.slice(0, 80)}"`);
-        return json({ enqueued: 0, skipped: true, reason: 'not_insurance_related' });
+
+      const matchesLife = LIFE_PATTERNS.some((re) => re.test(haystack));
+      // Category fast-path: ONLY the dedicated life_insurance category
+      // qualifies. General / regulator / pensions / nonlife are excluded.
+      const categoryAllowed = category === 'life_insurance';
+
+      if (!matchesLife && !categoryAllowed) {
+        console.log(`[enqueue_article] Skipping non-life article ${articleId} [${category}]: "${art?.title?.slice(0, 80)}"`);
+        return json({ enqueued: 0, skipped: true, reason: 'not_life_insurance' });
       }
 
       const { data: subs, error: sErr } = await supabase
