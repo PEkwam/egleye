@@ -216,6 +216,7 @@ export function EmailDeliveryDashboard() {
             >
               <Inbox className={`h-3.5 w-3.5 ${backfillMutation.isPending ? 'animate-pulse' : ''}`} />
               Backfill life news
+            </Button>
             <Button
               variant="outline"
               size="sm"
