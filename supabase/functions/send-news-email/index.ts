@@ -599,12 +599,14 @@ Deno.serve(async (req) => {
     if (action === 'process_queue') {
       const limit = Math.min(Math.max(Number(body.limit ?? 25), 1), 100);
 
+      // Pull pending sends ordered newest-first so subscribers always get
+      // the latest stories before older backlog items.
       const { data: pending, error: pErr } = await supabase
         .from('news_subscriber_sends')
-        .select('id, subscriber_id, article_id, attempts, article:news_articles(published_at)')
+        .select('id, subscriber_id, article_id, attempts')
         .eq('status', 'pending')
         .lt('attempts', 5)
-        .order('article(published_at)', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
         .limit(limit);
       if (pErr) throw pErr;
       if (!pending || pending.length === 0) return json({ processed: 0, sent: 0, failed: 0 });
