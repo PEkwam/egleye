@@ -446,7 +446,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* noop */ }
   const action = String(body.action || '');
 
-  const requiresAdmin = ['process_queue', 'send_test', 'status'].includes(action);
+  const requiresAdmin = ['process_queue', 'send_test', 'status', 'backfill_recent'].includes(action);
   if (requiresAdmin) {
     const token = req.headers.get('x-admin-token');
     const internalQueueProcessor = action === 'process_queue' && isServiceRoleCall(req);
@@ -496,24 +496,46 @@ Deno.serve(async (req) => {
         return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
       }
 
-      const haystack = `${art?.title ?? ''} ${art?.description ?? ''} ${art?.content ?? ''}`.toLowerCase();
-      const INSURANCE_TERMS = [
-        'insurance', 'insurer', 'insured', 'assurance', 'underwrit', 'policyholder',
-        'premium', 'claims', 'reinsurance', 'actuar', 'annuity', 'annuities',
-        'bancassurance', 'microinsurance', 'broker', 'brokerage',
-        'pension', 'pensions', 'retirement', 'ssnit', 'npra', 'trustee',
-        'provident fund', 'gratuity', 'tier 1', 'tier 2', 'tier 3',
-        'nic', 'national insurance commission', 'solvency',
-        // Local insurer/brand names
-        'enterprise life', 'enterprise group', 'enterprise insurance', 'enterprise trustees',
-        'acacia health', 'sic life', 'sic insurance', 'starlife', 'star assurance',
-        'glico', 'hollard', 'old mutual', 'allianz', 'prudential', 'vanguard assurance',
-        'donewell', 'metropolitan life',
+      // STRICT life-insurance filter with word boundaries — substrings like
+      // "nic" in "Unichem" or "claims" in "denies claims" must NOT trigger
+      // a send. Only clearly life-insurance content goes out to subscribers.
+      const haystack = `${art?.title ?? ''} \n ${art?.description ?? ''} \n ${art?.content ?? ''}`.toLowerCase();
+      const category = String(art?.category ?? '').toLowerCase();
+
+      const LIFE_PATTERNS: RegExp[] = [
+        /\blife\s+insur(?:ance|er|ers)\b/,
+        /\blife\s+assur(?:ance|er|ers)\b/,
+        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
+        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
+        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
+        /\bbancassur\w*\b/,
+        /\bmicroinsur\w*\b/,
+        // Named life insurers / brands operating in Ghana
+        /\benterprise\s+life\b/,
+        /\benterprise\s+group\b/,
+        /\benterprise\s+trustees\b/,
+        /\bacacia\s+health\b/,
+        /\bsic\s+life\b/,
+        /\bstar[\s-]?life\b/,
+        /\bstar\s+assurance\b/,
+        /\bglico\s+life\b/,
+        /\bhollard\s+life\b/,
+        /\bold\s+mutual\s+life\b/,
+        /\ballianz\s+life\b/,
+        /\bprudential\s+life\b/,
+        /\bvanguard\s+(?:life|assurance)\b/,
+        /\bmetropolitan\s+life\b/,
+        /\bdosh\s+health\s+insur\w*\b/,
       ];
-      const isInsuranceRelated = INSURANCE_TERMS.some((kw) => haystack.includes(kw));
-      if (!isInsuranceRelated) {
-        console.log(`[enqueue_article] Skipping non-insurance article ${articleId}: "${art?.title?.slice(0, 80)}"`);
-        return json({ enqueued: 0, skipped: true, reason: 'not_insurance_related' });
+
+      const matchesLife = LIFE_PATTERNS.some((re) => re.test(haystack));
+      // Category fast-path: ONLY the dedicated life_insurance category
+      // qualifies. General / regulator / pensions / nonlife are excluded.
+      const categoryAllowed = category === 'life_insurance';
+
+      if (!matchesLife && !categoryAllowed) {
+        console.log(`[enqueue_article] Skipping non-life article ${articleId} [${category}]: "${art?.title?.slice(0, 80)}"`);
+        return json({ enqueued: 0, skipped: true, reason: 'not_life_insurance' });
       }
 
       const { data: subs, error: sErr } = await supabase
@@ -577,12 +599,14 @@ Deno.serve(async (req) => {
     if (action === 'process_queue') {
       const limit = Math.min(Math.max(Number(body.limit ?? 25), 1), 100);
 
+      // Pull pending sends ordered newest-first so subscribers always get
+      // the latest stories before older backlog items.
       const { data: pending, error: pErr } = await supabase
         .from('news_subscriber_sends')
         .select('id, subscriber_id, article_id, attempts')
         .eq('status', 'pending')
         .lt('attempts', 5)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(limit);
       if (pErr) throw pErr;
       if (!pending || pending.length === 0) return json({ processed: 0, sent: 0, failed: 0 });
@@ -655,6 +679,65 @@ Deno.serve(async (req) => {
         await new Promise((r) => setTimeout(r, 200));
       }
       return json({ processed: pending.length, sent, failed });
+    }
+
+    if (action === 'backfill_recent') {
+      // Scan recent articles within the freshness window and enqueue any
+      // life-insurance items that were missed (e.g. before this filter was
+      // tightened, or if the crawler's enqueue call failed). Returns counts.
+      const sinceIso = new Date(minPublishedAtMs()).toISOString();
+      const { data: recent, error: rErr } = await supabase
+        .from('news_articles')
+        .select('id, title, description, content, category, published_at')
+        .gte('published_at', sinceIso)
+        .order('published_at', { ascending: false })
+        .limit(200);
+      if (rErr) throw rErr;
+
+      const LIFE_PATTERNS: RegExp[] = [
+        /\blife\s+insur(?:ance|er|ers)\b/, /\blife\s+assur(?:ance|er|ers)\b/,
+        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
+        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
+        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
+        /\bbancassur\w*\b/, /\bmicroinsur\w*\b/,
+        /\benterprise\s+life\b/, /\benterprise\s+group\b/, /\benterprise\s+trustees\b/,
+        /\bacacia\s+health\b/, /\bsic\s+life\b/, /\bstar[\s-]?life\b/, /\bstar\s+assurance\b/,
+        /\bglico\s+life\b/, /\bhollard\s+life\b/, /\bold\s+mutual\s+life\b/,
+        /\ballianz\s+life\b/, /\bprudential\s+life\b/, /\bvanguard\s+(?:life|assurance)\b/,
+        /\bmetropolitan\s+life\b/, /\bdosh\s+health\s+insur\w*\b/,
+      ];
+      const eligible = (recent ?? []).filter((a) => {
+        const cat = String(a.category ?? '').toLowerCase();
+        if (cat === 'life_insurance') return true;
+        const hay = `${a.title ?? ''} \n ${a.description ?? ''} \n ${a.content ?? ''}`.toLowerCase();
+        return LIFE_PATTERNS.some((re) => re.test(hay));
+      });
+
+      const { data: subs, error: sErr } = await supabase
+        .from('news_subscribers')
+        .select('id')
+        .eq('is_active', true)
+        .eq('frequency', 'instant');
+      if (sErr) throw sErr;
+
+      if (!subs?.length || !eligible.length) {
+        return json({ scanned: recent?.length ?? 0, eligible: eligible.length, enqueued: 0 });
+      }
+
+      const rows = eligible.flatMap((a) =>
+        subs.map((s) => ({ subscriber_id: s.id, article_id: a.id, status: 'pending' as const })),
+      );
+      const { error: iErr, count } = await supabase
+        .from('news_subscriber_sends')
+        .upsert(rows, { onConflict: 'subscriber_id,article_id', ignoreDuplicates: true, count: 'exact' });
+      if (iErr) throw iErr;
+      return json({
+        scanned: recent?.length ?? 0,
+        eligible: eligible.length,
+        subscribers: subs.length,
+        enqueued: count ?? 0,
+        titles: eligible.slice(0, 20).map((a) => a.title),
+      });
     }
 
     return json({ error: 'Unknown action' }, 400);

@@ -139,6 +139,15 @@ export function EmailDeliveryDashboard() {
     onError: (err: Error) => toast.error(err.message || 'Processing failed'),
   });
 
+  const backfillMutation = useMutation({
+    mutationFn: () => callSender('backfill_recent') as Promise<{ scanned: number; eligible: number; enqueued: number }>,
+    onSuccess: (res) => {
+      toast.success(`Backfill: ${res.eligible} life-insurance article${res.eligible === 1 ? '' : 's'} found, ${res.enqueued} new send${res.enqueued === 1 ? '' : 's'} queued`);
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Backfill failed'),
+  });
+
   type DeleteRange = 'week' | 'month' | 'older_than_month' | 'all';
   const rangeLabels: Record<DeleteRange, string> = {
     week: 'past week',
@@ -196,6 +205,17 @@ export function EmailDeliveryDashboard() {
             >
               <Play className={`h-3.5 w-3.5 ${processMutation.isPending ? 'animate-pulse' : ''}`} />
               Process queue ({totals.pending})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => backfillMutation.mutate()}
+              disabled={backfillMutation.isPending}
+              className="gap-1.5"
+              title="Scan recent articles and queue any life-insurance items that were missed"
+            >
+              <Inbox className={`h-3.5 w-3.5 ${backfillMutation.isPending ? 'animate-pulse' : ''}`} />
+              Backfill life news
             </Button>
             <Button
               variant="outline"
