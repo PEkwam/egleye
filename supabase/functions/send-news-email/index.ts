@@ -601,10 +601,10 @@ Deno.serve(async (req) => {
 
       const { data: pending, error: pErr } = await supabase
         .from('news_subscriber_sends')
-        .select('id, subscriber_id, article_id, attempts')
+        .select('id, subscriber_id, article_id, attempts, article:news_articles(published_at)')
         .eq('status', 'pending')
         .lt('attempts', 5)
-        .order('created_at', { ascending: true })
+        .order('article(published_at)', { ascending: false, nullsFirst: false })
         .limit(limit);
       if (pErr) throw pErr;
       if (!pending || pending.length === 0) return json({ processed: 0, sent: 0, failed: 0 });
