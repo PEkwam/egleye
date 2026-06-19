@@ -209,6 +209,16 @@ export function EmailDeliveryDashboard() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => backfillMutation.mutate()}
+              disabled={backfillMutation.isPending}
+              className="gap-1.5"
+              title="Scan recent articles and queue any life-insurance items that were missed"
+            >
+              <Inbox className={`h-3.5 w-3.5 ${backfillMutation.isPending ? 'animate-pulse' : ''}`} />
+              Backfill life news
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => retryAllMutation.mutate()}
               disabled={retryAllMutation.isPending || totals.failed === 0}
               className="gap-1.5"
