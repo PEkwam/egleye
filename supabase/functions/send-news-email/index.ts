@@ -724,9 +724,47 @@ Deno.serve(async (req) => {
         return json({ scanned: recent?.length ?? 0, eligible: eligible.length, enqueued: 0 });
       }
 
+      const articleIds = eligible.map((a) => a.id);
+      const subscriberIds = subs.map((s) => s.id);
+
+      // Guard: collect (subscriber_id, article_id) pairs that have ALREADY been
+      // sent (or are queued) — both in the live sends table and the archive.
+      // Prevents re-queueing an article a subscriber already received, even if
+      // the original row has aged out into news_subscriber_sends_archive.
+      const sentPairs = new Set<string>();
+      const key = (sid: string, aid: string) => `${sid}::${aid}`;
+
+      const [{ data: liveSent }, { data: archivedSent }] = await Promise.all([
+        supabase
+          .from('news_subscriber_sends')
+          .select('subscriber_id, article_id')
+          .in('article_id', articleIds)
+          .in('subscriber_id', subscriberIds),
+        supabase
+          .from('news_subscriber_sends_archive')
+          .select('subscriber_id, article_id')
+          .in('article_id', articleIds)
+          .in('subscriber_id', subscriberIds),
+      ]);
+      for (const r of liveSent ?? []) sentPairs.add(key(r.subscriber_id, r.article_id));
+      for (const r of archivedSent ?? []) sentPairs.add(key(r.subscriber_id, r.article_id));
+
       const rows = eligible.flatMap((a) =>
-        subs.map((s) => ({ subscriber_id: s.id, article_id: a.id, status: 'pending' as const })),
+        subs
+          .filter((s) => !sentPairs.has(key(s.id, a.id)))
+          .map((s) => ({ subscriber_id: s.id, article_id: a.id, status: 'pending' as const })),
       );
+
+      if (!rows.length) {
+        return json({
+          scanned: recent?.length ?? 0,
+          eligible: eligible.length,
+          subscribers: subs.length,
+          enqueued: 0,
+          skipped_already_sent: sentPairs.size,
+        });
+      }
+
       const { error: iErr, count } = await supabase
         .from('news_subscriber_sends')
         .upsert(rows, { onConflict: 'subscriber_id,article_id', ignoreDuplicates: true, count: 'exact' });
@@ -736,8 +774,10 @@ Deno.serve(async (req) => {
         eligible: eligible.length,
         subscribers: subs.length,
         enqueued: count ?? 0,
+        skipped_already_sent: sentPairs.size,
         titles: eligible.slice(0, 20).map((a) => a.title),
       });
+
     }
 
     return json({ error: 'Unknown action' }, 400);
