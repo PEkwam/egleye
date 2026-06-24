@@ -446,7 +446,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* noop */ }
   const action = String(body.action || '');
 
-  const requiresAdmin = ['process_queue', 'send_test', 'status', 'backfill_recent'].includes(action);
+  const requiresAdmin = ['process_queue', 'send_test', 'status', 'backfill_recent', 'list_backfill_candidates', 'delete_article'].includes(action);
   if (requiresAdmin) {
     const token = req.headers.get('x-admin-token');
     const internalQueueProcessor = action === 'process_queue' && isServiceRoleCall(req);
@@ -785,6 +785,92 @@ Deno.serve(async (req) => {
         titles: eligible.slice(0, 20).map((a) => a.title),
       });
 
+    }
+
+    if (action === 'list_backfill_candidates') {
+      // Same eligibility rules as backfill_recent, but read-only: returns
+      // the candidate articles + per-article queue stats so the admin can
+      // choose to Send or Delete individually instead of bulk-enqueueing.
+      const sinceIso = new Date(minPublishedAtMs()).toISOString();
+      const { data: recent, error: rErr } = await supabase
+        .from('news_articles')
+        .select('id, title, description, content, category, published_at, source_name, source_url')
+        .gte('published_at', sinceIso)
+        .order('published_at', { ascending: false })
+        .limit(200);
+      if (rErr) throw rErr;
+
+      const LIFE_PATTERNS: RegExp[] = [
+        /\blife\s+insur(?:ance|er|ers)\b/, /\blife\s+assur(?:ance|er|ers)\b/,
+        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
+        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
+        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
+        /\bbancassur\w*\b/, /\bmicroinsur\w*\b/,
+        /\benterprise\s+life\b/, /\benterprise\s+group\b/, /\benterprise\s+trustees\b/,
+        /\bacacia\s+health\b/, /\bsic\s+life\b/, /\bstar[\s-]?life\b/, /\bstar\s+assurance\b/,
+        /\bglico\s+life\b/, /\bhollard\s+life\b/, /\bold\s+mutual\s+life\b/,
+        /\ballianz\s+life\b/, /\bprudential\s+life\b/, /\bvanguard\s+(?:life|assurance)\b/,
+        /\bmetropolitan\s+life\b/, /\bdosh\s+health\s+insur\w*\b/,
+      ];
+      const eligible = (recent ?? []).filter((a) => {
+        const cat = String(a.category ?? '').toLowerCase();
+        if (cat === 'life_insurance' || cat === 'regulator') return true;
+        const hay = `${a.title ?? ''} \n ${a.description ?? ''} \n ${a.content ?? ''}`.toLowerCase();
+        return LIFE_PATTERNS.some((re) => re.test(hay));
+      });
+
+      const { data: subs } = await supabase
+        .from('news_subscribers')
+        .select('id')
+        .eq('is_active', true)
+        .eq('frequency', 'instant');
+      const totalSubscribers = subs?.length ?? 0;
+      const subIds = (subs ?? []).map((s) => s.id);
+      const articleIds = eligible.map((a) => a.id);
+
+      // Map of article_id -> count of subscribers who already have ANY row
+      // (live or archived) for this article — those won't be queued again.
+      const sentCount = new Map<string, Set<string>>();
+      if (articleIds.length && subIds.length) {
+        const [{ data: live }, { data: arch }] = await Promise.all([
+          supabase.from('news_subscriber_sends')
+            .select('article_id, subscriber_id')
+            .in('article_id', articleIds).in('subscriber_id', subIds),
+          supabase.from('news_subscriber_sends_archive')
+            .select('article_id, subscriber_id')
+            .in('article_id', articleIds).in('subscriber_id', subIds),
+        ]);
+        for (const r of [...(live ?? []), ...(arch ?? [])]) {
+          const set = sentCount.get(r.article_id) ?? new Set<string>();
+          set.add(r.subscriber_id);
+          sentCount.set(r.article_id, set);
+        }
+      }
+
+      const candidates = eligible.map((a) => {
+        const already = sentCount.get(a.id)?.size ?? 0;
+        return {
+          id: a.id,
+          title: a.title,
+          source_name: a.source_name,
+          source_url: a.source_url,
+          category: a.category,
+          published_at: a.published_at,
+          total_subscribers: totalSubscribers,
+          already_queued: already,
+          remaining: Math.max(0, totalSubscribers - already),
+        };
+      });
+
+      return json({ scanned: recent?.length ?? 0, total_subscribers: totalSubscribers, candidates });
+    }
+
+    if (action === 'delete_article') {
+      const articleId = String(body.articleId || '');
+      if (!articleId) return json({ error: 'Missing articleId' }, 400);
+      const { error: dErr } = await supabase.from('news_articles').delete().eq('id', articleId);
+      if (dErr) throw dErr;
+      return json({ deleted: true, articleId });
     }
 
     return json({ error: 'Unknown action' }, 400);

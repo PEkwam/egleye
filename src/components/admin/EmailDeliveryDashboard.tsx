@@ -24,6 +24,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -139,13 +142,52 @@ export function EmailDeliveryDashboard() {
     onError: (err: Error) => toast.error(err.message || 'Processing failed'),
   });
 
-  const backfillMutation = useMutation({
-    mutationFn: () => callSender('backfill_recent') as Promise<{ scanned: number; eligible: number; enqueued: number }>,
-    onSuccess: (res) => {
-      toast.success(`Backfill: ${res.eligible} life-insurance article${res.eligible === 1 ? '' : 's'} found, ${res.enqueued} new send${res.enqueued === 1 ? '' : 's'} queued`);
+  // --- Backfill: list candidates, then Send/Delete per article ---
+  interface BackfillCandidate {
+    id: string;
+    title: string;
+    source_name: string | null;
+    source_url: string | null;
+    category: string | null;
+    published_at: string | null;
+    total_subscribers: number;
+    already_queued: number;
+    remaining: number;
+  }
+  const [backfillOpen, setBackfillOpen] = useState(false);
+
+  const backfillListQuery = useQuery({
+    queryKey: ['backfill-candidates'],
+    enabled: backfillOpen,
+    queryFn: () => callSender('list_backfill_candidates') as Promise<{
+      scanned: number; total_subscribers: number; candidates: BackfillCandidate[];
+    }>,
+  });
+
+  const enqueueOneMutation = useMutation({
+    mutationFn: (articleId: string) =>
+      callSender('enqueue_article', { articleId }) as Promise<{ enqueued: number; skipped?: boolean; reason?: string }>,
+    onSuccess: (res, articleId) => {
+      if (res.skipped) {
+        toast.warning(`Not queued: ${res.reason ?? 'skipped'}`);
+      } else {
+        toast.success(`Queued for ${res.enqueued} subscriber${res.enqueued === 1 ? '' : 's'}`);
+      }
+      backfillListQuery.refetch();
       queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
     },
-    onError: (err: Error) => toast.error(err.message || 'Backfill failed'),
+    onError: (err: Error) => toast.error(err.message || 'Send failed'),
+  });
+
+  const deleteArticleMutation = useMutation({
+    mutationFn: (articleId: string) =>
+      callSender('delete_article', { articleId }) as Promise<{ deleted: boolean }>,
+    onSuccess: () => {
+      toast.success('Article deleted');
+      backfillListQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Delete failed'),
   });
 
   type DeleteRange = 'week' | 'month' | 'older_than_month' | 'all';
@@ -209,13 +251,12 @@ export function EmailDeliveryDashboard() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => backfillMutation.mutate()}
-              disabled={backfillMutation.isPending}
+              onClick={() => setBackfillOpen(true)}
               className="gap-1.5"
-              title="Scan recent articles and queue any life-insurance items that were missed"
+              title="Scan recent articles and choose which to send or delete"
             >
-              <Inbox className={`h-3.5 w-3.5 ${backfillMutation.isPending ? 'animate-pulse' : ''}`} />
-              Backfill life news
+              <Inbox className="h-3.5 w-3.5" />
+              Backfill news
             </Button>
             <Button
               variant="outline"
@@ -442,6 +483,86 @@ export function EmailDeliveryDashboard() {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    {/* Backfill candidates dialog */}
+    <Dialog open={backfillOpen} onOpenChange={setBackfillOpen}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Backfill recent news</DialogTitle>
+          <DialogDescription>
+            Recent eligible articles within the freshness window. Send queues the
+            article to all subscribers who haven't received it yet; Delete removes
+            the article entirely from the portal.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
+          {backfillListQuery.isLoading && (
+            <div className="py-10 text-center text-sm text-muted-foreground">Loading candidates…</div>
+          )}
+          {backfillListQuery.data && backfillListQuery.data.candidates.length === 0 && (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              No eligible articles in the freshness window.
+            </div>
+          )}
+          {backfillListQuery.data && backfillListQuery.data.candidates.length > 0 && (
+            <div className="divide-y divide-border/50 rounded-lg border border-border/60">
+              {backfillListQuery.data.candidates.map((c) => {
+                const isSending = enqueueOneMutation.isPending && enqueueOneMutation.variables === c.id;
+                const isDeleting = deleteArticleMutation.isPending && deleteArticleMutation.variables === c.id;
+                return (
+                  <div key={c.id} className="p-3 flex items-start gap-3 flex-wrap hover:bg-muted/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" title={c.title}>{c.title}</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                        {c.category && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{c.category}</Badge>
+                        )}
+                        {c.source_name && <span>{c.source_name}</span>}
+                        {c.published_at && (
+                          <span>· {formatDistanceToNow(new Date(c.published_at), { addSuffix: true })}</span>
+                        )}
+                        <span>· {c.remaining} of {c.total_subscribers} subscriber{c.total_subscribers === 1 ? '' : 's'} remaining</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => enqueueOneMutation.mutate(c.id)}
+                        disabled={isSending || isDeleting || c.remaining === 0}
+                        className="gap-1.5"
+                      >
+                        <Send className={`h-3.5 w-3.5 ${isSending ? 'animate-pulse' : ''}`} />
+                        {c.remaining === 0 ? 'Already sent' : 'Send'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteArticleMutation.mutate(c.id)}
+                        disabled={isSending || isDeleting}
+                        className="gap-1.5 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className={`h-3.5 w-3.5 ${isDeleting ? 'animate-pulse' : ''}`} />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => backfillListQuery.refetch()} disabled={backfillListQuery.isFetching}>
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${backfillListQuery.isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button variant="default" size="sm" onClick={() => setBackfillOpen(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
