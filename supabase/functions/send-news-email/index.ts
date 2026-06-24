@@ -446,7 +446,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* noop */ }
   const action = String(body.action || '');
 
-  const requiresAdmin = ['process_queue', 'send_test', 'status', 'backfill_recent'].includes(action);
+  const requiresAdmin = ['process_queue', 'send_test', 'status', 'backfill_recent', 'list_backfill_candidates', 'delete_article'].includes(action);
   if (requiresAdmin) {
     const token = req.headers.get('x-admin-token');
     const internalQueueProcessor = action === 'process_queue' && isServiceRoleCall(req);
