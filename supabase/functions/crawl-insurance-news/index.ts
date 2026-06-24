@@ -528,22 +528,28 @@ async function fetchRSSFeed(
   includeKeywords: string[],
   excludeKeywords: string[]
 ): Promise<{ articles: NewsArticle[]; status: 'ok' | 'error'; error?: string }> {
+  const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+  const doFetch = () => fetch(feedUrl, {
+    headers: {
+      'User-Agent': UA,
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  });
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
-    
-    const response = await fetch(feedUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; GhanaInsuranceNewsBot/1.0)',
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-      },
-    });
-
+    let response = await doFetch();
+    // Retry once on transient throttling (Google News commonly returns 503/429)
+    if (response.status === 503 || response.status === 429) {
+      const retryAfter = Number(response.headers.get('retry-after')) || 2;
+      await new Promise((r) => setTimeout(r, Math.min(retryAfter, 5) * 1000));
+      response = await doFetch();
+    }
     if (!response.ok) {
       const msg = `HTTP ${response.status}`;
       console.error(`RSS fetch failed for ${sourceName}: ${msg}`);
       return { articles: [], status: 'error', error: msg };
     }
-
     const xml = await response.text();
     const articles = parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
     return { articles, status: 'ok' };
@@ -762,17 +768,28 @@ Deno.serve(async (req) => {
       feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general', consecutive_errors: 0, next_eligible_at: null }));
     }
 
+    // Process Google News feeds serially with a delay — they aggressively
+    // rate-limit (HTTP 503) when hit in parallel. Non-Google feeds keep batch=5.
+    const isGoogleNews = (u: string) => /(^|\.)news\.google\.com/i.test(new URL(u).hostname);
+    const googleFeeds = feedsToProcess.filter((f) => { try { return isGoogleNews(f.url); } catch { return false; } });
+    const otherFeeds = feedsToProcess.filter((f) => !googleFeeds.includes(f));
+    feedsToProcess = [...otherFeeds, ...googleFeeds];
+
     sourcesRun = feedsToProcess.length;
 
     // Process feeds in batches and track per-source stats
     const allArticles: NewsArticle[] = [];
-    const batchSize = 5;
-    for (let i = 0; i < feedsToProcess.length; i += batchSize) {
+    let i = 0;
+    while (i < feedsToProcess.length) {
+      const head = feedsToProcess[i];
+      let isGoogle = false;
+      try { isGoogle = isGoogleNews(head.url); } catch { /* noop */ }
+      // Google News: serial (batch=1) with 1.2s spacing. Others: 5 in parallel.
+      const batchSize = isGoogle ? 1 : 5;
       const batch = feedsToProcess.slice(i, i + batchSize);
       const results = await Promise.all(
         batch.map((feed) => fetchRSSFeed(feed.url, feed.category, feed.source_label, includeKeywords, excludeKeywords))
       );
-      // Update per-source rows + accumulate
       for (let j = 0; j < batch.length; j++) {
         const feed = batch[j];
         const res = results[j];
@@ -810,8 +827,9 @@ Deno.serve(async (req) => {
           }
         }
       }
-      if (i + batchSize < feedsToProcess.length) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      i += batchSize;
+      if (i < feedsToProcess.length) {
+        await new Promise((resolve) => setTimeout(resolve, isGoogle ? 1200 : 500));
       }
     }
 
