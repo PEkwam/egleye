@@ -779,13 +779,17 @@ Deno.serve(async (req) => {
 
     // Process feeds in batches and track per-source stats
     const allArticles: NewsArticle[] = [];
-    const batchSize = 5;
-    for (let i = 0; i < feedsToProcess.length; i += batchSize) {
+    let i = 0;
+    while (i < feedsToProcess.length) {
+      const head = feedsToProcess[i];
+      let isGoogle = false;
+      try { isGoogle = isGoogleNews(head.url); } catch { /* noop */ }
+      // Google News: serial (batch=1) with 1.2s spacing. Others: 5 in parallel.
+      const batchSize = isGoogle ? 1 : 5;
       const batch = feedsToProcess.slice(i, i + batchSize);
       const results = await Promise.all(
         batch.map((feed) => fetchRSSFeed(feed.url, feed.category, feed.source_label, includeKeywords, excludeKeywords))
       );
-      // Update per-source rows + accumulate
       for (let j = 0; j < batch.length; j++) {
         const feed = batch[j];
         const res = results[j];
@@ -823,8 +827,9 @@ Deno.serve(async (req) => {
           }
         }
       }
-      if (i + batchSize < feedsToProcess.length) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      i += batchSize;
+      if (i < feedsToProcess.length) {
+        await new Promise((resolve) => setTimeout(resolve, isGoogle ? 1200 : 500));
       }
     }
 
