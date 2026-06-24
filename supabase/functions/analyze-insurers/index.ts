@@ -26,17 +26,35 @@ interface RequestBody {
   year: number;
 }
 
+const MAX_BODY_BYTES = 50_000;
+const MAX_INSURERS = 50;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const contentLength = Number(req.headers.get("content-length") ?? "0");
+    if (contentLength > MAX_BODY_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "Payload too large" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { insurers, category, year }: RequestBody = await req.json();
 
     if (!insurers || insurers.length === 0) {
       return new Response(
         JSON.stringify({ error: "No insurers provided" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (insurers.length > MAX_INSURERS) {
+      return new Response(
+        JSON.stringify({ error: `Too many insurers (max ${MAX_INSURERS})` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
