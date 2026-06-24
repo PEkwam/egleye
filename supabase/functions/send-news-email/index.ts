@@ -621,7 +621,7 @@ Deno.serve(async (req) => {
       const artIds = [...new Set(pending.map((r) => r.article_id))];
       const [{ data: subs }, { data: arts }, brand, gmail] = await Promise.all([
         supabase.from('news_subscribers').select('id, email, name, is_active').in('id', subIds),
-        supabase.from('news_articles').select('id, title, description, source_url, source_name, image_url, category, published_at').in('id', artIds),
+        supabase.from('news_articles').select('id, title, description, source_url, source_name, image_url, category, published_at, created_at').in('id', artIds),
         loadBrand(),
         getGmailProfile(),
       ]);
