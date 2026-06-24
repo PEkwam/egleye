@@ -532,13 +532,13 @@ Deno.serve(async (req) => {
       ];
 
       const matchesLife = LIFE_PATTERNS.some((re) => re.test(haystack));
-      // Category fast-path: ONLY the dedicated life_insurance category
-      // qualifies. General / regulator / pensions / nonlife are excluded.
-      const categoryAllowed = category === 'life_insurance';
+      // Category fast-path: the dedicated life_insurance category AND the
+      // NIC regulator category qualify. General / pensions / nonlife are excluded.
+      const categoryAllowed = category === 'life_insurance' || category === 'regulator';
 
       if (!matchesLife && !categoryAllowed) {
-        console.log(`[enqueue_article] Skipping non-life article ${articleId} [${category}]: "${art?.title?.slice(0, 80)}"`);
-        return json({ enqueued: 0, skipped: true, reason: 'not_life_insurance' });
+        console.log(`[enqueue_article] Skipping non-life/non-regulator article ${articleId} [${category}]: "${art?.title?.slice(0, 80)}"`);
+        return json({ enqueued: 0, skipped: true, reason: 'not_eligible' });
       }
 
       const { data: subs, error: sErr } = await supabase
