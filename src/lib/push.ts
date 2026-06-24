@@ -89,6 +89,7 @@ export async function enableDesktopPush(opts: {
     });
   }
 
+  const isAdminAudience = opts.audience === 'admin';
   const { error: subErr } = await supabase.functions.invoke('web-push', {
     body: {
       action: 'subscribe',
@@ -97,6 +98,9 @@ export async function enableDesktopPush(opts: {
       subscriberId: opts.subscriberId,
       label: opts.label,
     },
+    headers: isAdminAudience
+      ? { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' }
+      : undefined,
   });
   if (subErr) return { ok: false, reason: subErr.message };
   return { ok: true };
