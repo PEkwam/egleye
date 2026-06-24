@@ -116,14 +116,16 @@ Rules:
     const digestContent =
       aiData.choices?.[0]?.message?.content || "Unable to generate digest.";
 
-    return new Response(
-      JSON.stringify({
-        digest: digestContent,
-        articleCount: articles.length,
-        generatedAt: new Date().toISOString(),
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const responseBody = JSON.stringify({
+      digest: digestContent,
+      articleCount: articles.length,
+      generatedAt: new Date().toISOString(),
+    });
+    cachedDigest = { body: responseBody, expiresAt: Date.now() + CACHE_TTL_MS };
+
+    return new Response(responseBody, {
+      headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
+    });
   } catch (e) {
     console.error("news-digest error:", e);
     return new Response(
