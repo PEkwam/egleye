@@ -768,6 +768,13 @@ Deno.serve(async (req) => {
       feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general', consecutive_errors: 0, next_eligible_at: null }));
     }
 
+    // Process Google News feeds serially with a delay — they aggressively
+    // rate-limit (HTTP 503) when hit in parallel. Non-Google feeds keep batch=5.
+    const isGoogleNews = (u: string) => /(^|\.)news\.google\.com/i.test(new URL(u).hostname);
+    const googleFeeds = feedsToProcess.filter((f) => { try { return isGoogleNews(f.url); } catch { return false; } });
+    const otherFeeds = feedsToProcess.filter((f) => !googleFeeds.includes(f));
+    feedsToProcess = [...otherFeeds, ...googleFeeds];
+
     sourcesRun = feedsToProcess.length;
 
     // Process feeds in batches and track per-source stats
