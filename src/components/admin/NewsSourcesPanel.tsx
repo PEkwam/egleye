@@ -55,16 +55,21 @@ export function NewsSourcesPanel({ onTriggerCrawl, isCrawling }: { onTriggerCraw
   const [addOpen, setAddOpen] = useState(false);
   const [newSource, setNewSource] = useState({ name: '', url: '', source_label: '', category: 'general', mode: 'general', is_local: false });
 
+  const adminInvoke = async <T,>(body: Record<string, unknown>): Promise<T> => {
+    const { data, error } = await supabase.functions.invoke('manage-news-sources', {
+      body,
+      headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+    });
+    if (error) throw error;
+    if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+    return data as T;
+  };
+
   const sourcesQ = useQuery<NewsSource[]>({
     queryKey: ['news-sources'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('news_sources')
-        .select('*')
-        .order('is_enabled', { ascending: false })
-        .order('source_label');
-      if (error) throw error;
-      return (data ?? []) as NewsSource[];
+      const data = await adminInvoke<{ sources: NewsSource[] }>({ action: 'list_sources' });
+      return data.sources ?? [];
     },
     refetchInterval: 30_000,
   });
@@ -72,16 +77,12 @@ export function NewsSourcesPanel({ onTriggerCrawl, isCrawling }: { onTriggerCraw
   const runsQ = useQuery<CrawlRun[]>({
     queryKey: ['news-crawl-runs'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('news_crawl_runs')
-        .select('*')
-        .order('started_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return (data ?? []) as CrawlRun[];
+      const data = await adminInvoke<{ runs: CrawlRun[] }>({ action: 'list_runs' });
+      return data.runs ?? [];
     },
     refetchInterval: 15_000,
   });
+
 
   const sources = sourcesQ.data ?? [];
   const runs = runsQ.data ?? [];

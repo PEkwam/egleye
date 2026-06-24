@@ -106,13 +106,10 @@ export const newsApi = {
   },
 
   async triggerNewsCrawl(): Promise<{ success: boolean; message: string }> {
-    const { data, error } = await supabase.functions.invoke('crawl-insurance-news');
-
-    if (error) {
-      console.error('Error triggering news crawl:', error);
-      return { success: false, message: error.message };
-    }
-
-    return data;
+    // Crawling is now triggered exclusively by the scheduled cron job (every 15 minutes)
+    // and by admins via the DataAdmin panel. End-user "refresh" requests simply
+    // re-fetch the latest articles from the database instead of invoking the
+    // unauthenticated edge function (which would let any visitor burn AI credits).
+    return { success: true, message: 'Showing latest available articles.' };
   },
 };

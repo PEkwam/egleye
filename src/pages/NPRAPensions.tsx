@@ -83,17 +83,10 @@ export default function NPRAPensions() {
   const handleRefreshNews = async () => {
     setIsRefreshing(true);
     try {
-      const { error } = await supabase.functions.invoke('crawl-insurance-news', {
-        body: {},
-      });
-      
-      if (error) {
-        console.error('Error refreshing news:', error);
-        toast.error('Failed to refresh news');
-      } else {
-        toast.success('News feed refreshed');
-        refetch();
-      }
+      // Crawling is handled by the scheduled cron job. The refresh button
+      // simply re-fetches the latest articles already in the database.
+      await refetch();
+      toast.success('News feed refreshed');
     } catch (err) {
       console.error('Error:', err);
       toast.error('Failed to refresh news');

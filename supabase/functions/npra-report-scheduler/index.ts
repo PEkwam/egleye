@@ -5,6 +5,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function isServiceRoleCall(req: Request): boolean {
+  const auth = req.headers.get('authorization') ?? '';
+  const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  return !!serviceKey && bearer === serviceKey;
+}
+
 const NPRA_ANNUAL_REPORT_URL = 'https://www.npra.gov.gh/npra-publications/annual-report/';
 
 // Check NPRA website for new annual reports
@@ -130,6 +137,14 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  if (!isServiceRoleCall(req)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

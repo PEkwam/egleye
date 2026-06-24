@@ -31,12 +31,22 @@ interface MetricsSummary {
   topCSMValue?: number;
 }
 
+const MAX_BODY_BYTES = 50_000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const contentLength = Number(req.headers.get("content-length") ?? "0");
+    if (contentLength > MAX_BODY_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "Payload too large" }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { metricsSummary } = await req.json() as { metricsSummary: MetricsSummary };
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
