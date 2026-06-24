@@ -715,7 +715,7 @@ Deno.serve(async (req) => {
       ];
       const eligible = (recent ?? []).filter((a) => {
         const cat = String(a.category ?? '').toLowerCase();
-        if (cat === 'life_insurance') return true;
+        if (cat === 'life_insurance' || cat === 'regulator') return true;
         const hay = `${a.title ?? ''} \n ${a.description ?? ''} \n ${a.content ?? ''}`.toLowerCase();
         return LIFE_PATTERNS.some((re) => re.test(hay));
       });
