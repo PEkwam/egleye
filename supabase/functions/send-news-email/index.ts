@@ -484,22 +484,19 @@ Deno.serve(async (req) => {
       // The crawler also filters, but this guards against TEST/manual inserts and drift.
       const { data: art, error: aErr } = await supabase
         .from('news_articles')
-        .select('title, description, content, category, published_at, created_at')
+        .select('title, description, content, category, published_at')
         .eq('id', articleId)
         .single();
       if (aErr) throw aErr;
 
-      // Freshness guard: never email articles outside the rolling window.
-      // Use the MOST RECENT of published_at and created_at — many sources
-      // emit old published_at dates for re-surfaced pages, but the article
-      // is "new" to subscribers when it lands on our portal.
+      // Freshness guard: only email articles whose source published_at is
+      // within the rolling window. Old re-surfaced stories are skipped.
       const pubAt = art?.published_at ? new Date(art.published_at).getTime() : 0;
-      const crAt = art?.created_at ? new Date(art.created_at).getTime() : 0;
-      const freshAt = Math.max(pubAt, crAt);
-      if (!freshAt || freshAt < minPublishedAtMs()) {
-        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at}, created_at=${art?.created_at})`);
+      if (!pubAt || pubAt < minPublishedAtMs()) {
+        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at})`);
         return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
       }
+
 
 
       // STRICT life-insurance filter with word boundaries — substrings like
@@ -643,18 +640,16 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Freshness guard: use the most recent of published_at and created_at
-        // so re-surfaced sources with old published_at still go out when newly crawled.
+        // Freshness guard: strictly require recent published_at.
         const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
-        const crAtMs = (art as any).created_at ? new Date((art as any).created_at).getTime() : 0;
-        const freshMs = Math.max(pubAtMs, crAtMs);
-        if (!freshMs || freshMs < minPublishedAtMs()) {
+        if (!pubAtMs || pubAtMs < minPublishedAtMs()) {
           await supabase.from('news_subscriber_sends').update({
             status: 'skipped', error_message: 'stale article (outside freshness window)',
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
         }
+
 
 
         const token = await hmacToken(sub.id);
@@ -698,11 +693,12 @@ Deno.serve(async (req) => {
       const sinceIso = new Date(minPublishedAtMs()).toISOString();
       const { data: recent, error: rErr } = await supabase
         .from('news_articles')
-        .select('id, title, description, content, category, published_at, created_at')
-        .gte('created_at', sinceIso)
-        .order('created_at', { ascending: false })
+        .select('id, title, description, content, category, published_at')
+        .gte('published_at', sinceIso)
+        .order('published_at', { ascending: false })
         .limit(200);
       if (rErr) throw rErr;
+
 
 
       const LIFE_PATTERNS: RegExp[] = [
