@@ -528,22 +528,28 @@ async function fetchRSSFeed(
   includeKeywords: string[],
   excludeKeywords: string[]
 ): Promise<{ articles: NewsArticle[]; status: 'ok' | 'error'; error?: string }> {
+  const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+  const doFetch = () => fetch(feedUrl, {
+    headers: {
+      'User-Agent': UA,
+      'Accept': 'application/rss+xml, application/xml, text/xml, */*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  });
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
-    
-    const response = await fetch(feedUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; GhanaInsuranceNewsBot/1.0)',
-        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-      },
-    });
-
+    let response = await doFetch();
+    // Retry once on transient throttling (Google News commonly returns 503/429)
+    if (response.status === 503 || response.status === 429) {
+      const retryAfter = Number(response.headers.get('retry-after')) || 2;
+      await new Promise((r) => setTimeout(r, Math.min(retryAfter, 5) * 1000));
+      response = await doFetch();
+    }
     if (!response.ok) {
       const msg = `HTTP ${response.status}`;
       console.error(`RSS fetch failed for ${sourceName}: ${msg}`);
       return { articles: [], status: 'error', error: msg };
     }
-
     const xml = await response.text();
     const articles = parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
     return { articles, status: 'ok' };
