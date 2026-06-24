@@ -1,0 +1,1 @@
+DELETE FROM public.news_subscriber_sends WHERE article_id='e1e1a590-9486-44a5-a198-335ea81ca33c';
