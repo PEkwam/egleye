@@ -153,7 +153,16 @@ Deno.serve(async (req) => {
       if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) {
         return json({ error: 'Invalid subscription' }, 400);
       }
-      const audience = body.audience === 'admin' ? 'admin' : 'public';
+      // Only callers presenting a valid admin token can register as the 'admin' audience.
+      // All other callers (anonymous/public) are forced into the 'public' audience to
+      // prevent untrusted devices from receiving admin-targeted broadcasts.
+      let audience: 'admin' | 'public' = 'public';
+      if (body.audience === 'admin') {
+        if (!(await verifyAdminToken(adminToken))) {
+          return json({ error: 'Admin token required for admin audience' }, 401);
+        }
+        audience = 'admin';
+      }
       const row = {
         endpoint: String(sub.endpoint),
         p256dh: String(sub.keys.p256dh),
