@@ -484,17 +484,23 @@ Deno.serve(async (req) => {
       // The crawler also filters, but this guards against TEST/manual inserts and drift.
       const { data: art, error: aErr } = await supabase
         .from('news_articles')
-        .select('title, description, content, category, published_at')
+        .select('title, description, content, category, published_at, created_at')
         .eq('id', articleId)
         .single();
       if (aErr) throw aErr;
 
-      // Freshness guard: never email articles older than the rolling window.
+      // Freshness guard: never email articles outside the rolling window.
+      // Use the MOST RECENT of published_at and created_at — many sources
+      // emit old published_at dates for re-surfaced pages, but the article
+      // is "new" to subscribers when it lands on our portal.
       const pubAt = art?.published_at ? new Date(art.published_at).getTime() : 0;
-      if (!pubAt || pubAt < minPublishedAtMs()) {
-        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at})`);
+      const crAt = art?.created_at ? new Date(art.created_at).getTime() : 0;
+      const freshAt = Math.max(pubAt, crAt);
+      if (!freshAt || freshAt < minPublishedAtMs()) {
+        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at}, created_at=${art?.created_at})`);
         return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
       }
+
 
       // STRICT life-insurance filter with word boundaries — substrings like
       // "nic" in "Unichem" or "claims" in "denies claims" must NOT trigger
@@ -615,7 +621,7 @@ Deno.serve(async (req) => {
       const artIds = [...new Set(pending.map((r) => r.article_id))];
       const [{ data: subs }, { data: arts }, brand, gmail] = await Promise.all([
         supabase.from('news_subscribers').select('id, email, name, is_active').in('id', subIds),
-        supabase.from('news_articles').select('id, title, description, source_url, source_name, image_url, category, published_at').in('id', artIds),
+        supabase.from('news_articles').select('id, title, description, source_url, source_name, image_url, category, published_at, created_at').in('id', artIds),
         loadBrand(),
         getGmailProfile(),
       ]);
@@ -637,15 +643,19 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Freshness guard: never email stale articles, even if already queued.
+        // Freshness guard: use the most recent of published_at and created_at
+        // so re-surfaced sources with old published_at still go out when newly crawled.
         const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
-        if (!pubAtMs || pubAtMs < minPublishedAtMs()) {
+        const crAtMs = (art as any).created_at ? new Date((art as any).created_at).getTime() : 0;
+        const freshMs = Math.max(pubAtMs, crAtMs);
+        if (!freshMs || freshMs < minPublishedAtMs()) {
           await supabase.from('news_subscriber_sends').update({
             status: 'skipped', error_message: 'stale article (outside freshness window)',
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
         }
+
 
         const token = await hmacToken(sub.id);
         const unsubUrl = `${SITE_URL}/unsubscribe?id=${sub.id}&t=${token}`;
@@ -688,11 +698,12 @@ Deno.serve(async (req) => {
       const sinceIso = new Date(minPublishedAtMs()).toISOString();
       const { data: recent, error: rErr } = await supabase
         .from('news_articles')
-        .select('id, title, description, content, category, published_at')
-        .gte('published_at', sinceIso)
-        .order('published_at', { ascending: false })
+        .select('id, title, description, content, category, published_at, created_at')
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
         .limit(200);
       if (rErr) throw rErr;
+
 
       const LIFE_PATTERNS: RegExp[] = [
         /\blife\s+insur(?:ance|er|ers)\b/, /\blife\s+assur(?:ance|er|ers)\b/,
