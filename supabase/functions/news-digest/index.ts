@@ -7,12 +7,23 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// In-memory cache to throttle anonymous AI credit consumption.
+// Lives for the lifetime of the edge function instance (~minutes).
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedDigest: { body: string; expiresAt: number } | null = null;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    if (cachedDigest && cachedDigest.expiresAt > Date.now()) {
+      return new Response(cachedDigest.body, {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
