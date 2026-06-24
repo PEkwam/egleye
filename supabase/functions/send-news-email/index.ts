@@ -484,22 +484,19 @@ Deno.serve(async (req) => {
       // The crawler also filters, but this guards against TEST/manual inserts and drift.
       const { data: art, error: aErr } = await supabase
         .from('news_articles')
-        .select('title, description, content, category, published_at, created_at')
+        .select('title, description, content, category, published_at')
         .eq('id', articleId)
         .single();
       if (aErr) throw aErr;
 
-      // Freshness guard: never email articles outside the rolling window.
-      // Use the MOST RECENT of published_at and created_at — many sources
-      // emit old published_at dates for re-surfaced pages, but the article
-      // is "new" to subscribers when it lands on our portal.
+      // Freshness guard: only email articles whose source published_at is
+      // within the rolling window. Old re-surfaced stories are skipped.
       const pubAt = art?.published_at ? new Date(art.published_at).getTime() : 0;
-      const crAt = art?.created_at ? new Date(art.created_at).getTime() : 0;
-      const freshAt = Math.max(pubAt, crAt);
-      if (!freshAt || freshAt < minPublishedAtMs()) {
-        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at}, created_at=${art?.created_at})`);
+      if (!pubAt || pubAt < minPublishedAtMs()) {
+        console.log(`[enqueue_article] Skipping stale article ${articleId} (published_at=${art?.published_at})`);
         return json({ enqueued: 0, skipped: true, reason: 'stale_article' });
       }
+
 
 
       // STRICT life-insurance filter with word boundaries — substrings like
