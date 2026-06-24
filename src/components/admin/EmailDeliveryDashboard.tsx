@@ -142,13 +142,52 @@ export function EmailDeliveryDashboard() {
     onError: (err: Error) => toast.error(err.message || 'Processing failed'),
   });
 
-  const backfillMutation = useMutation({
-    mutationFn: () => callSender('backfill_recent') as Promise<{ scanned: number; eligible: number; enqueued: number }>,
-    onSuccess: (res) => {
-      toast.success(`Backfill: ${res.eligible} life-insurance article${res.eligible === 1 ? '' : 's'} found, ${res.enqueued} new send${res.enqueued === 1 ? '' : 's'} queued`);
+  // --- Backfill: list candidates, then Send/Delete per article ---
+  interface BackfillCandidate {
+    id: string;
+    title: string;
+    source_name: string | null;
+    source_url: string | null;
+    category: string | null;
+    published_at: string | null;
+    total_subscribers: number;
+    already_queued: number;
+    remaining: number;
+  }
+  const [backfillOpen, setBackfillOpen] = useState(false);
+
+  const backfillListQuery = useQuery({
+    queryKey: ['backfill-candidates'],
+    enabled: backfillOpen,
+    queryFn: () => callSender('list_backfill_candidates') as Promise<{
+      scanned: number; total_subscribers: number; candidates: BackfillCandidate[];
+    }>,
+  });
+
+  const enqueueOneMutation = useMutation({
+    mutationFn: (articleId: string) =>
+      callSender('enqueue_article', { articleId }) as Promise<{ enqueued: number; skipped?: boolean; reason?: string }>,
+    onSuccess: (res, articleId) => {
+      if (res.skipped) {
+        toast.warning(`Not queued: ${res.reason ?? 'skipped'}`);
+      } else {
+        toast.success(`Queued for ${res.enqueued} subscriber${res.enqueued === 1 ? '' : 's'}`);
+      }
+      backfillListQuery.refetch();
       queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
     },
-    onError: (err: Error) => toast.error(err.message || 'Backfill failed'),
+    onError: (err: Error) => toast.error(err.message || 'Send failed'),
+  });
+
+  const deleteArticleMutation = useMutation({
+    mutationFn: (articleId: string) =>
+      callSender('delete_article', { articleId }) as Promise<{ deleted: boolean }>,
+    onSuccess: () => {
+      toast.success('Article deleted');
+      backfillListQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Delete failed'),
   });
 
   type DeleteRange = 'week' | 'month' | 'older_than_month' | 'all';
