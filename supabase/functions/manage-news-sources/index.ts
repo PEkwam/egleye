@@ -39,6 +39,31 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body?.action as string | undefined;
 
+    if (action === 'list_sources') {
+      const { data, error } = await supabase
+        .from('news_sources')
+        .select('*')
+        .order('is_enabled', { ascending: false })
+        .order('source_label');
+      if (error) throw error;
+      return new Response(JSON.stringify({ sources: data ?? [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'list_runs') {
+      const { data, error } = await supabase
+        .from('news_crawl_runs')
+        .select('*')
+        .order('started_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return new Response(JSON.stringify({ runs: data ?? [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+
     if (action === 'toggle') {
       const { id, is_enabled } = body;
       if (typeof id !== 'string' || typeof is_enabled !== 'boolean') {
