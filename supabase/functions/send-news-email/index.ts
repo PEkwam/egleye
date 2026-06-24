@@ -698,11 +698,12 @@ Deno.serve(async (req) => {
       const sinceIso = new Date(minPublishedAtMs()).toISOString();
       const { data: recent, error: rErr } = await supabase
         .from('news_articles')
-        .select('id, title, description, content, category, published_at')
-        .gte('published_at', sinceIso)
-        .order('published_at', { ascending: false })
+        .select('id, title, description, content, category, published_at, created_at')
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
         .limit(200);
       if (rErr) throw rErr;
+
 
       const LIFE_PATTERNS: RegExp[] = [
         /\blife\s+insur(?:ance|er|ers)\b/, /\blife\s+assur(?:ance|er|ers)\b/,
