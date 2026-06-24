@@ -640,18 +640,16 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Freshness guard: use the most recent of published_at and created_at
-        // so re-surfaced sources with old published_at still go out when newly crawled.
+        // Freshness guard: strictly require recent published_at.
         const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
-        const crAtMs = (art as any).created_at ? new Date((art as any).created_at).getTime() : 0;
-        const freshMs = Math.max(pubAtMs, crAtMs);
-        if (!freshMs || freshMs < minPublishedAtMs()) {
+        if (!pubAtMs || pubAtMs < minPublishedAtMs()) {
           await supabase.from('news_subscriber_sends').update({
             status: 'skipped', error_message: 'stale article (outside freshness window)',
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
         }
+
 
 
         const token = await hmacToken(sub.id);
