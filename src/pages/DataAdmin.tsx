@@ -548,7 +548,9 @@ const DataAdmin = () => {
     setIsCrawlingNews(true);
     try {
       const queryParams = mode ? `?${mode}=true` : '';
-      const { data, error } = await supabase.functions.invoke('crawl-insurance-news' + queryParams);
+      const { data, error } = await supabase.functions.invoke('crawl-insurance-news' + queryParams, {
+        headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+      });
       
       if (error) throw error;
       
