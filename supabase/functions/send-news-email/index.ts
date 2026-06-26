@@ -682,16 +682,15 @@ Deno.serve(async (req) => {
       const text = buildPlain(article, brand, unsubUrl);
 
       const { profile } = await getGmailProfile();
-      const raw = await buildRawMessage({
-        from: profile?.emailAddress,
-        fromName: brand.siteName,
+      const result = await sendMail({
         to: email,
         subject: '[TEST] EGL EYE News Alert',
         html, text, unsubUrl,
+        gmailFromAddress: profile?.emailAddress,
+        gmailFromName: brand.siteName,
       });
-      const result = await sendViaGmail(raw);
-      if (result.error) return json({ ok: false, error: result.error }, 502);
-      return json({ ok: true, messageId: result.id, from: profile?.emailAddress ?? 'connected Gmail account' });
+      if (result.error) return json({ ok: false, error: result.error, via: result.via }, 502);
+      return json({ ok: true, messageId: result.id, via: result.via });
     }
 
     if (action === 'process_queue') {
@@ -711,16 +710,17 @@ Deno.serve(async (req) => {
 
       const subIds = [...new Set(pending.map((r) => r.subscriber_id))];
       const artIds = [...new Set(pending.map((r) => r.article_id))];
-      const [{ data: subs }, { data: arts }, brand, gmail] = await Promise.all([
+      const [{ data: subs }, { data: arts }, brand, gmail, smtp] = await Promise.all([
         supabase.from('news_subscribers').select('id, email, name, is_active').in('id', subIds),
         supabase.from('news_articles').select('id, title, description, source_url, source_name, image_url, category, published_at, created_at').in('id', artIds),
         loadBrand(),
         getGmailProfile(),
+        loadActiveSmtp(),
       ]);
       const subMap = new Map((subs ?? []).map((s: any) => [s.id, s]));
       const artMap = new Map((arts ?? []).map((a: any) => [a.id, a]));
       const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
-      if (!hasConnectorSecrets) return json({ error: 'Gmail not connected' }, 500);
+      if (!smtp && !hasConnectorSecrets) return json({ error: 'No email connection configured. Add an SMTP profile in Site Settings.' }, 500);
 
       let sent = 0, failed = 0;
       for (const row of pending) {
@@ -751,11 +751,13 @@ Deno.serve(async (req) => {
         const unsubUrl = `${SITE_URL}/unsubscribe?id=${sub.id}&t=${token}`;
         const html = buildHtml(art, sub, brand, unsubUrl);
         const text = buildPlain(art, brand, unsubUrl);
-        const raw = await buildRawMessage({
-          from: gmail.profile?.emailAddress, fromName: brand.siteName, to: sub.email,
-          subject: 'EGL EYE News Alert', html, text, unsubUrl,
+        const result = await sendMail({
+          to: sub.email,
+          subject: 'EGL EYE News Alert',
+          html, text, unsubUrl,
+          gmailFromAddress: gmail.profile?.emailAddress,
+          gmailFromName: brand.siteName,
         });
-        const result = await sendViaGmail(raw);
 
         if (result.error) {
           failed++;
