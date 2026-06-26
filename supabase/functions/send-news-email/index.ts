@@ -6,6 +6,7 @@
 //   - status                                    (admin token) -> returns connected gmail address + daily count
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -438,6 +439,90 @@ async function sendViaGmail(raw: string): Promise<{ id?: string; error?: string;
   return { id: data.id, status: res.status };
 }
 
+// ---------- DB-backed SMTP profile ----------
+type SmtpProfile = {
+  id: string;
+  host: string;
+  port: number;
+  secure: boolean;
+  username: string;
+  password: string;
+  from_email: string;
+  from_name: string;
+  reply_to: string | null;
+};
+
+let _smtpCache: { profile: SmtpProfile | null; loadedAt: number } | null = null;
+async function loadActiveSmtp(): Promise<SmtpProfile | null> {
+  if (_smtpCache && Date.now() - _smtpCache.loadedAt < 60_000) return _smtpCache.profile;
+  const { data } = await supabase
+    .from('email_connections')
+    .select('id, host, port, secure, username, password, from_email, from_name, reply_to')
+    .eq('is_active', true)
+    .maybeSingle();
+  _smtpCache = { profile: (data as SmtpProfile | null) ?? null, loadedAt: Date.now() };
+  return _smtpCache.profile;
+}
+
+async function sendViaSmtp(p: SmtpProfile, opts: {
+  to: string; subject: string; html: string; text: string; unsubUrl: string;
+}): Promise<{ id?: string; error?: string; status: number }> {
+  const client = new SMTPClient({
+    connection: {
+      hostname: p.host,
+      port: Number(p.port),
+      tls: !!p.secure,
+      auth: { username: p.username, password: p.password },
+    },
+  });
+  try {
+    const result = await client.send({
+      from: p.from_name ? `${p.from_name} <${p.from_email}>` : p.from_email,
+      to: opts.to,
+      replyTo: p.reply_to || undefined,
+      subject: opts.subject,
+      content: opts.text,
+      html: opts.html,
+      headers: {
+        'List-Unsubscribe': `<${opts.unsubUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
+    return { id: (result as any)?.messageId ?? undefined, status: 200 };
+  } catch (e) {
+    const msg = (e as Error).message || String(e);
+    return { error: msg, status: /timeout|network|ECONN|getaddrinfo/i.test(msg) ? 503 : 500 };
+  } finally {
+    try { await client.close(); } catch { /* noop */ }
+  }
+}
+
+/**
+ * Unified send: prefers DB-backed SMTP profile (admin-managed),
+ * falls back to legacy Gmail connector for backwards compatibility.
+ */
+async function sendMail(opts: {
+  to: string; subject: string; html: string; text: string; unsubUrl: string;
+  gmailFromAddress?: string; gmailFromName: string;
+}): Promise<{ id?: string; error?: string; status: number; via: 'smtp' | 'gmail' }> {
+  const smtp = await loadActiveSmtp();
+  if (smtp) {
+    const r = await sendViaSmtp(smtp, opts);
+    return { ...r, via: 'smtp' };
+  }
+  const raw = await buildRawMessage({
+    from: opts.gmailFromAddress,
+    fromName: opts.gmailFromName,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text,
+    unsubUrl: opts.unsubUrl,
+  });
+  const r = await sendViaGmail(raw);
+  return { ...r, via: 'gmail' };
+}
+
 // ---------- handler ----------
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -466,10 +551,20 @@ Deno.serve(async (req) => {
 
   try {
     if (action === 'status') {
+      const smtp = await loadActiveSmtp();
+      if (smtp) {
+        return json({
+          connected: true,
+          via: 'smtp',
+          profile: { emailAddress: smtp.from_email },
+          smtp: { host: smtp.host, port: smtp.port, secure: smtp.secure, username: smtp.username },
+        });
+      }
       const result = await getGmailProfile();
       const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
       return json({
         connected: hasConnectorSecrets,
+        via: 'gmail',
         profile: result.profile,
         error: hasConnectorSecrets ? undefined : result.error,
         status: result.status,
@@ -587,16 +682,15 @@ Deno.serve(async (req) => {
       const text = buildPlain(article, brand, unsubUrl);
 
       const { profile } = await getGmailProfile();
-      const raw = await buildRawMessage({
-        from: profile?.emailAddress,
-        fromName: brand.siteName,
+      const result = await sendMail({
         to: email,
         subject: '[TEST] EGL EYE News Alert',
         html, text, unsubUrl,
+        gmailFromAddress: profile?.emailAddress,
+        gmailFromName: brand.siteName,
       });
-      const result = await sendViaGmail(raw);
-      if (result.error) return json({ ok: false, error: result.error }, 502);
-      return json({ ok: true, messageId: result.id, from: profile?.emailAddress ?? 'connected Gmail account' });
+      if (result.error) return json({ ok: false, error: result.error, via: result.via }, 502);
+      return json({ ok: true, messageId: result.id, via: result.via });
     }
 
     if (action === 'process_queue') {
@@ -616,16 +710,17 @@ Deno.serve(async (req) => {
 
       const subIds = [...new Set(pending.map((r) => r.subscriber_id))];
       const artIds = [...new Set(pending.map((r) => r.article_id))];
-      const [{ data: subs }, { data: arts }, brand, gmail] = await Promise.all([
+      const [{ data: subs }, { data: arts }, brand, gmail, smtp] = await Promise.all([
         supabase.from('news_subscribers').select('id, email, name, is_active').in('id', subIds),
         supabase.from('news_articles').select('id, title, description, source_url, source_name, image_url, category, published_at, created_at').in('id', artIds),
         loadBrand(),
         getGmailProfile(),
+        loadActiveSmtp(),
       ]);
       const subMap = new Map((subs ?? []).map((s: any) => [s.id, s]));
       const artMap = new Map((arts ?? []).map((a: any) => [a.id, a]));
       const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
-      if (!hasConnectorSecrets) return json({ error: 'Gmail not connected' }, 500);
+      if (!smtp && !hasConnectorSecrets) return json({ error: 'No email connection configured. Add an SMTP profile in Site Settings.' }, 500);
 
       let sent = 0, failed = 0;
       for (const row of pending) {
@@ -656,11 +751,13 @@ Deno.serve(async (req) => {
         const unsubUrl = `${SITE_URL}/unsubscribe?id=${sub.id}&t=${token}`;
         const html = buildHtml(art, sub, brand, unsubUrl);
         const text = buildPlain(art, brand, unsubUrl);
-        const raw = await buildRawMessage({
-          from: gmail.profile?.emailAddress, fromName: brand.siteName, to: sub.email,
-          subject: 'EGL EYE News Alert', html, text, unsubUrl,
+        const result = await sendMail({
+          to: sub.email,
+          subject: 'EGL EYE News Alert',
+          html, text, unsubUrl,
+          gmailFromAddress: gmail.profile?.emailAddress,
+          gmailFromName: brand.siteName,
         });
-        const result = await sendViaGmail(raw);
 
         if (result.error) {
           failed++;
