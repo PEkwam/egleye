@@ -551,10 +551,20 @@ Deno.serve(async (req) => {
 
   try {
     if (action === 'status') {
+      const smtp = await loadActiveSmtp();
+      if (smtp) {
+        return json({
+          connected: true,
+          via: 'smtp',
+          profile: { emailAddress: smtp.from_email },
+          smtp: { host: smtp.host, port: smtp.port, secure: smtp.secure, username: smtp.username },
+        });
+      }
       const result = await getGmailProfile();
       const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
       return json({
         connected: hasConnectorSecrets,
+        via: 'gmail',
         profile: result.profile,
         error: hasConnectorSecrets ? undefined : result.error,
         status: result.status,
