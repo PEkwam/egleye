@@ -534,6 +534,10 @@ async function fetchRSSFeed(
       'User-Agent': UA,
       'Accept': 'application/rss+xml, application/xml, text/xml, */*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
+      // Some local WordPress/CDN feeds advertise gzip incorrectly, which can
+      // make Deno throw `Invalid gzip header` before we can parse the RSS.
+      // Requesting identity encoding keeps those feeds readable.
+      'Accept-Encoding': 'identity',
     },
   });
   try {
@@ -784,7 +788,7 @@ Deno.serve(async (req) => {
       const head = feedsToProcess[i];
       let isGoogle = false;
       try { isGoogle = isGoogleNews(head.url); } catch { /* noop */ }
-      // Google News: serial (batch=1) with 1.2s spacing. Others: 5 in parallel.
+      // Google News: serial (batch=1) with wider spacing. Others: 5 in parallel.
       const batchSize = isGoogle ? 1 : 5;
       const batch = feedsToProcess.slice(i, i + batchSize);
       const results = await Promise.all(
@@ -829,7 +833,7 @@ Deno.serve(async (req) => {
       }
       i += batchSize;
       if (i < feedsToProcess.length) {
-        await new Promise((resolve) => setTimeout(resolve, isGoogle ? 1200 : 500));
+          await new Promise((resolve) => setTimeout(resolve, isGoogle ? 3000 : 500));
       }
     }
 
