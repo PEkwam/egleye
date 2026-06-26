@@ -62,6 +62,63 @@ export type Database = {
         }
         Relationships: []
       }
+      email_connections: {
+        Row: {
+          created_at: string
+          from_email: string
+          from_name: string
+          host: string
+          id: string
+          is_active: boolean
+          label: string
+          last_error: string | null
+          last_verified_at: string | null
+          password: string
+          port: number
+          provider: string
+          reply_to: string | null
+          secure: boolean
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          from_email: string
+          from_name?: string
+          host: string
+          id?: string
+          is_active?: boolean
+          label: string
+          last_error?: string | null
+          last_verified_at?: string | null
+          password: string
+          port?: number
+          provider: string
+          reply_to?: string | null
+          secure?: boolean
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          from_email?: string
+          from_name?: string
+          host?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_error?: string | null
+          last_verified_at?: string | null
+          password?: string
+          port?: number
+          provider?: string
+          reply_to?: string | null
+          secure?: boolean
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       insurer_id_mappings: {
         Row: {
           category: string
