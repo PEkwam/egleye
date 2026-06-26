@@ -10,6 +10,7 @@ import { EmailDeliveryDashboard } from '@/components/admin/EmailDeliveryDashboar
 import { EmailDeliveryArchive } from '@/components/admin/EmailDeliveryArchive';
 import { PushNotificationsPanel } from '@/components/admin/PushNotificationsPanel';
 import { NewsFiltersSection } from '@/components/admin/NewsFiltersSection';
+import { EmailConnectionPanel } from '@/components/admin/EmailConnectionPanel';
 import { NewsSourcesPanel } from '@/components/admin/NewsSourcesPanel';
 import { PensionDataManager } from '@/components/admin/PensionDataManager';
 import { RenameInsurerTool } from '@/components/admin/RenameInsurerTool';
@@ -2744,7 +2745,10 @@ const DataAdmin = () => {
 
             {/* Site Settings Section */}
             {activeSection === 'settings' && (
-              <SiteSettingsSection />
+              <div className="space-y-6">
+                <SiteSettingsSection />
+                <EmailConnectionPanel />
+              </div>
             )}
           </main>
         </div>
