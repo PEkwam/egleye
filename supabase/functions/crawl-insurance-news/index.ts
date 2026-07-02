@@ -26,6 +26,13 @@ function isServiceRoleCall(req: Request): boolean {
   return !!serviceKey && bearer === serviceKey;
 }
 
+function isCronCall(req: Request): boolean {
+  const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+  const header = req.headers.get('x-cron-secret') ?? '';
+  return !!cronSecret && header === cronSecret;
+}
+
+
 interface NewsArticle {
   title: string;
   description: string | null;
