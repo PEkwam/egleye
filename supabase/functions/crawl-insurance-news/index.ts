@@ -26,6 +26,13 @@ function isServiceRoleCall(req: Request): boolean {
   return !!serviceKey && bearer === serviceKey;
 }
 
+function isCronCall(req: Request): boolean {
+  const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+  const header = req.headers.get('x-cron-secret') ?? '';
+  return !!cronSecret && header === cronSecret;
+}
+
+
 interface NewsArticle {
   title: string;
   description: string | null;
@@ -696,12 +703,13 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!isServiceRoleCall(req) && !(await verifyAdminToken(req.headers.get('x-admin-token')))) {
+  if (!isServiceRoleCall(req) && !isCronCall(req) && !(await verifyAdminToken(req.headers.get('x-admin-token')))) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
 
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
