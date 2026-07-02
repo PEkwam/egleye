@@ -731,6 +731,36 @@ Deno.serve(async (req) => {
   const pensionOnly = url.searchParams.get('pension_only') === 'true';
   const modeLabel = nicOnly ? 'nic' : pensionOnly ? 'pension' : 'general';
 
+  // Auto-close any runs stuck in "running" for >15 min (previous invocation timed out)
+  try {
+    await supabase
+      .from('news_crawl_runs')
+      .update({ status: 'failed', finished_at: new Date().toISOString(), error_message: 'Auto-closed: exceeded 15-minute runtime' })
+      .eq('status', 'running')
+      .lt('started_at', new Date(Date.now() - 15 * 60_000).toISOString());
+  } catch (e) {
+    console.warn('Failed to auto-close stale runs:', e);
+  }
+
+  // Concurrency lock: skip if another run started in the last 15 min and is still active
+  try {
+    const { data: activeRuns } = await supabase
+      .from('news_crawl_runs')
+      .select('id, started_at, trigger_source')
+      .eq('status', 'running')
+      .gte('started_at', new Date(Date.now() - 15 * 60_000).toISOString())
+      .limit(1);
+    if (activeRuns && activeRuns.length > 0) {
+      console.log(`Skipping crawl: another run is already in progress (${activeRuns[0].id})`);
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'another_run_active', activeRunId: activeRuns[0].id }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+  } catch (e) {
+    console.warn('Failed concurrency check:', e);
+  }
+
   // Start crawl run record
   let runId: string | null = null;
   try {
