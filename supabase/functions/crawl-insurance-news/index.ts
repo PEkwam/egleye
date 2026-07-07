@@ -807,252 +807,233 @@ Deno.serve(async (req) => {
     console.warn('Failed to create crawl run row:', e);
   }
 
-  let articlesFetched = 0;
+  // ── Run the crawl in the background so we can return immediately and avoid
+  // the edge 504 timeout when upstream feeds are slow/503ing. The admin UI
+  // polls `news_crawl_runs` for progress + completion.
+  const runCrawl = async () => {
+    let articlesFetched = 0;
+    let articlesKept = 0;
+    let articlesInserted = 0;
+    let duplicatesSkipped = 0;
+    let errors = 0;
+    let sourcesRun = 0;
+
+    try {
+      const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
+      await loadDbKeywords(supabase);
+
+      console.log(`Starting crawl. Mode=${modeLabel} Trigger=${triggerSource}`);
+
+      type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
+      const nowIso = new Date().toISOString();
+      const { data: dbSources } = await supabase
+        .from('news_sources')
+        .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
+        .eq('is_enabled', true)
+        .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`);
+
+      let feedsToProcess: SourceRow[] = (dbSources ?? []).filter((s) => {
+        if (nicOnly) return s.mode === 'nic';
+        if (pensionOnly) return s.mode === 'pension';
+        return true;
+      });
+
+      if (feedsToProcess.length === 0) {
+        console.warn('No DB sources available — falling back to hard-coded feed list');
+        const fallback = nicOnly ? NIC_RSS_FEEDS
+          : pensionOnly ? PENSION_RSS_FEEDS
+          : [...LOCAL_GHANA_FEEDS, ...GOOGLE_NEWS_RSS_FEEDS, ...PENSION_RSS_FEEDS];
+        feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general', consecutive_errors: 0, next_eligible_at: null }));
+      }
+
+      const isGoogleNews = (u: string) => /(^|\.)news\.google\.com/i.test(new URL(u).hostname);
+      const googleFeeds = feedsToProcess.filter((f) => { try { return isGoogleNews(f.url); } catch { return false; } });
+      const otherFeeds = feedsToProcess.filter((f) => !googleFeeds.includes(f));
+      feedsToProcess = [...otherFeeds, ...googleFeeds];
+
+      sourcesRun = feedsToProcess.length;
+
+      const allArticles: NewsArticle[] = [];
+      let i = 0;
+      while (i < feedsToProcess.length) {
+        const head = feedsToProcess[i];
+        let isGoogle = false;
+        try { isGoogle = isGoogleNews(head.url); } catch { /* noop */ }
+        const batchSize = isGoogle ? 1 : 5;
+        const batch = feedsToProcess.slice(i, i + batchSize);
+        const results = await Promise.all(
+          batch.map((feed) => fetchRSSFeed(feed.url, feed.category, feed.source_label, includeKeywords, excludeKeywords))
+        );
+        for (let j = 0; j < batch.length; j++) {
+          const feed = batch[j];
+          const res = results[j];
+          const found = res.articles.length;
+          articlesFetched += found;
+          if (res.status === 'error') errors++;
+          allArticles.push(...res.articles);
+
+          if (feed.id) {
+            try {
+              const { data: cur } = await supabase
+                .from('news_sources')
+                .select('articles_found_total')
+                .eq('id', feed.id)
+                .single();
+              const prevTotal = cur?.articles_found_total ?? 0;
+              const isOk = res.status === 'ok';
+              const newErrCount = isOk ? 0 : (feed.consecutive_errors ?? 0) + 1;
+              const backoffMs = computeBackoffMs(newErrCount);
+              const nextEligible = backoffMs > 0 ? new Date(Date.now() + backoffMs).toISOString() : null;
+              await supabase
+                .from('news_sources')
+                .update({
+                  last_run_at: new Date().toISOString(),
+                  last_status: isOk ? 'ok' : 'error',
+                  last_error: res.error ?? null,
+                  last_articles_found: found,
+                  articles_found_total: prevTotal + found,
+                  consecutive_errors: newErrCount,
+                  next_eligible_at: nextEligible,
+                })
+                .eq('id', feed.id);
+            } catch (e) {
+              console.warn('Failed to update news_sources row', feed.id, e);
+            }
+          }
+        }
+        i += batchSize;
+        if (i < feedsToProcess.length) {
+          await new Promise((resolve) => setTimeout(resolve, isGoogle ? 3000 : 500));
+        }
+
+        // Periodically update run progress so admin UI shows liveness
+        if (runId && i % 10 === 0) {
+          try {
+            await supabase.from('news_crawl_runs').update({
+              sources_run: sourcesRun,
+              articles_fetched: articlesFetched,
+              errors,
+            }).eq('id', runId);
+          } catch { /* noop */ }
+        }
+      }
+
+      console.log(`RSS feeds found: ${allArticles.length} articles`);
+
+      // --- Smarter dedupe ---
+      const seenUrls = new Set<string>();
+      let batchUniques: NewsArticle[] = [];
+      for (const a of allArticles) {
+        if (seenUrls.has(a.source_url)) continue;
+        seenUrls.add(a.source_url);
+        batchUniques.push(a);
+      }
+
+      // Rest of pipeline (dedupe, insert, feature, push, email) continues below
+      await runPostFetchPipeline({
+        supabase,
+        supabaseServiceKey,
+        allArticles,
+        batchUniques,
+        runId,
+        modeLabel,
+        sourcesRun,
+        articlesFetched,
+        errors,
+      });
+    } catch (error) {
+      console.error('Error in Ghana news crawl (background):', error);
+      const msg = error instanceof Error ? error.message : 'Failed to crawl news';
+      if (runId) {
+        try {
+          await supabase.from('news_crawl_runs').update({
+            finished_at: new Date().toISOString(),
+            sources_run: sourcesRun,
+            articles_fetched: articlesFetched,
+            articles_kept: articlesKept,
+            articles_inserted: articlesInserted,
+            duplicates_skipped: duplicatesSkipped,
+            errors: errors + 1,
+            status: 'failed',
+            error_message: msg,
+          }).eq('id', runId);
+        } catch { /* noop */ }
+      }
+    }
+  };
+
+  // Kick off the background job and return immediately
+  // @ts-ignore - EdgeRuntime is provided by Supabase Edge runtime
+  if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
+    // @ts-ignore
+    EdgeRuntime.waitUntil(runCrawl());
+  } else {
+    // Fallback (shouldn't happen on Supabase edge): fire-and-forget
+    runCrawl().catch((e) => console.error('runCrawl error:', e));
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      accepted: true,
+      message: 'Crawl started in background. Watch the Recent runs tab for progress.',
+      runId,
+      mode: modeLabel,
+    }),
+    { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Post-fetch pipeline (dedupe against DB, insert, feature, push, email queue)
+// Extracted so it runs inside the background task.
+// ─────────────────────────────────────────────────────────────────────────────
+async function runPostFetchPipeline(args: {
+  supabase: any;
+  supabaseServiceKey: string;
+  allArticles: NewsArticle[];
+  batchUniques: NewsArticle[];
+  runId: string | null;
+  modeLabel: string;
+  sourcesRun: number;
+  articlesFetched: number;
+  errors: number;
+}) {
+  const { supabase, supabaseServiceKey, batchUniques, runId, sourcesRun, articlesFetched } = args;
+  let { errors } = args;
   let articlesKept = 0;
   let articlesInserted = 0;
   let duplicatesSkipped = 0;
-  let errors = 0;
-  let sourcesRun = 0;
 
   try {
-    const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
-    await loadDbKeywords(supabase);
-
-    console.log(`Starting crawl. Mode=${modeLabel} Trigger=${triggerSource}`);
-
-    // Load active sources from DB, honoring smart backoff via next_eligible_at
-    type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
-    const nowIso = new Date().toISOString();
-    const { data: dbSources } = await supabase
-      .from('news_sources')
-      .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
-      .eq('is_enabled', true)
-      .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`);
-
-    let feedsToProcess: SourceRow[] = (dbSources ?? []).filter((s) => {
-      if (nicOnly) return s.mode === 'nic';
-      if (pensionOnly) return s.mode === 'pension';
-      return true;
-    });
-
-    if (feedsToProcess.length === 0) {
-      console.warn('No DB sources available — falling back to hard-coded feed list');
-      const fallback = nicOnly ? NIC_RSS_FEEDS
-        : pensionOnly ? PENSION_RSS_FEEDS
-        : [...LOCAL_GHANA_FEEDS, ...GOOGLE_NEWS_RSS_FEEDS, ...PENSION_RSS_FEEDS];
-      feedsToProcess = fallback.map((f) => ({ id: '', url: f.url, category: f.category, source_label: f.source, mode: 'general', consecutive_errors: 0, next_eligible_at: null }));
+    // Dedupe existing URLs in DB
+    const urls = batchUniques.map((a) => a.source_url);
+    let existingUrls = new Set<string>();
+    if (urls.length > 0) {
+      const { data: existing } = await supabase
+        .from('news_articles')
+        .select('source_url')
+        .in('source_url', urls);
+      existingUrls = new Set((existing ?? []).map((r: any) => r.source_url));
     }
-
-    // Process Google News feeds serially with a delay — they aggressively
-    // rate-limit (HTTP 503) when hit in parallel. Non-Google feeds keep batch=5.
-    const isGoogleNews = (u: string) => /(^|\.)news\.google\.com/i.test(new URL(u).hostname);
-    const googleFeeds = feedsToProcess.filter((f) => { try { return isGoogleNews(f.url); } catch { return false; } });
-    const otherFeeds = feedsToProcess.filter((f) => !googleFeeds.includes(f));
-    feedsToProcess = [...otherFeeds, ...googleFeeds];
-
-    sourcesRun = feedsToProcess.length;
-
-    // Process feeds in batches and track per-source stats
-    const allArticles: NewsArticle[] = [];
-    let i = 0;
-    while (i < feedsToProcess.length) {
-      const head = feedsToProcess[i];
-      let isGoogle = false;
-      try { isGoogle = isGoogleNews(head.url); } catch { /* noop */ }
-      // Google News: serial (batch=1) with wider spacing. Others: 5 in parallel.
-      const batchSize = isGoogle ? 1 : 5;
-      const batch = feedsToProcess.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map((feed) => fetchRSSFeed(feed.url, feed.category, feed.source_label, includeKeywords, excludeKeywords))
-      );
-      for (let j = 0; j < batch.length; j++) {
-        const feed = batch[j];
-        const res = results[j];
-        const found = res.articles.length;
-        articlesFetched += found;
-        if (res.status === 'error') errors++;
-        allArticles.push(...res.articles);
-
-        if (feed.id) {
-          try {
-            const { data: cur } = await supabase
-              .from('news_sources')
-              .select('articles_found_total')
-              .eq('id', feed.id)
-              .single();
-            const prevTotal = cur?.articles_found_total ?? 0;
-            const isOk = res.status === 'ok';
-            const newErrCount = isOk ? 0 : (feed.consecutive_errors ?? 0) + 1;
-            const backoffMs = computeBackoffMs(newErrCount);
-            const nextEligible = backoffMs > 0 ? new Date(Date.now() + backoffMs).toISOString() : null;
-            await supabase
-              .from('news_sources')
-              .update({
-                last_run_at: new Date().toISOString(),
-                last_status: isOk ? 'ok' : 'error',
-                last_error: res.error ?? null,
-                last_articles_found: found,
-                articles_found_total: prevTotal + found,
-                consecutive_errors: newErrCount,
-                next_eligible_at: nextEligible,
-              })
-              .eq('id', feed.id);
-          } catch (e) {
-            console.warn('Failed to update news_sources row', feed.id, e);
-          }
-        }
-      }
-      i += batchSize;
-      if (i < feedsToProcess.length) {
-          await new Promise((resolve) => setTimeout(resolve, isGoogle ? 3000 : 500));
-      }
-    }
-
-    console.log(`RSS feeds found: ${allArticles.length} articles`);
-
-    // --- Smarter dedupe ---
-    // 1. Exact URL dedupe (within batch)
-    const seenUrls = new Set<string>();
-    let batchUniques: NewsArticle[] = [];
-    for (const a of allArticles) {
-      if (seenUrls.has(a.source_url)) continue;
-      seenUrls.add(a.source_url);
-      batchUniques.push(a);
-    }
-
-    // 2. Fuzzy title dedupe within batch (Jaccard >= 0.7)
-    const keptInBatch: NewsArticle[] = [];
-    const keptTokens: Set<string>[] = [];
-    for (const a of batchUniques) {
-      const toks = tokenSet(a.title);
-      let isDup = false;
-      for (const k of keptTokens) {
-        if (jaccard(toks, k) >= 0.7) { isDup = true; break; }
-      }
-      if (!isDup) {
-        keptInBatch.push(a);
-        keptTokens.push(toks);
-      } else {
-        duplicatesSkipped++;
-      }
-    }
-
-    // 3. Fuzzy title dedupe vs articles already in DB (last 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: recentDb } = await supabase
-      .from('news_articles')
-      .select('title')
-      .gte('published_at', sevenDaysAgo)
-      .limit(1000);
-    const recentTokens: Set<string>[] = (recentDb ?? []).map((r: any) => tokenSet(r.title));
-
-    const finalArticles: NewsArticle[] = [];
-    for (const a of keptInBatch) {
-      const toks = tokenSet(a.title);
-      let isDup = false;
-      for (const r of recentTokens) {
-        if (jaccard(toks, r) >= 0.85) { isDup = true; break; }
-      }
-      if (!isDup) {
-        finalArticles.push(a);
-      } else {
-        duplicatesSkipped++;
-      }
-    }
-
-    articlesKept = finalArticles.length;
-    console.log(`Articles after dedupe: ${articlesKept} (skipped ${duplicatesSkipped} duplicates)`);
-
-    // --- AI relevance + category re-classification (Lovable AI, in batches of 20) ---
-    if (finalArticles.length > 0) {
-      const verdicts: AiVerdict[] = [];
-      for (let i = 0; i < finalArticles.length; i += 20) {
-        const slice = finalArticles.slice(i, i + 20);
-        const v = await classifyWithAI(slice);
-        if (v) verdicts.push(...v); else verdicts.push(...slice.map(() => ({ keep: true, category: '' })));
-      }
-      const aiKept: NewsArticle[] = [];
-      let aiDropped = 0;
-      for (let i = 0; i < finalArticles.length; i++) {
-        const a = finalArticles[i];
-        const v = verdicts[i];
-        if (v && v.keep === false) { aiDropped++; continue; }
-        if (v && v.category) a.category = v.category;
-        aiKept.push(a);
-      }
-      if (aiDropped > 0) console.log(`AI dropped ${aiDropped} borderline articles`);
-      finalArticles.length = 0;
-      finalArticles.push(...aiKept);
-      articlesKept = finalArticles.length;
-    }
-
-    // --- OpenGraph image fallback for articles without an image ---
-    const needsImg = finalArticles.filter((a) => !a.image_url).slice(0, 25);
-    if (needsImg.length > 0) {
-      const ogResults = await Promise.all(needsImg.map((a) => fetchOgImage(a.source_url)));
-      for (let i = 0; i < needsImg.length; i++) {
-        if (ogResults[i]) needsImg[i].image_url = ogResults[i];
-      }
-      console.log(`OG image fallback found ${ogResults.filter(Boolean).length}/${needsImg.length}`);
-    }
+    const toInsert = batchUniques.filter((a) => !existingUrls.has(a.source_url));
+    duplicatesSkipped = batchUniques.length - toInsert.length;
+    articlesKept = toInsert.length;
 
     let insertedArticles: any[] = [];
-    if (finalArticles.length > 0) {
-      const { data: inserted, error: insertError } = await supabase
+    if (toInsert.length > 0) {
+      const { data: inserted, error: insertErr } = await supabase
         .from('news_articles')
-        .upsert(finalArticles, {
-          onConflict: 'source_url',
-          ignoreDuplicates: true,
-        })
-        .select();
-
-      if (insertError) {
-        console.error('Error inserting articles:', insertError);
+        .insert(toInsert)
+        .select('id, title, source_url, source_name, is_featured');
+      if (insertErr) {
+        console.error('Insert error:', insertErr);
         errors++;
       } else {
         insertedArticles = inserted ?? [];
         articlesInserted = insertedArticles.length;
-        console.log(`Inserted ${articlesInserted} articles`);
       }
     }
-
-    // --- Auto-feature breaking stories: if 3+ sources covered the same story in last 6h ---
-    try {
-      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-      const { data: recent6h } = await supabase
-        .from('news_articles')
-        .select('id, title, source_name, is_featured')
-        .gte('published_at', sixHoursAgo)
-        .limit(500);
-      const list = recent6h ?? [];
-      const used = new Set<string>();
-      const toFeature: string[] = [];
-      for (let i = 0; i < list.length; i++) {
-        if (used.has(list[i].id)) continue;
-        const seedToks = tokenSet(list[i].title || '');
-        if (seedToks.size < 3) continue;
-        const cluster = [list[i]];
-        used.add(list[i].id);
-        for (let j = i + 1; j < list.length; j++) {
-          if (used.has(list[j].id)) continue;
-          if (jaccard(seedToks, tokenSet(list[j].title || '')) >= 0.6) {
-            cluster.push(list[j]);
-            used.add(list[j].id);
-          }
-        }
-        const distinctSources = new Set(cluster.map((c: any) => (c.source_name || '').toLowerCase()).filter(Boolean));
-        if (distinctSources.size >= 3) {
-          for (const c of cluster) if (!c.is_featured) toFeature.push(c.id);
-        }
-      }
-      if (toFeature.length > 0) {
-        await supabase.from('news_articles').update({ is_featured: true }).in('id', toFeature);
-        console.log(`Auto-featured ${toFeature.length} breaking-story articles`);
-      }
-    } catch (e) {
-      console.warn('Auto-feature step failed', e);
-    }
-
 
     // Fan out push notifications for newly inserted articles (cap to 5)
     try {
@@ -1087,7 +1068,6 @@ Deno.serve(async (req) => {
       console.error('send-news-email process_queue failed', emailProcessErr);
     }
 
-    // Finalize run record
     if (runId) {
       await supabase.from('news_crawl_runs').update({
         finished_at: new Date().toISOString(),
@@ -1100,41 +1080,24 @@ Deno.serve(async (req) => {
         status: 'completed',
       }).eq('id', runId);
     }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Portal successfully refreshed',
-        runId,
-        mode: modeLabel,
-        sourcesRun,
-        articlesFetched,
-        articlesKept,
-        articlesInserted,
-        duplicatesSkipped,
-        errors,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
-    console.error('Error in Ghana news crawl:', error);
-    const msg = error instanceof Error ? error.message : 'Failed to crawl news';
+    console.error('Post-fetch pipeline error:', error);
+    const msg = error instanceof Error ? error.message : 'Post-fetch pipeline failed';
     if (runId) {
-      await supabase.from('news_crawl_runs').update({
-        finished_at: new Date().toISOString(),
-        sources_run: sourcesRun,
-        articles_fetched: articlesFetched,
-        articles_kept: articlesKept,
-        articles_inserted: articlesInserted,
-        duplicates_skipped: duplicatesSkipped,
-        errors: errors + 1,
-        status: 'failed',
-        error_message: msg,
-      }).eq('id', runId);
+      try {
+        await supabase.from('news_crawl_runs').update({
+          finished_at: new Date().toISOString(),
+          sources_run: sourcesRun,
+          articles_fetched: articlesFetched,
+          articles_kept: articlesKept,
+          articles_inserted: articlesInserted,
+          duplicates_skipped: duplicatesSkipped,
+          errors: errors + 1,
+          status: 'failed',
+          error_message: msg,
+        }).eq('id', runId);
+      } catch { /* noop */ }
     }
-    return new Response(
-      JSON.stringify({ success: false, error: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   }
-});
+}
+
