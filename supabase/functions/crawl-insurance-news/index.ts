@@ -528,6 +528,28 @@ function parseRSS(
   return articles;
 }
 
+async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
+  const key = Deno.env.get('FIRECRAWL_API_KEY');
+  if (!key) return null;
+  try {
+    const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: feedUrl, formats: ['rawHtml'], onlyMainContent: false }),
+    });
+    if (!res.ok) {
+      console.warn(`Firecrawl fallback failed for ${feedUrl.slice(0, 80)}: HTTP ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    const raw = data?.data?.rawHtml ?? data?.rawHtml ?? data?.data?.html ?? data?.html ?? data?.data?.markdown ?? null;
+    return typeof raw === 'string' && raw.length > 0 ? raw : null;
+  } catch (e) {
+    console.warn(`Firecrawl fallback error for ${feedUrl.slice(0, 80)}:`, e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 async function fetchRSSFeed(
   feedUrl: string, 
   category: string, 
@@ -541,22 +563,25 @@ async function fetchRSSFeed(
       'User-Agent': UA,
       'Accept': 'application/rss+xml, application/xml, text/xml, */*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
-      // Some local WordPress/CDN feeds advertise gzip incorrectly, which can
-      // make Deno throw `Invalid gzip header` before we can parse the RSS.
-      // Requesting identity encoding keeps those feeds readable.
       'Accept-Encoding': 'identity',
     },
   });
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
     let response = await doFetch();
-    // Retry once on transient throttling (Google News commonly returns 503/429)
     if (response.status === 503 || response.status === 429) {
       const retryAfter = Number(response.headers.get('retry-after')) || 2;
       await new Promise((r) => setTimeout(r, Math.min(retryAfter, 5) * 1000));
       response = await doFetch();
     }
     if (!response.ok) {
+      // Firecrawl fallback for blocked/anti-bot sources (Google News, Cloudflare-protected).
+      const fallbackXml = await fetchViaFirecrawl(feedUrl);
+      if (fallbackXml) {
+        const articles = parseRSS(fallbackXml, category, sourceName, includeKeywords, excludeKeywords);
+        console.log(`Firecrawl fallback succeeded for ${sourceName}: ${articles.length} articles`);
+        return { articles, status: 'ok' };
+      }
       const msg = `HTTP ${response.status}`;
       console.error(`RSS fetch failed for ${sourceName}: ${msg}`);
       return { articles: [], status: 'error', error: msg };
@@ -566,10 +591,18 @@ async function fetchRSSFeed(
     return { articles, status: 'ok' };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
+    // Try Firecrawl on network errors too.
+    const fallbackXml = await fetchViaFirecrawl(feedUrl);
+    if (fallbackXml) {
+      const articles = parseRSS(fallbackXml, category, sourceName, includeKeywords, excludeKeywords);
+      console.log(`Firecrawl fallback succeeded for ${sourceName} after error: ${articles.length} articles`);
+      return { articles, status: 'ok' };
+    }
     console.error(`Error fetching RSS from ${sourceName}:`, msg);
     return { articles: [], status: 'error', error: msg };
   }
 }
+
 
 // --- Fuzzy title matching helpers (for smarter dedupe) ---
 function normalizeTitle(t: string): string {
