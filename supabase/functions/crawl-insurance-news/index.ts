@@ -920,21 +920,54 @@ Deno.serve(async (req) => {
 
       console.log(`RSS feeds found: ${allArticles.length} articles`);
 
-      // --- Smarter dedupe ---
+      // --- Smarter dedupe: URL first, then fuzzy title (Jaccard >= 0.72) ---
       const seenUrls = new Set<string>();
-      let batchUniques: NewsArticle[] = [];
+      const urlUniques: NewsArticle[] = [];
       for (const a of allArticles) {
         if (seenUrls.has(a.source_url)) continue;
         seenUrls.add(a.source_url);
-        batchUniques.push(a);
+        urlUniques.push(a);
       }
 
-      // Rest of pipeline (dedupe, insert, feature, push, email) continues below
+      const TRUSTED = ['ghana insurance hub', 'nic ghana', 'npra', 'graphic', 'myjoy', 'citi', 'b&ft', 'ghana business news'];
+      const trustScore = (s: string | null) => {
+        const l = (s || '').toLowerCase();
+        const idx = TRUSTED.findIndex((t) => l.includes(t));
+        return idx === -1 ? 0 : (TRUSTED.length - idx);
+      };
+      const kept: { art: NewsArticle; tokens: Set<string> }[] = [];
+      for (const a of urlUniques) {
+        const toks = tokenSet(a.title);
+        let dupIdx = -1;
+        for (let k = 0; k < kept.length; k++) {
+          if (jaccard(toks, kept[k].tokens) >= 0.72) { dupIdx = k; break; }
+        }
+        if (dupIdx === -1) {
+          kept.push({ art: a, tokens: toks });
+        } else if (trustScore(a.source_name) > trustScore(kept[dupIdx].art.source_name)) {
+          kept[dupIdx] = { art: a, tokens: toks };
+        }
+      }
+      const batchUniques = kept.map((k) => k.art);
+      console.log(`After fuzzy dedupe: ${batchUniques.length} unique stories (from ${urlUniques.length} URL-unique). Cluster sizes tracked for featuring.`);
+
+      // Cluster counts (used for auto-featuring in post-fetch pipeline)
+      const clusterCounts = new Map<string, number>();
+      for (const a of urlUniques) {
+        const toks = tokenSet(a.title);
+        let match: string | null = null;
+        for (const k of kept) {
+          if (jaccard(toks, k.tokens) >= 0.72) { match = k.art.source_url; break; }
+        }
+        if (match) clusterCounts.set(match, (clusterCounts.get(match) ?? 0) + 1);
+      }
+
       await runPostFetchPipeline({
         supabase,
         supabaseServiceKey,
         allArticles,
         batchUniques,
+        clusterCounts,
         runId,
         modeLabel,
         sourcesRun,
