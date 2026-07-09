@@ -1026,20 +1026,21 @@ async function runPostFetchPipeline(args: {
   supabaseServiceKey: string;
   allArticles: NewsArticle[];
   batchUniques: NewsArticle[];
+  clusterCounts?: Map<string, number>;
   runId: string | null;
   modeLabel: string;
   sourcesRun: number;
   articlesFetched: number;
   errors: number;
 }) {
-  const { supabase, supabaseServiceKey, batchUniques, runId, sourcesRun, articlesFetched } = args;
+  const { supabase, supabaseServiceKey, batchUniques, clusterCounts, runId, sourcesRun, articlesFetched } = args;
   let { errors } = args;
   let articlesKept = 0;
   let articlesInserted = 0;
   let duplicatesSkipped = 0;
 
   try {
-    // Dedupe existing URLs in DB
+    // Dedupe against existing URLs in DB
     const urls = batchUniques.map((a) => a.source_url);
     let existingUrls = new Set<string>();
     if (urls.length > 0) {
@@ -1049,8 +1050,49 @@ async function runPostFetchPipeline(args: {
         .in('source_url', urls);
       existingUrls = new Set((existing ?? []).map((r: any) => r.source_url));
     }
-    const toInsert = batchUniques.filter((a) => !existingUrls.has(a.source_url));
+    let toInsert = batchUniques.filter((a) => !existingUrls.has(a.source_url));
     duplicatesSkipped = batchUniques.length - toInsert.length;
+
+    // --- AI relevance + category classify (batched to avoid huge prompts) ---
+    try {
+      const CHUNK = 20;
+      const kept: NewsArticle[] = [];
+      for (let i = 0; i < toInsert.length; i += CHUNK) {
+        const slice = toInsert.slice(i, i + CHUNK);
+        const verdicts = await classifyWithAI(slice);
+        if (!verdicts) { kept.push(...slice); continue; }
+        for (let j = 0; j < slice.length; j++) {
+          const v = verdicts[j];
+          if (v?.keep === false) continue;
+          if (v?.category) slice[j].category = v.category;
+          kept.push(slice[j]);
+        }
+      }
+      toInsert = kept;
+    } catch (aiErr) {
+      console.warn('AI classify pipeline failed, keeping keyword-filtered set:', aiErr);
+    }
+
+    // --- OG image fallback for articles without image_url (cap 15) ---
+    const missingImg = toInsert.filter((a) => !a.image_url).slice(0, 15);
+    await Promise.all(missingImg.map(async (a) => {
+      const og = await fetchOgImage(a.source_url);
+      if (og) a.image_url = og;
+    }));
+
+    // --- Auto-feature: promote the top clustered story if 3+ outlets covered it ---
+    if (clusterCounts && toInsert.length > 0) {
+      let bestUrl: string | null = null;
+      let bestCount = 0;
+      for (const a of toInsert) {
+        const c = clusterCounts.get(a.source_url) ?? 1;
+        if (c > bestCount) { bestCount = c; bestUrl = a.source_url; }
+      }
+      if (bestUrl && bestCount >= 3) {
+        for (const a of toInsert) if (a.source_url === bestUrl) a.is_featured = true;
+      }
+    }
+
     articlesKept = toInsert.length;
 
     let insertedArticles: any[] = [];
