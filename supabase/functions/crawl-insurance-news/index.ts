@@ -1053,33 +1053,6 @@ async function runPostFetchPipeline(args: {
     let toInsert = batchUniques.filter((a) => !existingUrls.has(a.source_url));
     duplicatesSkipped = batchUniques.length - toInsert.length;
 
-    // --- AI relevance + category classify (batched to avoid huge prompts) ---
-    try {
-      const CHUNK = 20;
-      const kept: NewsArticle[] = [];
-      for (let i = 0; i < toInsert.length; i += CHUNK) {
-        const slice = toInsert.slice(i, i + CHUNK);
-        const verdicts = await classifyWithAI(slice);
-        if (!verdicts) { kept.push(...slice); continue; }
-        for (let j = 0; j < slice.length; j++) {
-          const v = verdicts[j];
-          if (v?.keep === false) continue;
-          if (v?.category) slice[j].category = v.category;
-          kept.push(slice[j]);
-        }
-      }
-      toInsert = kept;
-    } catch (aiErr) {
-      console.warn('AI classify pipeline failed, keeping keyword-filtered set:', aiErr);
-    }
-
-    // --- OG image fallback for articles without image_url (cap 15) ---
-    const missingImg = toInsert.filter((a) => !a.image_url).slice(0, 15);
-    await Promise.all(missingImg.map(async (a) => {
-      const og = await fetchOgImage(a.source_url);
-      if (og) a.image_url = og;
-    }));
-
     // --- Auto-feature: promote the top clustered story if 3+ outlets covered it ---
     if (clusterCounts && toInsert.length > 0) {
       let bestUrl: string | null = null;
@@ -1095,12 +1068,16 @@ async function runPostFetchPipeline(args: {
 
     articlesKept = toInsert.length;
 
+    // === INSERT FIRST ===
+    // Persist articles before any slow best-effort step (AI classify, OG image fetch,
+    // push, email). If the background task is killed after this point, the feed is
+    // already updated for readers.
     let insertedArticles: any[] = [];
     if (toInsert.length > 0) {
       const { data: inserted, error: insertErr } = await supabase
         .from('news_articles')
         .insert(toInsert)
-        .select('id, title, source_url, source_name, is_featured');
+        .select('id, title, source_url, source_name, is_featured, image_url, category');
       if (insertErr) {
         console.error('Insert error:', insertErr);
         errors++;
@@ -1108,6 +1085,74 @@ async function runPostFetchPipeline(args: {
         insertedArticles = inserted ?? [];
         articlesInserted = insertedArticles.length;
       }
+    }
+
+    // Mark run completed immediately after insert so the concurrency lock releases
+    // and the next scheduled crawl can proceed even if the enrichment steps below
+    // are killed by edge-runtime wall-time limits.
+    if (runId) {
+      try {
+        await supabase.from('news_crawl_runs').update({
+          finished_at: new Date().toISOString(),
+          sources_run: sourcesRun,
+          articles_fetched: articlesFetched,
+          articles_kept: articlesKept,
+          articles_inserted: articlesInserted,
+          duplicates_skipped: duplicatesSkipped,
+          errors,
+          status: 'completed',
+        }).eq('id', runId);
+      } catch (e) {
+        console.warn('Failed to finalize run row:', e);
+      }
+    }
+
+    // ============ Best-effort enrichment below (may be interrupted) ============
+
+    // --- AI relevance + category classify: apply as UPDATES, drop rejects ---
+    try {
+      const CHUNK = 20;
+      const rejectIds: string[] = [];
+      for (let i = 0; i < insertedArticles.length; i += CHUNK) {
+        const slice = insertedArticles.slice(i, i + CHUNK);
+        const sliceArts: NewsArticle[] = slice.map((r: any) => ({
+          title: r.title, description: '', source_url: r.source_url, source_name: r.source_name,
+          category: r.category, image_url: r.image_url,
+        } as any));
+        const verdicts = await classifyWithAI(sliceArts);
+        if (!verdicts) continue;
+        for (let j = 0; j < slice.length; j++) {
+          const v = verdicts[j];
+          if (!v) continue;
+          if (v.keep === false) { rejectIds.push(slice[j].id); continue; }
+          if (v.category && v.category !== slice[j].category) {
+            try {
+              await supabase.from('news_articles').update({ category: v.category }).eq('id', slice[j].id);
+            } catch { /* noop */ }
+          }
+        }
+      }
+      if (rejectIds.length > 0) {
+        try {
+          await supabase.from('news_articles').delete().in('id', rejectIds);
+          console.log(`AI rejected ${rejectIds.length} off-topic articles`);
+        } catch (e) { console.warn('Failed to delete rejected articles', e); }
+      }
+    } catch (aiErr) {
+      console.warn('AI classify pipeline failed:', aiErr);
+    }
+
+    // --- OG image fallback for articles without image_url (cap 10, 4s each) ---
+    try {
+      const missingImg = insertedArticles.filter((a: any) => !a.image_url).slice(0, 10);
+      await Promise.all(missingImg.map(async (a: any) => {
+        const og = await fetchOgImage(a.source_url);
+        if (og) {
+          try { await supabase.from('news_articles').update({ image_url: og }).eq('id', a.id); } catch { /* noop */ }
+        }
+      }));
+    } catch (ogErr) {
+      console.warn('OG image fallback failed:', ogErr);
     }
 
     // Fan out push notifications for newly inserted articles (cap to 5)
@@ -1141,19 +1186,6 @@ async function runPostFetchPipeline(args: {
       });
     } catch (emailProcessErr) {
       console.error('send-news-email process_queue failed', emailProcessErr);
-    }
-
-    if (runId) {
-      await supabase.from('news_crawl_runs').update({
-        finished_at: new Date().toISOString(),
-        sources_run: sourcesRun,
-        articles_fetched: articlesFetched,
-        articles_kept: articlesKept,
-        articles_inserted: articlesInserted,
-        duplicates_skipped: duplicatesSkipped,
-        errors,
-        status: 'completed',
-      }).eq('id', runId);
     }
   } catch (error) {
     console.error('Post-fetch pipeline error:', error);
