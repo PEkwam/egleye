@@ -531,9 +531,10 @@ function parseRSS(
 async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
   const key = Deno.env.get('FIRECRAWL_API_KEY');
   if (!key) return null;
+  let timeout: number | undefined;
   try {
     const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 12_000);
+    timeout = setTimeout(() => ctrl.abort(), 7_000);
     const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
       method: 'POST',
       signal: ctrl.signal,
@@ -551,6 +552,8 @@ async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
   } catch (e) {
     console.warn(`Firecrawl fallback error for ${feedUrl.slice(0, 80)}:`, e instanceof Error ? e.message : e);
     return null;
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 
@@ -838,7 +841,8 @@ Deno.serve(async (req) => {
 
       type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
       const nowIso = new Date().toISOString();
-      const maxSourcesPerRun = nicOnly || pensionOnly ? 12 : 18;
+      const runDeadlineAt = Date.now() + 120_000;
+      const maxSourcesPerRun = nicOnly || pensionOnly ? 8 : 8;
       const { data: dbSources } = await supabase
         .from('news_sources')
         .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
@@ -871,7 +875,7 @@ Deno.serve(async (req) => {
       const allArticles: NewsArticle[] = [];
       let lastPipelineArticleCount = 0;
       let i = 0;
-      while (i < feedsToProcess.length) {
+      while (i < feedsToProcess.length && Date.now() < runDeadlineAt) {
         const head = feedsToProcess[i];
         let isGoogle = false;
         try { isGoogle = isGoogleNews(head.url); } catch { /* noop */ }
@@ -958,6 +962,10 @@ Deno.serve(async (req) => {
           errors = progress.errors;
           lastPipelineArticleCount = allArticles.length;
         }
+      }
+
+      if (i < feedsToProcess.length) {
+        console.warn(`Crawl time budget reached after ${i}/${feedsToProcess.length} sources; remaining sources will rotate into the next run.`);
       }
 
       console.log(`RSS feeds found: ${allArticles.length} articles`);
