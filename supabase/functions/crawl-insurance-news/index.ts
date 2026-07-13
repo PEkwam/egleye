@@ -532,11 +532,15 @@ async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
   const key = Deno.env.get('FIRECRAWL_API_KEY');
   if (!key) return null;
   try {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 12_000);
     const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
       method: 'POST',
+      signal: ctrl.signal,
       headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: feedUrl, formats: ['rawHtml'], onlyMainContent: false }),
     });
+    clearTimeout(timeout);
     if (!res.ok) {
       console.warn(`Firecrawl fallback failed for ${feedUrl.slice(0, 80)}: HTTP ${res.status}`);
       return null;
@@ -558,20 +562,25 @@ async function fetchRSSFeed(
   excludeKeywords: string[]
 ): Promise<{ articles: NewsArticle[]; status: 'ok' | 'error'; error?: string }> {
   const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-  const doFetch = () => fetch(feedUrl, {
+  const doFetch = () => {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 6_000);
+    return fetch(feedUrl, {
+      signal: ctrl.signal,
     headers: {
       'User-Agent': UA,
       'Accept': 'application/rss+xml, application/xml, text/xml, */*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
       'Accept-Encoding': 'identity',
     },
-  });
+    }).finally(() => clearTimeout(timeout));
+  };
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
     let response = await doFetch();
     if (response.status === 503 || response.status === 429) {
-      const retryAfter = Number(response.headers.get('retry-after')) || 2;
-      await new Promise((r) => setTimeout(r, Math.min(retryAfter, 5) * 1000));
+      const retryAfter = Number(response.headers.get('retry-after')) || 1;
+      await new Promise((r) => setTimeout(r, Math.min(retryAfter, 1) * 1000));
       response = await doFetch();
     }
     if (!response.ok) {
@@ -817,6 +826,9 @@ Deno.serve(async (req) => {
     let duplicatesSkipped = 0;
     let errors = 0;
     let sourcesRun = 0;
+    let totalArticlesKept = 0;
+    let totalArticlesInserted = 0;
+    let totalDuplicatesSkipped = 0;
 
     try {
       const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
@@ -826,11 +838,14 @@ Deno.serve(async (req) => {
 
       type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
       const nowIso = new Date().toISOString();
+      const maxSourcesPerRun = nicOnly || pensionOnly ? 12 : 18;
       const { data: dbSources } = await supabase
         .from('news_sources')
         .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
         .eq('is_enabled', true)
-        .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`);
+        .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`)
+        .order('last_run_at', { ascending: true, nullsFirst: true })
+        .limit(maxSourcesPerRun);
 
       let feedsToProcess: SourceRow[] = (dbSources ?? []).filter((s) => {
         if (nicOnly) return s.mode === 'nic';
@@ -854,6 +869,7 @@ Deno.serve(async (req) => {
       sourcesRun = feedsToProcess.length;
 
       const allArticles: NewsArticle[] = [];
+      let lastPipelineArticleCount = 0;
       let i = 0;
       while (i < feedsToProcess.length) {
         const head = feedsToProcess[i];
@@ -903,7 +919,7 @@ Deno.serve(async (req) => {
         }
         i += batchSize;
         if (i < feedsToProcess.length) {
-          await new Promise((resolve) => setTimeout(resolve, isGoogle ? 3000 : 500));
+          await new Promise((resolve) => setTimeout(resolve, isGoogle ? 750 : 300));
         }
 
         // Periodically update run progress so admin UI shows liveness
@@ -916,64 +932,47 @@ Deno.serve(async (req) => {
             }).eq('id', runId);
           } catch { /* noop */ }
         }
+
+        // Persist after every feed batch instead of waiting for the entire crawl.
+        // This is the critical timeout fix: if the edge runtime stops the
+        // background task mid-run, already-discovered articles are still visible
+        // on the portal and subscriber alerts have already been queued/processed.
+        if (allArticles.length > lastPipelineArticleCount) {
+          const { batchUniques, clusterCounts } = dedupeFetchedArticles(allArticles);
+          const progress = await runPostFetchPipeline({
+            supabase,
+            supabaseServiceKey,
+            allArticles,
+            batchUniques,
+            clusterCounts,
+            runId,
+            modeLabel,
+            sourcesRun,
+            articlesFetched,
+            errors,
+            finalize: false,
+          });
+          totalArticlesKept += progress.articlesKept;
+          totalArticlesInserted += progress.articlesInserted;
+          totalDuplicatesSkipped += progress.duplicatesSkipped;
+          errors = progress.errors;
+          lastPipelineArticleCount = allArticles.length;
+        }
       }
 
       console.log(`RSS feeds found: ${allArticles.length} articles`);
-
-      // --- Smarter dedupe: URL first, then fuzzy title (Jaccard >= 0.72) ---
-      const seenUrls = new Set<string>();
-      const urlUniques: NewsArticle[] = [];
-      for (const a of allArticles) {
-        if (seenUrls.has(a.source_url)) continue;
-        seenUrls.add(a.source_url);
-        urlUniques.push(a);
+      if (runId) {
+        await supabase.from('news_crawl_runs').update({
+          finished_at: new Date().toISOString(),
+          sources_run: sourcesRun,
+          articles_fetched: articlesFetched,
+          articles_kept: totalArticlesKept,
+          articles_inserted: totalArticlesInserted,
+          duplicates_skipped: totalDuplicatesSkipped,
+          errors,
+          status: 'completed',
+        }).eq('id', runId);
       }
-
-      const TRUSTED = ['ghana insurance hub', 'nic ghana', 'npra', 'graphic', 'myjoy', 'citi', 'b&ft', 'ghana business news'];
-      const trustScore = (s: string | null) => {
-        const l = (s || '').toLowerCase();
-        const idx = TRUSTED.findIndex((t) => l.includes(t));
-        return idx === -1 ? 0 : (TRUSTED.length - idx);
-      };
-      const kept: { art: NewsArticle; tokens: Set<string> }[] = [];
-      for (const a of urlUniques) {
-        const toks = tokenSet(a.title);
-        let dupIdx = -1;
-        for (let k = 0; k < kept.length; k++) {
-          if (jaccard(toks, kept[k].tokens) >= 0.72) { dupIdx = k; break; }
-        }
-        if (dupIdx === -1) {
-          kept.push({ art: a, tokens: toks });
-        } else if (trustScore(a.source_name) > trustScore(kept[dupIdx].art.source_name)) {
-          kept[dupIdx] = { art: a, tokens: toks };
-        }
-      }
-      const batchUniques = kept.map((k) => k.art);
-      console.log(`After fuzzy dedupe: ${batchUniques.length} unique stories (from ${urlUniques.length} URL-unique). Cluster sizes tracked for featuring.`);
-
-      // Cluster counts (used for auto-featuring in post-fetch pipeline)
-      const clusterCounts = new Map<string, number>();
-      for (const a of urlUniques) {
-        const toks = tokenSet(a.title);
-        let match: string | null = null;
-        for (const k of kept) {
-          if (jaccard(toks, k.tokens) >= 0.72) { match = k.art.source_url; break; }
-        }
-        if (match) clusterCounts.set(match, (clusterCounts.get(match) ?? 0) + 1);
-      }
-
-      await runPostFetchPipeline({
-        supabase,
-        supabaseServiceKey,
-        allArticles,
-        batchUniques,
-        clusterCounts,
-        runId,
-        modeLabel,
-        sourcesRun,
-        articlesFetched,
-        errors,
-      });
     } catch (error) {
       console.error('Error in Ghana news crawl (background):', error);
       const msg = error instanceof Error ? error.message : 'Failed to crawl news';
@@ -1032,8 +1031,10 @@ async function runPostFetchPipeline(args: {
   sourcesRun: number;
   articlesFetched: number;
   errors: number;
-}) {
+  finalize?: boolean;
+}): Promise<{ articlesKept: number; articlesInserted: number; duplicatesSkipped: number; errors: number }> {
   const { supabase, supabaseServiceKey, batchUniques, clusterCounts, runId, sourcesRun, articlesFetched } = args;
+  const finalize = args.finalize ?? true;
   let { errors } = args;
   let articlesKept = 0;
   let articlesInserted = 0;
@@ -1093,14 +1094,13 @@ async function runPostFetchPipeline(args: {
     if (runId) {
       try {
         await supabase.from('news_crawl_runs').update({
-          finished_at: new Date().toISOString(),
+          ...(finalize ? { finished_at: new Date().toISOString(), status: 'completed' } : { status: 'running' }),
           sources_run: sourcesRun,
           articles_fetched: articlesFetched,
           articles_kept: articlesKept,
           articles_inserted: articlesInserted,
           duplicates_skipped: duplicatesSkipped,
           errors,
-          status: 'completed',
         }).eq('id', runId);
       } catch (e) {
         console.warn('Failed to finalize run row:', e);
@@ -1155,38 +1155,41 @@ async function runPostFetchPipeline(args: {
       console.warn('OG image fallback failed:', ogErr);
     }
 
-    // Fan out push notifications for newly inserted articles (cap to 5)
-    try {
-      for (const art of insertedArticles.slice(0, 5)) {
-        await supabase.functions.invoke('web-push', {
-          body: { action: 'send_article', articleId: art.id, audience: 'all' },
-        });
+    if (insertedArticles.length > 0) {
+      // Fan out push notifications for newly inserted articles (cap to 5)
+      try {
+        for (const art of insertedArticles.slice(0, 5)) {
+          await supabase.functions.invoke('web-push', {
+            body: { action: 'send_article', articleId: art.id, audience: 'all' },
+          });
+        }
+      } catch (pushErr) {
+        console.error('web-push fan-out failed', pushErr);
       }
-    } catch (pushErr) {
-      console.error('web-push fan-out failed', pushErr);
-    }
 
-    // Enqueue email alerts (cap to 5)
-    try {
-      for (const art of insertedArticles.slice(0, 5)) {
+      // Enqueue email alerts (cap to 5)
+      try {
+        for (const art of insertedArticles.slice(0, 5)) {
+          await supabase.functions.invoke('send-news-email', {
+            body: { action: 'enqueue_article', articleId: art.id },
+            headers: { Authorization: `Bearer ${supabaseServiceKey}` },
+          });
+        }
+      } catch (emailErr) {
+        console.error('send-news-email enqueue failed', emailErr);
+      }
+
+      // Process the email queue
+      try {
         await supabase.functions.invoke('send-news-email', {
-          body: { action: 'enqueue_article', articleId: art.id },
+          body: { action: 'process_queue', limit: 100 },
           headers: { Authorization: `Bearer ${supabaseServiceKey}` },
         });
+      } catch (emailProcessErr) {
+        console.error('send-news-email process_queue failed', emailProcessErr);
       }
-    } catch (emailErr) {
-      console.error('send-news-email enqueue failed', emailErr);
     }
-
-    // Process the email queue
-    try {
-      await supabase.functions.invoke('send-news-email', {
-        body: { action: 'process_queue', limit: 100 },
-        headers: { Authorization: `Bearer ${supabaseServiceKey}` },
-      });
-    } catch (emailProcessErr) {
-      console.error('send-news-email process_queue failed', emailProcessErr);
-    }
+    return { articlesKept, articlesInserted, duplicatesSkipped, errors };
   } catch (error) {
     console.error('Post-fetch pipeline error:', error);
     const msg = error instanceof Error ? error.message : 'Post-fetch pipeline failed';
@@ -1205,6 +1208,50 @@ async function runPostFetchPipeline(args: {
         }).eq('id', runId);
       } catch { /* noop */ }
     }
+    return { articlesKept, articlesInserted, duplicatesSkipped, errors: errors + 1 };
   }
+}
+
+function dedupeFetchedArticles(allArticles: NewsArticle[]): { batchUniques: NewsArticle[]; clusterCounts: Map<string, number> } {
+  const seenUrls = new Set<string>();
+  const urlUniques: NewsArticle[] = [];
+  for (const a of allArticles) {
+    if (seenUrls.has(a.source_url)) continue;
+    seenUrls.add(a.source_url);
+    urlUniques.push(a);
+  }
+
+  const TRUSTED = ['ghana insurance hub', 'nic ghana', 'npra', 'graphic', 'myjoy', 'citi', 'b&ft', 'ghana business news'];
+  const trustScore = (s: string | null) => {
+    const l = (s || '').toLowerCase();
+    const idx = TRUSTED.findIndex((t) => l.includes(t));
+    return idx === -1 ? 0 : (TRUSTED.length - idx);
+  };
+
+  const kept: { art: NewsArticle; tokens: Set<string> }[] = [];
+  for (const a of urlUniques) {
+    const toks = tokenSet(a.title);
+    let dupIdx = -1;
+    for (let k = 0; k < kept.length; k++) {
+      if (jaccard(toks, kept[k].tokens) >= 0.72) { dupIdx = k; break; }
+    }
+    if (dupIdx === -1) {
+      kept.push({ art: a, tokens: toks });
+    } else if (trustScore(a.source_name) > trustScore(kept[dupIdx].art.source_name)) {
+      kept[dupIdx] = { art: a, tokens: toks };
+    }
+  }
+
+  const clusterCounts = new Map<string, number>();
+  for (const a of urlUniques) {
+    const toks = tokenSet(a.title);
+    let match: string | null = null;
+    for (const k of kept) {
+      if (jaccard(toks, k.tokens) >= 0.72) { match = k.art.source_url; break; }
+    }
+    if (match) clusterCounts.set(match, (clusterCounts.get(match) ?? 0) + 1);
+  }
+
+  return { batchUniques: kept.map((k) => k.art), clusterCounts };
 }
 

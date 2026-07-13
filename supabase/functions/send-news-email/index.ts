@@ -133,6 +133,7 @@ interface Article {
   id: string;
   title: string;
   description: string | null;
+  content?: string | null;
   source_url: string;
   source_name: string | null;
   image_url: string | null;
@@ -175,6 +176,32 @@ const CATEGORY_LABELS: Record<string, string> = {
   nonlife: 'Non-Life Insurance',
   pensions: 'NPRA Pensions',
 };
+
+const SUBSCRIBER_ALERT_CATEGORIES = new Set([
+  'general',
+  'enterprise_group',
+  'regulator',
+  'life_insurance',
+  'nonlife',
+  'pensions',
+  'claims',
+]);
+
+const SUBSCRIBER_ALERT_PATTERNS: RegExp[] = [
+  /\binsur(?:ance|er|ers|ed)\b/, /\bassur(?:ance|er|ers)\b/,
+  /\b(?:policy|policies|premium|premiums|claim|claims|coverage|underwrit\w*|reinsur\w*)\b/,
+  /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life|microinsur\w*|bancassur\w*)\b/,
+  /\b(?:pension|pensions|pensioner|retirement|ssnit|npra|provident\s+fund|tier\s+[123])\b/,
+  /\b(?:nic|national\s+insurance\s+commission|regulator|regulation|directive|circular|compliance)\b/,
+  /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|prudential|allianz|vanguard)\b/,
+];
+
+function isSubscriberAlertEligible(article: { title?: string | null; description?: string | null; content?: string | null; category?: string | null }): boolean {
+  const category = String(article.category ?? '').toLowerCase();
+  if (SUBSCRIBER_ALERT_CATEGORIES.has(category)) return true;
+  const haystack = `${article.title ?? ''} \n ${article.description ?? ''} \n ${article.content ?? ''}`.toLowerCase();
+  return SUBSCRIBER_ALERT_PATTERNS.some((re) => re.test(haystack));
+}
 
 function withUtm(url: string, campaign = 'news_alert'): string {
   try {
@@ -594,45 +621,8 @@ Deno.serve(async (req) => {
 
 
 
-      // STRICT life-insurance filter with word boundaries — substrings like
-      // "nic" in "Unichem" or "claims" in "denies claims" must NOT trigger
-      // a send. Only clearly life-insurance content goes out to subscribers.
-      const haystack = `${art?.title ?? ''} \n ${art?.description ?? ''} \n ${art?.content ?? ''}`.toLowerCase();
-      const category = String(art?.category ?? '').toLowerCase();
-
-      const LIFE_PATTERNS: RegExp[] = [
-        /\blife\s+insur(?:ance|er|ers)\b/,
-        /\blife\s+assur(?:ance|er|ers)\b/,
-        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
-        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
-        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
-        /\bbancassur\w*\b/,
-        /\bmicroinsur\w*\b/,
-        // Named life insurers / brands operating in Ghana
-        /\benterprise\s+life\b/,
-        /\benterprise\s+group\b/,
-        /\benterprise\s+trustees\b/,
-        /\bacacia\s+health\b/,
-        /\bsic\s+life\b/,
-        /\bstar[\s-]?life\b/,
-        /\bstar\s+assurance\b/,
-        /\bglico\s+life\b/,
-        /\bhollard\s+life\b/,
-        /\bold\s+mutual\s+life\b/,
-        /\ballianz\s+life\b/,
-        /\bprudential\s+life\b/,
-        /\bvanguard\s+(?:life|assurance)\b/,
-        /\bmetropolitan\s+life\b/,
-        /\bdosh\s+health\s+insur\w*\b/,
-      ];
-
-      const matchesLife = LIFE_PATTERNS.some((re) => re.test(haystack));
-      // Category fast-path: the dedicated life_insurance category AND the
-      // NIC regulator category qualify. General / pensions / nonlife are excluded.
-      const categoryAllowed = category === 'life_insurance' || category === 'regulator';
-
-      if (!matchesLife && !categoryAllowed) {
-        console.log(`[enqueue_article] Skipping non-life/non-regulator article ${articleId} [${category}]: "${art?.title?.slice(0, 80)}"`);
+      if (!isSubscriberAlertEligible(art ?? {})) {
+        console.log(`[enqueue_article] Skipping non-alert article ${articleId} [${art?.category ?? 'unknown'}]: "${art?.title?.slice(0, 80)}"`);
         return json({ enqueued: 0, skipped: true, reason: 'not_eligible' });
       }
 
@@ -798,24 +788,7 @@ Deno.serve(async (req) => {
 
 
 
-      const LIFE_PATTERNS: RegExp[] = [
-        /\blife\s+insur(?:ance|er|ers)\b/, /\blife\s+assur(?:ance|er|ers)\b/,
-        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
-        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
-        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
-        /\bbancassur\w*\b/, /\bmicroinsur\w*\b/,
-        /\benterprise\s+life\b/, /\benterprise\s+group\b/, /\benterprise\s+trustees\b/,
-        /\bacacia\s+health\b/, /\bsic\s+life\b/, /\bstar[\s-]?life\b/, /\bstar\s+assurance\b/,
-        /\bglico\s+life\b/, /\bhollard\s+life\b/, /\bold\s+mutual\s+life\b/,
-        /\ballianz\s+life\b/, /\bprudential\s+life\b/, /\bvanguard\s+(?:life|assurance)\b/,
-        /\bmetropolitan\s+life\b/, /\bdosh\s+health\s+insur\w*\b/,
-      ];
-      const eligible = (recent ?? []).filter((a) => {
-        const cat = String(a.category ?? '').toLowerCase();
-        if (cat === 'life_insurance' || cat === 'regulator') return true;
-        const hay = `${a.title ?? ''} \n ${a.description ?? ''} \n ${a.content ?? ''}`.toLowerCase();
-        return LIFE_PATTERNS.some((re) => re.test(hay));
-      });
+      const eligible = (recent ?? []).filter((a) => isSubscriberAlertEligible(a));
 
       const { data: subs, error: sErr } = await supabase
         .from('news_subscribers')
@@ -897,24 +870,7 @@ Deno.serve(async (req) => {
         .limit(200);
       if (rErr) throw rErr;
 
-      const LIFE_PATTERNS: RegExp[] = [
-        /\blife\s+insur(?:ance|er|ers)\b/, /\blife\s+assur(?:ance|er|ers)\b/,
-        /\blife\s+(?:policy|policies|cover|underwrit\w*)\b/,
-        /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life)\b/,
-        /\bfuneral\s+(?:policy|policies|plan|cover|insur\w*)\b/,
-        /\bbancassur\w*\b/, /\bmicroinsur\w*\b/,
-        /\benterprise\s+life\b/, /\benterprise\s+group\b/, /\benterprise\s+trustees\b/,
-        /\bacacia\s+health\b/, /\bsic\s+life\b/, /\bstar[\s-]?life\b/, /\bstar\s+assurance\b/,
-        /\bglico\s+life\b/, /\bhollard\s+life\b/, /\bold\s+mutual\s+life\b/,
-        /\ballianz\s+life\b/, /\bprudential\s+life\b/, /\bvanguard\s+(?:life|assurance)\b/,
-        /\bmetropolitan\s+life\b/, /\bdosh\s+health\s+insur\w*\b/,
-      ];
-      const eligible = (recent ?? []).filter((a) => {
-        const cat = String(a.category ?? '').toLowerCase();
-        if (cat === 'life_insurance' || cat === 'regulator') return true;
-        const hay = `${a.title ?? ''} \n ${a.description ?? ''} \n ${a.content ?? ''}`.toLowerCase();
-        return LIFE_PATTERNS.some((re) => re.test(hay));
-      });
+      const eligible = (recent ?? []).filter((a) => isSubscriberAlertEligible(a));
 
       const { data: subs } = await supabase
         .from('news_subscribers')
