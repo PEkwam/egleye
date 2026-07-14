@@ -45,6 +45,48 @@ interface NewsArticle {
   published_at: string;
 }
 
+const VALID_NEWS_CATEGORIES = new Set([
+  'general',
+  'enterprise_group',
+  'regulator',
+  'claims',
+  'life_insurance',
+  'nonlife',
+  'pensions',
+]);
+
+function normalizeNewsCategory(category: string | null | undefined): string {
+  const normalized = String(category ?? 'general').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const aliases: Record<string, string> = {
+    business: 'general',
+    finance: 'general',
+    insurance: 'general',
+    enterprise: 'enterprise_group',
+    enterprisegroup: 'enterprise_group',
+    regulatory: 'regulator',
+    regulation: 'regulator',
+    pension: 'pensions',
+    life: 'life_insurance',
+    lifeinsurance: 'life_insurance',
+    non_life: 'nonlife',
+    nonlife_insurance: 'nonlife',
+    general_insurance: 'nonlife',
+    claim: 'claims',
+  };
+  const mapped = aliases[normalized] ?? normalized;
+  return VALID_NEWS_CATEGORIES.has(mapped) ? mapped : 'general';
+}
+
+function normalizeArticleForInsert(article: NewsArticle): NewsArticle {
+  return {
+    ...article,
+    category: normalizeNewsCategory(article.category),
+    title: article.title.slice(0, 500),
+    description: article.description ? article.description.slice(0, 500) : null,
+    published_at: Number.isNaN(new Date(article.published_at).getTime()) ? new Date().toISOString() : article.published_at,
+  };
+}
+
 // Ghana-specific keywords for filtering - COMPREHENSIVE
 // NOTE: This is a fallback list. The crawler also pulls insurer names + keywords
 // from the `insurers` DB table at runtime via `loadDbKeywords()` so renames
@@ -414,6 +456,7 @@ function parseRSS(
   excludeKeywords: string[]
 ): NewsArticle[] {
   const articles: NewsArticle[] = [];
+  const safeDefaultCategory = normalizeNewsCategory(defaultCategory);
   
   try {
     // Extract items using regex
@@ -473,7 +516,7 @@ function parseRSS(
       }
 
       // Determine category based on content
-      let category = defaultCategory;
+      let category = safeDefaultCategory;
       const lowerText = fullText.toLowerCase();
       
       // Pension news takes priority
@@ -516,7 +559,7 @@ function parseRSS(
         source_url: link,
         source_name: finalSourceName,
         image_url: imageUrl,
-        category,
+        category: normalizeNewsCategory(category),
         is_featured: false,
         published_at: formattedDate,
       });
@@ -872,8 +915,9 @@ Deno.serve(async (req) => {
 
       sourcesRun = feedsToProcess.length;
 
-      const allArticles: NewsArticle[] = [];
-      let lastPipelineArticleCount = 0;
+      const seenArticleUrls = new Set<string>();
+      const seenArticleTokens: Array<{ url: string; tokens: Set<string>; sourceName: string | null }> = [];
+      const clusterCounts = new Map<string, number>();
       let i = 0;
       while (i < feedsToProcess.length && Date.now() < runDeadlineAt) {
         const head = feedsToProcess[i];
@@ -884,13 +928,31 @@ Deno.serve(async (req) => {
         const results = await Promise.all(
           batch.map((feed) => fetchRSSFeed(feed.url, feed.category, feed.source_label, includeKeywords, excludeKeywords))
         );
+        const batchArticles: NewsArticle[] = [];
         for (let j = 0; j < batch.length; j++) {
           const feed = batch[j];
           const res = results[j];
           const found = res.articles.length;
           articlesFetched += found;
           if (res.status === 'error') errors++;
-          allArticles.push(...res.articles);
+          for (const article of res.articles) {
+            const normalizedArticle = normalizeArticleForInsert(article);
+            const tokens = tokenSet(normalizedArticle.title);
+            const duplicateTitle = seenArticleTokens.find((seen) => jaccard(tokens, seen.tokens) >= 0.72);
+            if (seenArticleUrls.has(normalizedArticle.source_url) || duplicateTitle) {
+              const clusterUrl = duplicateTitle?.url ?? normalizedArticle.source_url;
+              clusterCounts.set(clusterUrl, (clusterCounts.get(clusterUrl) ?? 1) + 1);
+              if ((clusterCounts.get(clusterUrl) ?? 0) >= 3) {
+                try { await supabase.from('news_articles').update({ is_featured: true }).eq('source_url', clusterUrl); } catch { /* noop */ }
+              }
+              totalDuplicatesSkipped++;
+              continue;
+            }
+            seenArticleUrls.add(normalizedArticle.source_url);
+            seenArticleTokens.push({ url: normalizedArticle.source_url, tokens, sourceName: normalizedArticle.source_name });
+            clusterCounts.set(normalizedArticle.source_url, 1);
+            batchArticles.push(normalizedArticle);
+          }
 
           if (feed.id) {
             try {
@@ -921,6 +983,24 @@ Deno.serve(async (req) => {
             }
           }
         }
+
+        if (batchArticles.length > 0) {
+          const progress = await runPostFetchPipeline({
+            supabase,
+            supabaseServiceKey,
+            batchUniques: batchArticles,
+            clusterCounts,
+            runId,
+            sourcesRun,
+            articlesFetched,
+            errors,
+            finalize: false,
+          });
+          totalArticlesKept += progress.articlesKept;
+          totalArticlesInserted += progress.articlesInserted;
+          totalDuplicatesSkipped += progress.duplicatesSkipped;
+          errors = progress.errors;
+        }
         i += batchSize;
         if (i < feedsToProcess.length) {
           await new Promise((resolve) => setTimeout(resolve, isGoogle ? 750 : 300));
@@ -937,38 +1017,13 @@ Deno.serve(async (req) => {
           } catch { /* noop */ }
         }
 
-        // Persist after every feed batch instead of waiting for the entire crawl.
-        // This is the critical timeout fix: if the edge runtime stops the
-        // background task mid-run, already-discovered articles are still visible
-        // on the portal and subscriber alerts have already been queued/processed.
-        if (allArticles.length > lastPipelineArticleCount) {
-          const { batchUniques, clusterCounts } = dedupeFetchedArticles(allArticles);
-          const progress = await runPostFetchPipeline({
-            supabase,
-            supabaseServiceKey,
-            allArticles,
-            batchUniques,
-            clusterCounts,
-            runId,
-            modeLabel,
-            sourcesRun,
-            articlesFetched,
-            errors,
-            finalize: false,
-          });
-          totalArticlesKept += progress.articlesKept;
-          totalArticlesInserted += progress.articlesInserted;
-          totalDuplicatesSkipped += progress.duplicatesSkipped;
-          errors = progress.errors;
-          lastPipelineArticleCount = allArticles.length;
-        }
       }
 
       if (i < feedsToProcess.length) {
         console.warn(`Crawl time budget reached after ${i}/${feedsToProcess.length} sources; remaining sources will rotate into the next run.`);
       }
 
-      console.log(`RSS feeds found: ${allArticles.length} articles`);
+      console.log(`RSS feeds found: ${articlesFetched} articles`);
       if (runId) {
         await supabase.from('news_crawl_runs').update({
           finished_at: new Date().toISOString(),
@@ -1031,11 +1086,9 @@ Deno.serve(async (req) => {
 async function runPostFetchPipeline(args: {
   supabase: any;
   supabaseServiceKey: string;
-  allArticles: NewsArticle[];
   batchUniques: NewsArticle[];
   clusterCounts?: Map<string, number>;
   runId: string | null;
-  modeLabel: string;
   sourcesRun: number;
   articlesFetched: number;
   errors: number;
@@ -1050,7 +1103,8 @@ async function runPostFetchPipeline(args: {
 
   try {
     // Dedupe against existing URLs in DB
-    const urls = batchUniques.map((a) => a.source_url);
+    const normalizedBatch = batchUniques.map(normalizeArticleForInsert);
+    const urls = normalizedBatch.map((a) => a.source_url);
     let existingUrls = new Set<string>();
     if (urls.length > 0) {
       const { data: existing } = await supabase
@@ -1059,8 +1113,8 @@ async function runPostFetchPipeline(args: {
         .in('source_url', urls);
       existingUrls = new Set((existing ?? []).map((r: any) => r.source_url));
     }
-    let toInsert = batchUniques.filter((a) => !existingUrls.has(a.source_url));
-    duplicatesSkipped = batchUniques.length - toInsert.length;
+    let toInsert = normalizedBatch.filter((a) => !existingUrls.has(a.source_url));
+    duplicatesSkipped = normalizedBatch.length - toInsert.length;
 
     // --- Auto-feature: promote the top clustered story if 3+ outlets covered it ---
     if (clusterCounts && toInsert.length > 0) {
@@ -1085,8 +1139,8 @@ async function runPostFetchPipeline(args: {
     if (toInsert.length > 0) {
       const { data: inserted, error: insertErr } = await supabase
         .from('news_articles')
-        .insert(toInsert)
-        .select('id, title, source_url, source_name, is_featured, image_url, category');
+        .upsert(toInsert, { onConflict: 'source_url', ignoreDuplicates: true })
+        .select('id, title, description, content, source_url, source_name, is_featured, image_url, category');
       if (insertErr) {
         console.error('Insert error:', insertErr);
         errors++;
@@ -1124,11 +1178,17 @@ async function runPostFetchPipeline(args: {
       for (let i = 0; i < insertedArticles.length; i += CHUNK) {
         const slice = insertedArticles.slice(i, i + CHUNK);
         const sliceArts: NewsArticle[] = slice.map((r: any) => ({
-          title: r.title, description: '', source_url: r.source_url, source_name: r.source_name,
+          title: r.title, description: r.description ?? '', content: r.content ?? null,
+          source_url: r.source_url, source_name: r.source_name,
           category: r.category, image_url: r.image_url,
         } as any));
         const verdicts = await classifyWithAI(sliceArts);
         if (!verdicts) continue;
+        const rejectedCount = verdicts.filter((v) => v?.keep === false).length;
+        if (rejectedCount === slice.length && slice.length <= 3) {
+          console.warn(`AI rejected all ${slice.length} newly inserted article(s); preserving them because deterministic filters already passed.`);
+          continue;
+        }
         for (let j = 0; j < slice.length; j++) {
           const v = verdicts[j];
           if (!v) continue;
