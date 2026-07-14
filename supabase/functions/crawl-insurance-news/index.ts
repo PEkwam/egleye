@@ -1140,7 +1140,7 @@ async function runPostFetchPipeline(args: {
       const { data: inserted, error: insertErr } = await supabase
         .from('news_articles')
         .upsert(toInsert, { onConflict: 'source_url', ignoreDuplicates: true })
-        .select('id, title, source_url, source_name, is_featured, image_url, category');
+        .select('id, title, description, content, source_url, source_name, is_featured, image_url, category');
       if (insertErr) {
         console.error('Insert error:', insertErr);
         errors++;
@@ -1178,11 +1178,17 @@ async function runPostFetchPipeline(args: {
       for (let i = 0; i < insertedArticles.length; i += CHUNK) {
         const slice = insertedArticles.slice(i, i + CHUNK);
         const sliceArts: NewsArticle[] = slice.map((r: any) => ({
-          title: r.title, description: '', source_url: r.source_url, source_name: r.source_name,
+          title: r.title, description: r.description ?? '', content: r.content ?? null,
+          source_url: r.source_url, source_name: r.source_name,
           category: r.category, image_url: r.image_url,
         } as any));
         const verdicts = await classifyWithAI(sliceArts);
         if (!verdicts) continue;
+        const rejectedCount = verdicts.filter((v) => v?.keep === false).length;
+        if (rejectedCount === slice.length && slice.length <= 3) {
+          console.warn(`AI rejected all ${slice.length} newly inserted article(s); preserving them because deterministic filters already passed.`);
+          continue;
+        }
         for (let j = 0; j < slice.length; j++) {
           const v = verdicts[j];
           if (!v) continue;
