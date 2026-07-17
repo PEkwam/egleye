@@ -886,19 +886,18 @@ Deno.serve(async (req) => {
       const nowIso = new Date().toISOString();
       const runDeadlineAt = Date.now() + 120_000;
       const maxSourcesPerRun = nicOnly || pensionOnly ? 8 : 8;
-      const { data: dbSources } = await supabase
+      let sourceQuery = supabase
         .from('news_sources')
         .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
         .eq('is_enabled', true)
-        .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`)
+        .or(`next_eligible_at.is.null,next_eligible_at.lte.${nowIso}`);
+      if (nicOnly) sourceQuery = sourceQuery.eq('mode', 'nic');
+      else if (pensionOnly) sourceQuery = sourceQuery.eq('mode', 'pension');
+      const { data: dbSources } = await sourceQuery
         .order('last_run_at', { ascending: true, nullsFirst: true })
         .limit(maxSourcesPerRun);
 
-      let feedsToProcess: SourceRow[] = (dbSources ?? []).filter((s) => {
-        if (nicOnly) return s.mode === 'nic';
-        if (pensionOnly) return s.mode === 'pension';
-        return true;
-      });
+      let feedsToProcess: SourceRow[] = (dbSources ?? []);
 
       if (feedsToProcess.length === 0) {
         console.warn('No DB sources available — falling back to hard-coded feed list');

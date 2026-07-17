@@ -8,6 +8,7 @@ import { CommandPalette } from '@/components/CommandPalette';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
 import { supabase } from '@/integrations/supabase/client';
 
+import { useLocation } from 'react-router-dom';
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
 import { Footer } from '@/components/Footer';
@@ -55,9 +56,18 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
   useTrackArticles(articles);
   const { openArticle } = useNewArticleAlerts();
 
-  // Deep-link: open reader modal when arriving via ?article=ID (push notification click)
+  // Sync ?category=X into activeCategory so command palette filter links work,
+  // and open reader modal when arriving via ?article=ID (push notification click).
+  const { search } = useLocation();
   useEffect(() => {
     const url = new URL(window.location.href);
+    const categoryParam = url.searchParams.get('category');
+    if (categoryParam) {
+      const valid = ['all', 'regulator', 'enterprise_group', 'pensions', 'general', 'life_insurance', 'non_life'];
+      if (valid.includes(categoryParam)) {
+        setActiveCategory(categoryParam as NewsCategory | 'all');
+      }
+    }
     const articleId = url.searchParams.get('article');
     if (!articleId) return;
     (async () => {
@@ -68,7 +78,7 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
         window.history.replaceState({}, '', url.toString());
       }
     })();
-  }, [openArticle]);
+  }, [openArticle, search]);
 
   // Listen for messages from the push service worker (already-open tab path)
   useEffect(() => {

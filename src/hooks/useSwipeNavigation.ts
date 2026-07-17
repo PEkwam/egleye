@@ -42,12 +42,30 @@ export const useSwipeNavigation = (config: SwipeConfig = {}) => {
     touchStartX.current = touch.clientX;
     touchStartY.current = touch.clientY;
     touchStartTime.current = Date.now();
-    
+
+    // Skip navigation gesture when touch starts inside a horizontally scrollable
+    // ancestor (wide tables, chip strips, carousels, charts).
+    let el: HTMLElement | null = e.target as HTMLElement | null;
+    let insideScrollable = false;
+    while (el && el !== document.body) {
+      const style = window.getComputedStyle(el);
+      const ox = style.overflowX;
+      if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth) {
+        insideScrollable = true;
+        break;
+      }
+      el = el.parentElement;
+    }
+
     // Check if swipe started from edge
     const screenWidth = window.innerWidth;
-    isEdgeSwipe.current = 
-      touch.clientX < edgeWidth || 
-      touch.clientX > screenWidth - edgeWidth;
+    isEdgeSwipe.current =
+      !insideScrollable &&
+      (touch.clientX < edgeWidth || touch.clientX > screenWidth - edgeWidth);
+    // Encode "skip this swipe" by moving the start time far in the past
+    if (insideScrollable) {
+      touchStartTime.current = 0;
+    }
   }, [edgeWidth]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
