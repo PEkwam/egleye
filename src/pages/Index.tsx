@@ -56,8 +56,16 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
   const { openArticle } = useNewArticleAlerts();
 
   // Deep-link: open reader modal when arriving via ?article=ID (push notification click)
+  // Also sync ?category=X into activeCategory so the command palette filters work.
   useEffect(() => {
     const url = new URL(window.location.href);
+    const categoryParam = url.searchParams.get('category');
+    if (categoryParam) {
+      const valid: Array<NewsCategory | 'all'> = ['all', 'regulator', 'enterprise_group', 'pensions', 'general', 'life_insurance', 'non_life'] as Array<NewsCategory | 'all'>;
+      if ((valid as string[]).includes(categoryParam)) {
+        setActiveCategory(categoryParam as NewsCategory | 'all');
+      }
+    }
     const articleId = url.searchParams.get('article');
     if (!articleId) return;
     (async () => {
