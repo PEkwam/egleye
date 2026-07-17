@@ -177,6 +177,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   pensions: 'NPRA Pensions',
 };
 
+// Only these categories are ever considered for subscriber alerts.
 const SUBSCRIBER_ALERT_CATEGORIES = new Set([
   'general',
   'enterprise_group',
@@ -187,21 +188,43 @@ const SUBSCRIBER_ALERT_CATEGORIES = new Set([
   'claims',
 ]);
 
+// Article content MUST match at least one of these insurance/pension patterns
+// to be eligible for a subscriber alert. This is the strict enforcement layer.
 const SUBSCRIBER_ALERT_PATTERNS: RegExp[] = [
-  /\binsur(?:ance|er|ers|ed)\b/, /\bassur(?:ance|er|ers)\b/,
-  /\b(?:policy|policies|premium|premiums|claim|claims|coverage|underwrit\w*|reinsur\w*)\b/,
-  /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life|microinsur\w*|bancassur\w*)\b/,
-  /\b(?:pension|pensions|pensioner|retirement|ssnit|npra|provident\s+fund|tier\s+[123])\b/,
-  /\b(?:nic|national\s+insurance\s+commission|regulator|regulation|directive|circular|compliance)\b/,
-  /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|prudential|allianz|vanguard)\b/,
+  /\binsur(?:ance|er|ers|ed|ing)\b/, /\bassur(?:ance|er|ers)\b/,
+  /\b(?:policy|policies|premium|premiums|claim|claims|coverage|underwrit\w*|reinsur\w*|actuar\w*|solvency)\b/,
+  /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life|microinsur\w*|bancassur\w*|takaful)\b/,
+  /\b(?:pension|pensions|pensioner|retirement|ssnit|npra|provident\s+fund|tier\s+[123]|trustee|gratuity)\b/,
+  /\b(?:nic|national\s+insurance\s+commission)\b/,
+  /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|prudential|allianz|vanguard\s+assurance|donewell|metropolitan\s+life)\b/,
+];
+
+// Negative filter: obviously off-topic terms that mean the item is NOT insurance
+// even when a stray keyword slips through (e.g. car insurance mentioned in a
+// political story). Keep this list narrow and unambiguous.
+const SUBSCRIBER_ALERT_BLOCKLIST: RegExp[] = [
+  /\b(?:football|soccer|striker|midfielder|goalkeeper|premier\s+league|black\s+stars)\b/,
+  /\b(?:election|parliament|mp\s+for|constituency|political\s+party|npp|ndc)\b/i,
+  /\b(?:movie|film|album|concert|celebrity|actor|actress|musician)\b/,
 ];
 
 function isSubscriberAlertEligible(article: { title?: string | null; description?: string | null; content?: string | null; category?: string | null }): boolean {
+  // 1. Category must be in the allow-list.
   const category = String(article.category ?? '').toLowerCase();
-  if (SUBSCRIBER_ALERT_CATEGORIES.has(category)) return true;
+  if (!SUBSCRIBER_ALERT_CATEGORIES.has(category)) return false;
+
+  // 2. Content must positively match an insurance/pension keyword.
   const haystack = `${article.title ?? ''} \n ${article.description ?? ''} \n ${article.content ?? ''}`.toLowerCase();
-  return SUBSCRIBER_ALERT_PATTERNS.some((re) => re.test(haystack));
+  if (!haystack.trim()) return false;
+  const positive = SUBSCRIBER_ALERT_PATTERNS.some((re) => re.test(haystack));
+  if (!positive) return false;
+
+  // 3. Reject if obvious off-topic content is present.
+  if (SUBSCRIBER_ALERT_BLOCKLIST.some((re) => re.test(haystack))) return false;
+
+  return true;
 }
+
 
 function withUtm(url: string, campaign = 'news_alert'): string {
   try {
