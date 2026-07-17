@@ -42,7 +42,8 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.key === 'f' || e.key === 'F') && (e.metaKey || e.ctrlKey)) {
+      // Use Ctrl/⌘+K to avoid hijacking the browser's native Find (Ctrl/⌘+F)
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((o) => !o);
       }
