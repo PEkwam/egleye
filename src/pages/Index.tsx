@@ -8,6 +8,7 @@ import { CommandPalette } from '@/components/CommandPalette';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
 import { supabase } from '@/integrations/supabase/client';
 
+import { useLocation } from 'react-router-dom';
 import { TimeFilter, type TimeRange } from '@/components/TimeFilter';
 import { InsurerComparison } from '@/components/InsurerComparison';
 import { Footer } from '@/components/Footer';
