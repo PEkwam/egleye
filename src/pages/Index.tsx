@@ -55,14 +55,15 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
   useTrackArticles(articles);
   const { openArticle } = useNewArticleAlerts();
 
-  // Deep-link: open reader modal when arriving via ?article=ID (push notification click)
-  // Also sync ?category=X into activeCategory so the command palette filters work.
+  // Sync ?category=X into activeCategory so command palette filter links work,
+  // and open reader modal when arriving via ?article=ID (push notification click).
+  const { search } = useLocation();
   useEffect(() => {
     const url = new URL(window.location.href);
     const categoryParam = url.searchParams.get('category');
     if (categoryParam) {
-      const valid: Array<NewsCategory | 'all'> = ['all', 'regulator', 'enterprise_group', 'pensions', 'general', 'life_insurance', 'non_life'] as Array<NewsCategory | 'all'>;
-      if ((valid as string[]).includes(categoryParam)) {
+      const valid = ['all', 'regulator', 'enterprise_group', 'pensions', 'general', 'life_insurance', 'non_life'];
+      if (valid.includes(categoryParam)) {
         setActiveCategory(categoryParam as NewsCategory | 'all');
       }
     }
@@ -76,7 +77,7 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
         window.history.replaceState({}, '', url.toString());
       }
     })();
-  }, [openArticle]);
+  }, [openArticle, search]);
 
   // Listen for messages from the push service worker (already-open tab path)
   useEffect(() => {
