@@ -59,7 +59,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search dashboards, news, settings… (⌘F)" />
+      <CommandInput placeholder="Search dashboards, news, settings… (⌘K)" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
 
