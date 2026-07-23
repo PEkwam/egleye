@@ -798,6 +798,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Belt-and-braces: re-run the strict insurance gatekeeper right before
+        // dispatch so nothing off-topic ever leaves the system, even if it was
+        // enqueued manually, via backfill, or before this rule was tightened.
+        if (!isSubscriberAlertEligible(art as any)) {
+          await supabase.from('news_subscriber_sends').update({
+            status: 'skipped',
+            error_message: 'blocked by insurance gatekeeper at send time',
+            sent_at: new Date().toISOString(),
+          }).eq('id', row.id);
+          continue;
+        }
+
         // Freshness guard: strictly require recent published_at.
         const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
         if (!pubAtMs || pubAtMs < minPublishedAtMs()) {
