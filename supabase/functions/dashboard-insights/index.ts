@@ -39,6 +39,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const authFail = await requireAuth(req, corsHeaders);
+  if (authFail) return authFail;
+
+
   try {
     const contentLength = Number(req.headers.get("content-length") ?? "0");
     if (contentLength > MAX_BODY_BYTES) {
