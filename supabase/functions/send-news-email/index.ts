@@ -199,30 +199,80 @@ const SUBSCRIBER_ALERT_PATTERNS: RegExp[] = [
   /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|prudential|allianz|vanguard\s+assurance|donewell|metropolitan\s+life)\b/,
 ];
 
-// Negative filter: obviously off-topic terms that mean the item is NOT insurance
-// even when a stray keyword slips through (e.g. car insurance mentioned in a
-// political story). Keep this list narrow and unambiguous.
+// Negative filter: off-topic terms that disqualify an article even when a
+// stray insurance keyword slips through (e.g. "car insurance" in a political
+// or sports story). Expanded for strict enforcement.
 const SUBSCRIBER_ALERT_BLOCKLIST: RegExp[] = [
-  /\b(?:football|soccer|striker|midfielder|goalkeeper|premier\s+league|black\s+stars)\b/,
-  /\b(?:election|parliament|mp\s+for|constituency|political\s+party|npp|ndc)\b/i,
-  /\b(?:movie|film|album|concert|celebrity|actor|actress|musician)\b/,
+  /\b(?:football|soccer|striker|midfielder|goalkeeper|premier\s+league|black\s+stars|afcon|world\s+cup|kotoko|hearts\s+of\s+oak|olympics|boxing|athletics)\b/i,
+  /\b(?:election|parliament|mp\s+for|constituency|political\s+party|npp|ndc|assembly\s+member|electoral\s+commission)\b/i,
+  /\b(?:movie|film|album|concert|celebrity|actor|actress|musician|stonebwoy|shatta\s+wale|sarkodie|showbiz|entertainment)\b/i,
+  /\b(?:murder|armed\s+robbery|kidnapping|drug\s+trafficking|ponzi|fraud\s+suspect|court\s+case|remand)\b/i,
+  /\b(?:galamsey|illegal\s+mining|cocoa\s+board|cocobod|fuel\s+price|petrol\s+price)\b/i,
+  /\b(?:waec|bece|free\s+shs|university\s+admission|school\s+fees)\b/i,
+  /\b(?:pastor|church|mosque|prayer\s+camp|bishop|imam)\b/i,
+  /\b(?:crypto|bitcoin|forex\s+trading|stock\s+exchange|ipo\s+launch)\b/i,
+  /\b(?:nigerian?\s+(?:banks?|insurance|market|senate)|kenya\s+insurance|south\s+africa\s+insurance|uganda|rwanda\s+job)\b/i,
 ];
 
-function isSubscriberAlertEligible(article: { title?: string | null; description?: string | null; content?: string | null; category?: string | null }): boolean {
-  // 1. Category must be in the allow-list.
+// Strong signals: if a title matches any of these, the article is clearly
+// on-topic insurance/pension content and passes without needing a body match.
+const SUBSCRIBER_ALERT_STRONG_TITLE: RegExp[] = [
+  /\binsur(?:ance|er|ers|ed)\b/i,
+  /\bassur(?:ance|er)\b/i,
+  /\breinsur\w*\b/i,
+  /\b(?:pension|pensions|ssnit|npra|nic|underwrit\w*|actuar\w*|solvency|policyholder|premium|claims?)\b/i,
+  /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|prudential|allianz|vanguard\s+assurance|donewell|metropolitan\s+life)\b/i,
+];
+
+function countMatches(text: string, patterns: RegExp[]): number {
+  let n = 0;
+  for (const re of patterns) if (re.test(text)) n++;
+  return n;
+}
+
+/**
+ * Strict gatekeeper for subscriber alerts. An article is eligible ONLY when:
+ *   1. Its category is in the insurance/pension allow-list.
+ *   2. It contains NO blocklisted off-topic term (sports, politics, showbiz…).
+ *   3. Its TITLE clearly signals insurance/pension  —  OR  —  the body carries
+ *      at least TWO independent insurance/pension signals.
+ * All rejections are logged with the reason so admins can audit.
+ */
+function isSubscriberAlertEligible(
+  article: { id?: string; title?: string | null; description?: string | null; content?: string | null; category?: string | null },
+): boolean {
+  const id = article.id ?? '(no-id)';
   const category = String(article.category ?? '').toLowerCase();
-  if (!SUBSCRIBER_ALERT_CATEGORIES.has(category)) return false;
+  if (!SUBSCRIBER_ALERT_CATEGORIES.has(category)) {
+    console.log(`[gatekeeper] reject ${id}: category "${category}" not in allow-list`);
+    return false;
+  }
 
-  // 2. Content must positively match an insurance/pension keyword.
-  const haystack = `${article.title ?? ''} \n ${article.description ?? ''} \n ${article.content ?? ''}`.toLowerCase();
-  if (!haystack.trim()) return false;
-  const positive = SUBSCRIBER_ALERT_PATTERNS.some((re) => re.test(haystack));
-  if (!positive) return false;
+  const title = String(article.title ?? '').toLowerCase();
+  const body = `${article.description ?? ''} \n ${article.content ?? ''}`.toLowerCase();
+  const haystack = `${title} \n ${body}`;
+  if (!haystack.trim()) {
+    console.log(`[gatekeeper] reject ${id}: empty content`);
+    return false;
+  }
 
-  // 3. Reject if obvious off-topic content is present.
-  if (SUBSCRIBER_ALERT_BLOCKLIST.some((re) => re.test(haystack))) return false;
+  // Off-topic blocklist takes priority.
+  const blocked = SUBSCRIBER_ALERT_BLOCKLIST.find((re) => re.test(haystack));
+  if (blocked) {
+    console.log(`[gatekeeper] reject ${id}: blocklist hit ${blocked}`);
+    return false;
+  }
 
-  return true;
+  // Strong title signal is sufficient.
+  const strongTitle = SUBSCRIBER_ALERT_STRONG_TITLE.some((re) => re.test(title));
+  if (strongTitle) return true;
+
+  // Otherwise require multiple independent body signals.
+  const bodySignals = countMatches(haystack, SUBSCRIBER_ALERT_PATTERNS);
+  if (bodySignals >= 2) return true;
+
+  console.log(`[gatekeeper] reject ${id}: weak signal (title=no, body=${bodySignals}) "${(article.title ?? '').slice(0, 80)}"`);
+  return false;
 }
 
 
@@ -743,6 +793,18 @@ Deno.serve(async (req) => {
         if (!sub || !sub.is_active || !art) {
           await supabase.from('news_subscriber_sends').update({
             status: 'skipped', error_message: !sub ? 'subscriber missing' : !art ? 'article missing' : 'subscriber inactive',
+            sent_at: new Date().toISOString(),
+          }).eq('id', row.id);
+          continue;
+        }
+
+        // Belt-and-braces: re-run the strict insurance gatekeeper right before
+        // dispatch so nothing off-topic ever leaves the system, even if it was
+        // enqueued manually, via backfill, or before this rule was tightened.
+        if (!isSubscriberAlertEligible(art as any)) {
+          await supabase.from('news_subscriber_sends').update({
+            status: 'skipped',
+            error_message: 'blocked by insurance gatekeeper at send time',
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
