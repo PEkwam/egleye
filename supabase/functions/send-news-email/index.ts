@@ -200,11 +200,11 @@ const SUBSCRIBER_ALERT_PATTERNS: RegExp[] = [
 ];
 
 // Negative filter: off-topic terms that disqualify an article even when a
-// stray insurance keyword slips through (e.g. "car insurance" in a political
-// or sports story). Expanded for strict enforcement.
-const SUBSCRIBER_ALERT_BLOCKLIST: RegExp[] = [
+// stray insurance keyword slips through (e.g. "car insurance" in a sports
+// story). Keep this list to topics that are very unlikely to be legitimate
+// insurance/regulator coverage.
+const SUBSCRIBER_ALERT_HARD_BLOCKLIST: RegExp[] = [
   /\b(?:football|soccer|striker|midfielder|goalkeeper|premier\s+league|black\s+stars|afcon|world\s+cup|kotoko|hearts\s+of\s+oak|olympics|boxing|athletics)\b/i,
-  /\b(?:election|parliament|mp\s+for|constituency|political\s+party|npp|ndc|assembly\s+member|electoral\s+commission)\b/i,
   /\b(?:movie|film|album|concert|celebrity|actor|actress|musician|stonebwoy|shatta\s+wale|sarkodie|showbiz|entertainment)\b/i,
   /\b(?:murder|armed\s+robbery|kidnapping|drug\s+trafficking|ponzi|fraud\s+suspect|court\s+case|remand)\b/i,
   /\b(?:galamsey|illegal\s+mining|cocoa\s+board|cocobod|fuel\s+price|petrol\s+price)\b/i,
@@ -213,6 +213,27 @@ const SUBSCRIBER_ALERT_BLOCKLIST: RegExp[] = [
   /\b(?:crypto|bitcoin|forex\s+trading|stock\s+exchange|ipo\s+launch)\b/i,
   /\b(?:nigerian?\s+(?:banks?|insurance|market|senate)|kenya\s+insurance|south\s+africa\s+insurance|uganda|rwanda\s+job)\b/i,
 ];
+
+// Political/government terms are contextual, not hard blockers: regulator and
+// industry stories often mention bills, Parliament, ministers or elections.
+// These terms only suppress weak articles with no category/title/body signal.
+const SUBSCRIBER_ALERT_CONTEXT_BLOCKLIST: RegExp[] = [
+  /\b(?:mp\s+for|constituency|political\s+party|assembly\s+member|electoral\s+commission)\b/i,
+  /\b(?:npp|ndc)\b/i,
+];
+
+// These editorial categories are already insurance/pension specific in the
+// portal. If the crawler places a short item here (for example "Enterprise
+// Group appoints new CEO") we should not silently drop it just because the
+// summary is empty or lacks a second keyword.
+const SUBSCRIBER_ALERT_TRUSTED_CATEGORY_ONLY = new Set([
+  'enterprise_group',
+  'regulator',
+  'life_insurance',
+  'nonlife',
+  'pensions',
+  'claims',
+]);
 
 // Strong signals: if a title matches any of these, the article is clearly
 // on-topic insurance/pension content and passes without needing a body match.
@@ -233,9 +254,10 @@ function countMatches(text: string, patterns: RegExp[]): number {
 /**
  * Strict gatekeeper for subscriber alerts. An article is eligible ONLY when:
  *   1. Its category is in the insurance/pension allow-list.
- *   2. It contains NO blocklisted off-topic term (sports, politics, showbiz…).
+ *   2. It contains NO hard off-topic term (sports, showbiz, crypto, etc.).
  *   3. Its TITLE clearly signals insurance/pension  —  OR  —  the body carries
- *      at least TWO independent insurance/pension signals.
+ *      at least TWO independent insurance/pension signals  —  OR  —  it belongs
+ *      to an editorial category that is inherently insurance/pension-specific.
  * All rejections are logged with the reason so admins can audit.
  */
 function isSubscriberAlertEligible(
@@ -256,10 +278,12 @@ function isSubscriberAlertEligible(
     return false;
   }
 
-  // Off-topic blocklist takes priority.
-  const blocked = SUBSCRIBER_ALERT_BLOCKLIST.find((re) => re.test(haystack));
+  // Hard off-topic blocklist takes priority, but broad political words such as
+  // "Parliament" are deliberately not hard blockers because NIC/NPRA regulatory
+  // updates frequently contain them.
+  const blocked = SUBSCRIBER_ALERT_HARD_BLOCKLIST.find((re) => re.test(haystack));
   if (blocked) {
-    console.log(`[gatekeeper] reject ${id}: blocklist hit ${blocked}`);
+    console.log(`[gatekeeper] reject ${id}: hard blocklist hit ${blocked}`);
     return false;
   }
 
@@ -271,7 +295,13 @@ function isSubscriberAlertEligible(
   const bodySignals = countMatches(haystack, SUBSCRIBER_ALERT_PATTERNS);
   if (bodySignals >= 2) return true;
 
-  console.log(`[gatekeeper] reject ${id}: weak signal (title=no, body=${bodySignals}) "${(article.title ?? '').slice(0, 80)}"`);
+  // Category-only pass for categories curated as insurance/pension domains.
+  // Contextual political terms can still suppress these weak items, but words
+  // like "parliament" or "election" alone must not block regulator news.
+  const contextBlocked = SUBSCRIBER_ALERT_CONTEXT_BLOCKLIST.find((re) => re.test(haystack));
+  if (!contextBlocked && SUBSCRIBER_ALERT_TRUSTED_CATEGORY_ONLY.has(category)) return true;
+
+  console.log(`[gatekeeper] reject ${id}: weak signal (title=no, body=${bodySignals}${contextBlocked ? `, context blocklist=${contextBlocked}` : ''}) "${(article.title ?? '').slice(0, 80)}"`);
   return false;
 }
 
