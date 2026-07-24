@@ -180,7 +180,7 @@ export function NonLifeMotorBreakdown({ year, quarter }: NonLifeMotorBreakdownPr
                   cy="50%"
                   outerRadius={100}
                   innerRadius={50}
-                  label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+                  label={({ name, percentage }: any) => `${name}: ${percentage.toFixed(1)}%`}
                   labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                 >
                   {industrySplit.map((entry, i) => (

@@ -1031,7 +1031,7 @@ export function InsurerComparison({ trigger }: InsurerComparisonProps) {
                     </h4>
                     <div className="h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={barChartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                        <BarChart data={barChartData as any[]} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
                           <XAxis 
                             dataKey="name" 
