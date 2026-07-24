@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.strategic-qa]
 verify_jwt = false
+
+[functions.dashboard-insights]
+verify_jwt = false
+
+[functions.analyze-insurers]
+verify_jwt = false
