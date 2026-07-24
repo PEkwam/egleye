@@ -34,8 +34,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const authFail = await requireAuth(req, corsHeaders);
-  if (authFail) return authFail;
+
 
 
   try {
