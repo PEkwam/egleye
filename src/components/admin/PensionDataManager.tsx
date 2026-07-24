@@ -1160,7 +1160,7 @@ export function PensionDataManager() {
                       cy="50%"
                       outerRadius={100}
                       dataKey="market_share"
-                      label={({ name, market_share }) => `${name}: ${market_share}%`}
+                      label={(props: any) => `${props.name}: ${props.market_share}%`}
                     >
                       {FUND_CUSTODIANS_2024.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
