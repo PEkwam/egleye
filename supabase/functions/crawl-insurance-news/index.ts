@@ -577,7 +577,7 @@ async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
   let timeout: number | undefined;
   try {
     const ctrl = new AbortController();
-    timeout = setTimeout(() => ctrl.abort(), 7_000);
+    timeout = setTimeout(() => ctrl.abort(), 25_000);
     const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
       method: 'POST',
       signal: ctrl.signal,
