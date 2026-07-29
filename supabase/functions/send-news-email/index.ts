@@ -285,12 +285,26 @@ function isSubscriberAlertEligible(
     return false;
   }
 
+  // Pension / NPRA content is never sent to subscribers.
+  const pensionHit = SUBSCRIBER_ALERT_PENSION_EXCLUSION.find((re) => re.test(haystack));
+  if (pensionHit) {
+    console.log(`[gatekeeper] reject ${id}: pension/NPRA content excluded from subscriber alerts`);
+    return false;
+  }
+
   // Hard off-topic blocklist takes priority, but broad political words such as
-  // "Parliament" are deliberately not hard blockers because NIC/NPRA regulatory
+  // "Parliament" are deliberately not hard blockers because NIC regulatory
   // updates frequently contain them.
   const blocked = SUBSCRIBER_ALERT_HARD_BLOCKLIST.find((re) => re.test(haystack));
   if (blocked) {
     console.log(`[gatekeeper] reject ${id}: hard blocklist hit ${blocked}`);
+    return false;
+  }
+
+  // Every article must carry at least one real insurance signal, no exceptions.
+  const bodySignals = countMatches(haystack, SUBSCRIBER_ALERT_PATTERNS);
+  if (bodySignals === 0) {
+    console.log(`[gatekeeper] reject ${id}: no insurance signal "${(article.title ?? '').slice(0, 80)}"`);
     return false;
   }
 
@@ -299,12 +313,10 @@ function isSubscriberAlertEligible(
   if (strongTitle) return true;
 
   // Otherwise require multiple independent body signals.
-  const bodySignals = countMatches(haystack, SUBSCRIBER_ALERT_PATTERNS);
   if (bodySignals >= 2) return true;
 
-  // Category-only pass for categories curated as insurance/pension domains.
-  // Contextual political terms can still suppress these weak items, but words
-  // like "parliament" or "election" alone must not block regulator news.
+  // Category-only pass for categories curated as insurance domains, and only
+  // when the article already carries an insurance signal (checked above).
   const contextBlocked = SUBSCRIBER_ALERT_CONTEXT_BLOCKLIST.find((re) => re.test(haystack));
   if (!contextBlocked && SUBSCRIBER_ALERT_TRUSTED_CATEGORY_ONLY.has(category)) return true;
 
