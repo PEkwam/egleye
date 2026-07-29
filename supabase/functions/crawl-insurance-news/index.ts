@@ -407,11 +407,31 @@ function isBlockedContent(text: string, excludeKeywords: string[]): boolean {
   return excludeKeywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
 }
 
-// Article should be about insurance/pensions - STRICT: require 2+ keyword matches
-// unless from a dedicated insurance source
+// Core domain terms. An article MUST contain at least one of these to be
+// considered insurance/pension news. Generic words like "policy", "claim" or
+// "regulation" are far too weak on their own and let government / general
+// news slip onto the portal.
+const CORE_INSURANCE_TERMS: RegExp[] = [
+  /\binsur(?:ance|er|ers|ed|ing)\b/i,
+  /\bassur(?:ance|er|ers)\b/i,
+  /\breinsur\w*\b/i,
+  /\bunderwrit\w*\b/i,
+  /\bactuar\w*\b/i,
+  /\bpolicyholders?\b/i,
+  /\b(?:annuity|annuities|endowment|bancassur\w*|microinsur\w*|takaful|indemnity|solvency)\b/i,
+  /\b(?:pension|pensions|pensioner|ssnit|npra|provident\s+fund|tier\s+[123]\s+(?:scheme|pension)|trustee)\b/i,
+  /\bnational\s+insurance\s+commission\b/i,
+  /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|vanguard\s+assurance|donewell|metropolitan\s+life|ghana\s+re(?:insurance)?)\b/i,
+];
+
+// Article should be about insurance/pensions - STRICT: require a core domain
+// term plus (for non-dedicated sources) 2+ configured keyword matches.
 function isInsuranceRelated(text: string, includeKeywords: string[], sourceName: string): boolean {
   const lowerText = text.toLowerCase();
-  
+
+  // Hard requirement: a real insurance/pension domain term must be present.
+  if (!CORE_INSURANCE_TERMS.some((re) => re.test(lowerText))) return false;
+
   // Dedicated insurance sources get a pass with 1 keyword
   const trustedInsuranceSources = [
     'ghana insurance hub', 'africa insurance pulse', 'atlas magazine',
@@ -419,10 +439,11 @@ function isInsuranceRelated(text: string, includeKeywords: string[], sourceName:
   ];
   const isTrustedSource = trustedInsuranceSources.some(s => sourceName.toLowerCase().includes(s));
   const minKeywords = isTrustedSource ? 1 : 2;
-  
+
   const matchCount = includeKeywords.filter(keyword => lowerText.includes(keyword.toLowerCase())).length;
   return matchCount >= minKeywords;
 }
+
 
 function isRegulatorNews(text: string): boolean {
   const lowerText = text.toLowerCase();
