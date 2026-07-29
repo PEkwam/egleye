@@ -178,24 +178,30 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 // Only these categories are ever considered for subscriber alerts.
+// NOTE: "pensions" is deliberately excluded — subscribers do not want NPRA /
+// pension coverage in their alerts.
 const SUBSCRIBER_ALERT_CATEGORIES = new Set([
   'general',
   'enterprise_group',
   'regulator',
   'life_insurance',
   'nonlife',
-  'pensions',
   'claims',
 ]);
 
-// Article content MUST match at least one of these insurance/pension patterns
+// Pension / NPRA content is excluded from subscriber alerts entirely, even if
+// it was filed under another category.
+const SUBSCRIBER_ALERT_PENSION_EXCLUSION: RegExp[] = [
+  /\b(?:pension|pensions|pensioner|pensioners|npra|ssnit|provident\s+fund|tier\s+[123]|retirement\s+(?:scheme|fund|benefit)|national\s+pensions?\s+(?:regulatory\s+)?authority)\b/i,
+];
+
+// Article content MUST match at least one of these insurance patterns
 // to be eligible for a subscriber alert. This is the strict enforcement layer.
 const SUBSCRIBER_ALERT_PATTERNS: RegExp[] = [
   /\binsur(?:ance|er|ers|ed|ing)\b/, /\bassur(?:ance|er|ers)\b/,
-  /\b(?:policy|policies|premium|premiums|claim|claims|coverage|underwrit\w*|reinsur\w*|actuar\w*|solvency)\b/,
+  /\b(?:underwrit\w*|reinsur\w*|actuar\w*|solvency|policyholders?|indemnity)\b/,
   /\b(?:annuity|annuities|endowment|whole[\s-]?life|term[\s-]?life|microinsur\w*|bancassur\w*|takaful)\b/,
-  /\b(?:pension|pensions|pensioner|retirement|ssnit|npra|provident\s+fund|tier\s+[123]|trustee|gratuity)\b/,
-  /\b(?:nic|national\s+insurance\s+commission)\b/,
+  /\bnational\s+insurance\s+commission\b/,
   /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|prudential|allianz|vanguard\s+assurance|donewell|metropolitan\s+life)\b/,
 ];
 
@@ -222,28 +228,29 @@ const SUBSCRIBER_ALERT_CONTEXT_BLOCKLIST: RegExp[] = [
   /\b(?:npp|ndc)\b/i,
 ];
 
-// These editorial categories are already insurance/pension specific in the
-// portal. If the crawler places a short item here (for example "Enterprise
-// Group appoints new CEO") we should not silently drop it just because the
-// summary is empty or lacks a second keyword.
+// These editorial categories are already insurance specific in the portal.
+// A category-only pass still requires at least one real insurance signal.
 const SUBSCRIBER_ALERT_TRUSTED_CATEGORY_ONLY = new Set([
   'enterprise_group',
   'regulator',
   'life_insurance',
   'nonlife',
-  'pensions',
   'claims',
 ]);
 
 // Strong signals: if a title matches any of these, the article is clearly
-// on-topic insurance/pension content and passes without needing a body match.
+// on-topic insurance content and passes without needing a body match.
+// Deliberately excludes weak words such as "policy", "claim", "premium" and
+// bare "nic" — they match plenty of government / general news.
 const SUBSCRIBER_ALERT_STRONG_TITLE: RegExp[] = [
   /\binsur(?:ance|er|ers|ed)\b/i,
   /\bassur(?:ance|er)\b/i,
   /\breinsur\w*\b/i,
-  /\b(?:pension|pensions|ssnit|npra|nic|underwrit\w*|actuar\w*|solvency|policyholder|premium|claims?)\b/i,
+  /\b(?:underwrit\w*|actuar\w*|solvency|policyholders?|bancassur\w*|microinsur\w*|takaful)\b/i,
+  /\bnational\s+insurance\s+commission\b/i,
   /\b(?:enterprise\s+(?:life|insurance|group|trustees)|acacia\s+health|sic\s+(?:life|insurance)|star[\s-]?life|star\s+assurance|glico|hollard|old\s+mutual|prudential|allianz|vanguard\s+assurance|donewell|metropolitan\s+life)\b/i,
 ];
+
 
 function countMatches(text: string, patterns: RegExp[]): number {
   let n = 0;
