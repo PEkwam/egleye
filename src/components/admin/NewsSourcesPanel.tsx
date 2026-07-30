@@ -87,6 +87,10 @@ export function NewsSourcesPanel({ onTriggerCrawl, isCrawling }: { onTriggerCraw
   const sources = sourcesQ.data ?? [];
   const runs = runsQ.data ?? [];
 
+  // A background/scheduled crawl is in flight when the most recent run has no finish time
+  const activeRun = useMemo(() => runs.find((r) => r.status === 'running' && !r.finished_at), [runs]);
+  const crawlInProgress = Boolean(isCrawling || activeRun);
+
   const filtered = useMemo(() => {
     return sources.filter((s) => {
       if (modeFilter !== 'all' && s.mode !== modeFilter) return false;
