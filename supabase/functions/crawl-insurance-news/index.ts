@@ -592,9 +592,13 @@ function parseRSS(
   return articles;
 }
 
+// When Firecrawl returns 402 (out of credits / unpaid), stop calling it for the
+// rest of this run: every further call would burn a 25s timeout for nothing.
+let firecrawlDisabledForRun = false;
+
 async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
   const key = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!key) return null;
+  if (!key || firecrawlDisabledForRun) return null;
   let timeout: number | undefined;
   try {
     const ctrl = new AbortController();
@@ -607,9 +611,15 @@ async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
     });
     clearTimeout(timeout);
     if (!res.ok) {
-      console.warn(`Firecrawl fallback failed for ${feedUrl.slice(0, 80)}: HTTP ${res.status}`);
+      if (res.status === 402 || res.status === 403 || res.status === 429) {
+        firecrawlDisabledForRun = true;
+        console.warn(`Firecrawl unavailable (HTTP ${res.status}) - disabling fallback for the rest of this run. Top up Firecrawl credits to restore it.`);
+      } else {
+        console.warn(`Firecrawl fallback failed for ${feedUrl.slice(0, 80)}: HTTP ${res.status}`);
+      }
       return null;
     }
+
     const data = await res.json();
     const raw = data?.data?.rawHtml ?? data?.rawHtml ?? data?.data?.html ?? data?.html ?? data?.data?.markdown ?? null;
     return typeof raw === 'string' && raw.length > 0 ? raw : null;
