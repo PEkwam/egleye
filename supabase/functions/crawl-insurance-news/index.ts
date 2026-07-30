@@ -911,6 +911,7 @@ Deno.serve(async (req) => {
       const { includeKeywords, excludeKeywords } = await fetchDynamicKeywords(supabase);
       await loadDbKeywords(supabase);
 
+      firecrawlDisabledForRun = false;
       console.log(`Starting crawl. Mode=${modeLabel} Trigger=${triggerSource}`);
 
       type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
