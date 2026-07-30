@@ -188,9 +188,15 @@ export function NewsSourcesPanel({ onTriggerCrawl, isCrawling }: { onTriggerCraw
                 <AlertCircle className="h-3 w-3" /> {stats.errors} failing
               </Badge>
             )}
-            <Button size="sm" onClick={() => onTriggerCrawl?.()} disabled={isCrawling}>
-              {isCrawling ? <RefreshCw className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-              Run crawler now
+            <Button
+              size="sm"
+              onClick={() => onTriggerCrawl?.()}
+              disabled={crawlInProgress}
+              className={crawlInProgress ? 'opacity-50 cursor-not-allowed' : undefined}
+              title={activeRun ? 'A crawl is already running in the background' : undefined}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${crawlInProgress ? 'animate-spin' : ''}`} />
+              {crawlInProgress ? (activeRun ? `Crawl running (${activeRun.trigger_source})…` : 'Running…') : 'Run crawler now'}
             </Button>
           </div>
         </div>
