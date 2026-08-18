@@ -132,14 +132,20 @@ Rules:
     });
   } catch (e) {
     console.error("news-digest error:", e);
+    // Degrade gracefully: never 500 the client. The digest panel shows its
+    // own fallback when `digest` is null, so a backend hiccup (paused project,
+    // stale schema cache, AI quota) can't blank the page.
     return new Response(
       JSON.stringify({
-        error: e instanceof Error ? e.message : "Unknown error",
+        digest: null,
+        unavailable: true,
+        message: e instanceof Error ? e.message : "Digest temporarily unavailable",
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
 });
+
