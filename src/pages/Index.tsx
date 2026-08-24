@@ -239,6 +239,15 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
             />
           )}
 
+          {/* Enterprise Group Section */}
+          {showSections && enterpriseArticles.length > 0 && (
+            <EnterpriseSection
+              articles={enterpriseArticles}
+              onViewAll={() => handleCategoryChange('enterprise_group')}
+              isLoading={isLoading}
+            />
+          )}
+
           {/* NIC Regulatory Section */}
           {showSections && (
             <NICSection
@@ -253,14 +262,6 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
             <NPRASection
               articles={pensionArticles}
               onViewAll={() => handleCategoryChange('pensions')}
-              isLoading={isLoading}
-            />
-          )}
-
-          {showSections && enterpriseArticles.length > 0 && (
-            <EnterpriseSection
-              articles={enterpriseArticles}
-              onViewAll={() => handleCategoryChange('enterprise_group')}
               isLoading={isLoading}
             />
           )}
