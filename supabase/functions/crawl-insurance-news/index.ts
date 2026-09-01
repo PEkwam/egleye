@@ -631,6 +631,32 @@ async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
   }
 }
 
+// Google News (and some Cloudflare-fronted outlets) answer 503 to datacenter IPs.
+// Free read-only proxies usually get through; try them before paid Firecrawl.
+async function fetchViaProxy(feedUrl: string): Promise<string | null> {
+  const candidates = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`,
+    `https://r.jina.ai/${feedUrl}`,
+  ];
+  for (const proxyUrl of candidates) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 20_000);
+      const res = await fetch(proxyUrl, {
+        signal: ctrl.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; EGLEyeBot/1.0)', 'Accept': '*/*' },
+      }).finally(() => clearTimeout(t));
+      if (!res.ok) continue;
+      const body = await res.text();
+      if (body && /<(item|entry)[\s>]/i.test(body)) return body;
+    } catch {
+      // try next proxy
+    }
+  }
+  return null;
+}
+
+
 async function fetchRSSFeed(
   feedUrl: string, 
   category: string, 
@@ -639,9 +665,9 @@ async function fetchRSSFeed(
   excludeKeywords: string[]
 ): Promise<{ articles: NewsArticle[]; status: 'ok' | 'error'; error?: string }> {
   const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-  const doFetch = () => {
+  const doFetch = (timeoutMs: number) => {
     const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 6_000);
+    const timeout = setTimeout(() => ctrl.abort(), timeoutMs);
     return fetch(feedUrl, {
       signal: ctrl.signal,
     headers: {
@@ -652,41 +678,55 @@ async function fetchRSSFeed(
     },
     }).finally(() => clearTimeout(timeout));
   };
+  // Google News and several Ghanaian outlets routinely need >6s to answer.
+  // Try a generous window first, then one longer retry before giving up.
+  const attempt = async (): Promise<Response> => {
+    try {
+      return await doFetch(14_000);
+    } catch (e) {
+      const aborted = e instanceof Error && /abort/i.test(e.message);
+      if (!aborted) throw e;
+      await new Promise((r) => setTimeout(r, 750));
+      return await doFetch(22_000);
+    }
+  };
   try {
     console.log(`Fetching RSS: ${feedUrl.slice(0, 80)}...`);
-    let response = await doFetch();
+    let response = await attempt();
     if (response.status === 503 || response.status === 429) {
       const retryAfter = Number(response.headers.get('retry-after')) || 1;
-      await new Promise((r) => setTimeout(r, Math.min(retryAfter, 1) * 1000));
-      response = await doFetch();
+      await new Promise((r) => setTimeout(r, Math.min(retryAfter, 2) * 1000));
+      response = await attempt();
     }
     if (!response.ok) {
-      // Firecrawl fallback for blocked/anti-bot sources (Google News, Cloudflare-protected).
-      const fallbackXml = await fetchViaFirecrawl(feedUrl);
+      // Proxy first (free), then Firecrawl, for blocked/anti-bot sources.
+      const fallbackXml = (await fetchViaProxy(feedUrl)) ?? (await fetchViaFirecrawl(feedUrl));
       if (fallbackXml) {
         const articles = parseRSS(fallbackXml, category, sourceName, includeKeywords, excludeKeywords);
-        console.log(`Firecrawl fallback succeeded for ${sourceName}: ${articles.length} articles`);
+        console.log(`Fallback fetch succeeded for ${sourceName}: ${articles.length} articles`);
         return { articles, status: 'ok' };
       }
       const msg = `HTTP ${response.status}`;
       console.error(`RSS fetch failed for ${sourceName}: ${msg}`);
       return { articles: [], status: 'error', error: msg };
     }
+
     const xml = await response.text();
     const articles = parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
     return { articles, status: 'ok' };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    // Try Firecrawl on network errors too.
-    const fallbackXml = await fetchViaFirecrawl(feedUrl);
+    // Try fallbacks on network errors too.
+    const fallbackXml = (await fetchViaProxy(feedUrl)) ?? (await fetchViaFirecrawl(feedUrl));
     if (fallbackXml) {
       const articles = parseRSS(fallbackXml, category, sourceName, includeKeywords, excludeKeywords);
-      console.log(`Firecrawl fallback succeeded for ${sourceName} after error: ${articles.length} articles`);
+      console.log(`Fallback fetch succeeded for ${sourceName} after error: ${articles.length} articles`);
       return { articles, status: 'ok' };
     }
     console.error(`Error fetching RSS from ${sourceName}:`, msg);
     return { articles: [], status: 'error', error: msg };
   }
+
 }
 
 
@@ -916,8 +956,8 @@ Deno.serve(async (req) => {
 
       type SourceRow = { id: string; url: string; category: string; source_label: string; mode: string; consecutive_errors: number; next_eligible_at: string | null };
       const nowIso = new Date().toISOString();
-      const runDeadlineAt = Date.now() + 120_000;
-      const maxSourcesPerRun = nicOnly || pensionOnly ? 8 : 8;
+      const runDeadlineAt = Date.now() + 220_000;
+      const maxSourcesPerRun = nicOnly || pensionOnly ? 8 : 10;
       let sourceQuery = supabase
         .from('news_sources')
         .select('id, url, category, source_label, mode, consecutive_errors, next_eligible_at')
