@@ -907,14 +907,39 @@ Deno.serve(async (req) => {
       const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
       if (!smtp && !hasConnectorSecrets) return json({ error: 'No email connection configured. Add an SMTP profile in Site Settings.' }, 500);
 
-      let sent = 0, failed = 0;
-      for (const row of pending) {
+      // Story-level dedup: titles already delivered to each subscriber recently.
+      const deliveredTitles = await loadDeliveredTitles(supabase, subIds);
+
+      // Process the earliest-published version of a story first, so the
+      // original publication wins and syndicated copies get skipped.
+      const queue = [...pending].sort((a, b) => {
+        const pa = new Date((artMap.get(a.article_id) as any)?.published_at ?? 0).getTime();
+        const pb = new Date((artMap.get(b.article_id) as any)?.published_at ?? 0).getTime();
+        return pa - pb;
+      });
+
+      let sent = 0, failed = 0, duplicates = 0;
+      for (const row of queue) {
         const sub = subMap.get(row.subscriber_id) as Subscriber & { is_active: boolean } | undefined;
         const art = artMap.get(row.article_id) as Article | undefined;
 
         if (!sub || !sub.is_active || !art) {
           await supabase.from('news_subscriber_sends').update({
             status: 'skipped', error_message: !sub ? 'subscriber missing' : !art ? 'article missing' : 'subscriber inactive',
+            sent_at: new Date().toISOString(),
+          }).eq('id', row.id);
+          continue;
+        }
+
+        // Skip syndicated repeats: same story already sent to this subscriber
+        // from another outlet within the last 14 days (or earlier in this run).
+        const seen = deliveredTitles.get(sub.id) ?? [];
+        const dupOf = isDuplicateStory(art.title, seen);
+        if (dupOf) {
+          duplicates++;
+          await supabase.from('news_subscriber_sends').update({
+            status: 'skipped',
+            error_message: `duplicate story already sent: "${dupOf.slice(0, 120)}"`,
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
@@ -931,6 +956,7 @@ Deno.serve(async (req) => {
           }).eq('id', row.id);
           continue;
         }
+
 
         // Freshness guard: strictly require recent published_at.
         const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
