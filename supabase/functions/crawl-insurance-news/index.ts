@@ -632,29 +632,47 @@ async function fetchViaFirecrawl(feedUrl: string): Promise<string | null> {
 }
 
 // Google News (and some Cloudflare-fronted outlets) answer 503 to datacenter IPs.
-// Free read-only proxies usually get through; try them before paid Firecrawl.
+// Fall back to a Bing News RSS mirror of the same query, then generic read proxies,
+// before touching paid Firecrawl.
+function bingMirrorUrl(feedUrl: string): string | null {
+  try {
+    const u = new URL(feedUrl);
+    if (!/(^|\.)news\.google\.com$/i.test(u.hostname)) return null;
+    const q = u.searchParams.get('q');
+    if (!q) return null;
+    return `https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=RSS`;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchViaProxy(feedUrl: string): Promise<string | null> {
   const candidates = [
+    bingMirrorUrl(feedUrl),
     `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`,
     `https://r.jina.ai/${feedUrl}`,
-  ];
+  ].filter((v): v is string => Boolean(v));
   for (const proxyUrl of candidates) {
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 20_000);
       const res = await fetch(proxyUrl, {
         signal: ctrl.signal,
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; EGLEyeBot/1.0)', 'Accept': '*/*' },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*;q=0.8',
+        },
       }).finally(() => clearTimeout(t));
       if (!res.ok) continue;
       const body = await res.text();
       if (body && /<(item|entry)[\s>]/i.test(body)) return body;
     } catch {
-      // try next proxy
+      // try next fallback
     }
   }
   return null;
 }
+
 
 
 async function fetchRSSFeed(
