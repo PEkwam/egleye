@@ -324,6 +324,79 @@ function isSubscriberAlertEligible(
   return false;
 }
 
+// ---------------------------------------------------------------------------
+// Cross-source story deduplication.
+// The same story is often syndicated by several outlets ("SIC Insurance posts
+// strong 2025 results" from Google News, B&FT, Graphic ...). Subscribers must
+// receive only the FIRST published version; later duplicates are skipped.
+// ---------------------------------------------------------------------------
+const STOPWORDS = new Set([
+  'the','a','an','of','and','or','to','in','on','for','with','at','by','from','as','is','are','was','were','be','been',
+  'its','it','this','that','these','those','after','over','into','amid','says','said','new','ghana','ghanas','ghanaian',
+]);
+
+function titleTokens(title: string): Set<string> {
+  return new Set(
+    String(title || '')
+      .toLowerCase()
+      .replace(/&[a-z#0-9]+;/g, ' ')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((t) => t.length > 2 && !STOPWORDS.has(t)),
+  );
+}
+
+/** Jaccard similarity between two article titles (0..1). */
+function titleSimilarity(a: string, b: string): number {
+  const ta = titleTokens(a);
+  const tb = titleTokens(b);
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let inter = 0;
+  for (const t of ta) if (tb.has(t)) inter++;
+  return inter / (ta.size + tb.size - inter);
+}
+
+const DUPLICATE_THRESHOLD = 0.55;
+
+function isDuplicateStory(title: string, seen: string[]): string | null {
+  for (const prev of seen) {
+    if (titleSimilarity(title, prev) >= DUPLICATE_THRESHOLD) return prev;
+  }
+  return null;
+}
+
+/** Titles of articles already delivered to a subscriber in the recent window. */
+async function loadDeliveredTitles(
+  supabase: any,
+  subscriberIds: string[],
+  days = 14,
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (subscriberIds.length === 0) return out;
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data: sends } = await supabase
+    .from('news_subscriber_sends')
+    .select('subscriber_id, article_id')
+    .in('subscriber_id', subscriberIds)
+    .eq('status', 'sent')
+    .gte('created_at', since);
+  const artIds = [...new Set((sends ?? []).map((s: any) => s.article_id))];
+  if (artIds.length === 0) return out;
+  const { data: arts } = await supabase
+    .from('news_articles')
+    .select('id, title')
+    .in('id', artIds);
+  const titleMap = new Map((arts ?? []).map((a: any) => [a.id, a.title as string]));
+  for (const s of sends ?? []) {
+    const t = titleMap.get(s.article_id);
+    if (!t) continue;
+    const list = out.get(s.subscriber_id) ?? [];
+    list.push(t);
+    out.set(s.subscriber_id, list);
+  }
+  return out;
+}
+
 
 function withUtm(url: string, campaign = 'news_alert'): string {
   try {
@@ -748,6 +821,33 @@ Deno.serve(async (req) => {
         return json({ enqueued: 0, skipped: true, reason: 'not_eligible' });
       }
 
+      // Cross-source dedup at enqueue time: if the same story was already
+      // queued/sent from another outlet in the last 14 days, ignore this copy.
+      {
+        const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+        const { data: recentSends } = await supabase
+          .from('news_subscriber_sends')
+          .select('article_id')
+          .gte('created_at', since)
+          .limit(5000);
+        const prevIds = [...new Set((recentSends ?? []).map((r: any) => r.article_id))].filter(
+          (id) => id !== articleId,
+        );
+        if (prevIds.length > 0) {
+          const { data: prevArts } = await supabase
+            .from('news_articles')
+            .select('title')
+            .in('id', prevIds);
+          const dupOf = isDuplicateStory(art?.title ?? '', (prevArts ?? []).map((a: any) => a.title));
+          if (dupOf) {
+            console.log(`[enqueue_article] Skipping duplicate story ${articleId}: matches "${dupOf.slice(0, 80)}"`);
+            return json({ enqueued: 0, skipped: true, reason: 'duplicate_story' });
+          }
+        }
+      }
+
+
+
       const { data: subs, error: sErr } = await supabase
         .from('news_subscribers')
         .select('id')
@@ -834,14 +934,39 @@ Deno.serve(async (req) => {
       const hasConnectorSecrets = !!Deno.env.get('LOVABLE_API_KEY') && !!Deno.env.get('GOOGLE_MAIL_API_KEY');
       if (!smtp && !hasConnectorSecrets) return json({ error: 'No email connection configured. Add an SMTP profile in Site Settings.' }, 500);
 
-      let sent = 0, failed = 0;
-      for (const row of pending) {
+      // Story-level dedup: titles already delivered to each subscriber recently.
+      const deliveredTitles = await loadDeliveredTitles(supabase, subIds);
+
+      // Process the earliest-published version of a story first, so the
+      // original publication wins and syndicated copies get skipped.
+      const queue = [...pending].sort((a, b) => {
+        const pa = new Date((artMap.get(a.article_id) as any)?.published_at ?? 0).getTime();
+        const pb = new Date((artMap.get(b.article_id) as any)?.published_at ?? 0).getTime();
+        return pa - pb;
+      });
+
+      let sent = 0, failed = 0, duplicates = 0;
+      for (const row of queue) {
         const sub = subMap.get(row.subscriber_id) as Subscriber & { is_active: boolean } | undefined;
         const art = artMap.get(row.article_id) as Article | undefined;
 
         if (!sub || !sub.is_active || !art) {
           await supabase.from('news_subscriber_sends').update({
             status: 'skipped', error_message: !sub ? 'subscriber missing' : !art ? 'article missing' : 'subscriber inactive',
+            sent_at: new Date().toISOString(),
+          }).eq('id', row.id);
+          continue;
+        }
+
+        // Skip syndicated repeats: same story already sent to this subscriber
+        // from another outlet within the last 14 days (or earlier in this run).
+        const seen = deliveredTitles.get(sub.id) ?? [];
+        const dupOf = isDuplicateStory(art.title, seen);
+        if (dupOf) {
+          duplicates++;
+          await supabase.from('news_subscriber_sends').update({
+            status: 'skipped',
+            error_message: `duplicate story already sent: "${dupOf.slice(0, 120)}"`,
             sent_at: new Date().toISOString(),
           }).eq('id', row.id);
           continue;
@@ -858,6 +983,7 @@ Deno.serve(async (req) => {
           }).eq('id', row.id);
           continue;
         }
+
 
         // Freshness guard: strictly require recent published_at.
         const pubAtMs = art.published_at ? new Date(art.published_at).getTime() : 0;
@@ -895,6 +1021,7 @@ Deno.serve(async (req) => {
           if (result.status === 429) break; // back off
         } else {
           sent++;
+          deliveredTitles.set(sub.id, [...seen, art.title]);
           await supabase.from('news_subscriber_sends').update({
             status: 'sent', message_id: result.id ?? null, sent_at: new Date().toISOString(),
             attempts: (row.attempts ?? 0) + 1, error_message: null,
@@ -904,7 +1031,8 @@ Deno.serve(async (req) => {
         // throttle ~5/sec to stay well under Gmail caps
         await new Promise((r) => setTimeout(r, 200));
       }
-      return json({ processed: pending.length, sent, failed });
+      return json({ processed: queue.length, sent, failed, duplicates });
+
     }
 
     if (action === 'backfill_recent') {
