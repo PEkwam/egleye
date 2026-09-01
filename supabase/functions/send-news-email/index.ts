@@ -994,6 +994,7 @@ Deno.serve(async (req) => {
           if (result.status === 429) break; // back off
         } else {
           sent++;
+          deliveredTitles.set(sub.id, [...seen, art.title]);
           await supabase.from('news_subscriber_sends').update({
             status: 'sent', message_id: result.id ?? null, sent_at: new Date().toISOString(),
             attempts: (row.attempts ?? 0) + 1, error_message: null,
@@ -1003,7 +1004,8 @@ Deno.serve(async (req) => {
         // throttle ~5/sec to stay well under Gmail caps
         await new Promise((r) => setTimeout(r, 200));
       }
-      return json({ processed: pending.length, sent, failed });
+      return json({ processed: queue.length, sent, failed, duplicates });
+
     }
 
     if (action === 'backfill_recent') {
