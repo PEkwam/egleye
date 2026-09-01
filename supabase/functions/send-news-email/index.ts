@@ -821,6 +821,33 @@ Deno.serve(async (req) => {
         return json({ enqueued: 0, skipped: true, reason: 'not_eligible' });
       }
 
+      // Cross-source dedup at enqueue time: if the same story was already
+      // queued/sent from another outlet in the last 14 days, ignore this copy.
+      {
+        const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+        const { data: recentSends } = await supabase
+          .from('news_subscriber_sends')
+          .select('article_id')
+          .gte('created_at', since)
+          .limit(5000);
+        const prevIds = [...new Set((recentSends ?? []).map((r: any) => r.article_id))].filter(
+          (id) => id !== articleId,
+        );
+        if (prevIds.length > 0) {
+          const { data: prevArts } = await supabase
+            .from('news_articles')
+            .select('title')
+            .in('id', prevIds);
+          const dupOf = isDuplicateStory(art?.title ?? '', (prevArts ?? []).map((a: any) => a.title));
+          if (dupOf) {
+            console.log(`[enqueue_article] Skipping duplicate story ${articleId}: matches "${dupOf.slice(0, 80)}"`);
+            return json({ enqueued: 0, skipped: true, reason: 'duplicate_story' });
+          }
+        }
+      }
+
+
+
       const { data: subs, error: sErr } = await supabase
         .from('news_subscribers')
         .select('id')
