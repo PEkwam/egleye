@@ -324,6 +324,79 @@ function isSubscriberAlertEligible(
   return false;
 }
 
+// ---------------------------------------------------------------------------
+// Cross-source story deduplication.
+// The same story is often syndicated by several outlets ("SIC Insurance posts
+// strong 2025 results" from Google News, B&FT, Graphic ...). Subscribers must
+// receive only the FIRST published version; later duplicates are skipped.
+// ---------------------------------------------------------------------------
+const STOPWORDS = new Set([
+  'the','a','an','of','and','or','to','in','on','for','with','at','by','from','as','is','are','was','were','be','been',
+  'its','it','this','that','these','those','after','over','into','amid','says','said','new','ghana','ghanas','ghanaian',
+]);
+
+function titleTokens(title: string): Set<string> {
+  return new Set(
+    String(title || '')
+      .toLowerCase()
+      .replace(/&[a-z#0-9]+;/g, ' ')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((t) => t.length > 2 && !STOPWORDS.has(t)),
+  );
+}
+
+/** Jaccard similarity between two article titles (0..1). */
+function titleSimilarity(a: string, b: string): number {
+  const ta = titleTokens(a);
+  const tb = titleTokens(b);
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let inter = 0;
+  for (const t of ta) if (tb.has(t)) inter++;
+  return inter / (ta.size + tb.size - inter);
+}
+
+const DUPLICATE_THRESHOLD = 0.55;
+
+function isDuplicateStory(title: string, seen: string[]): string | null {
+  for (const prev of seen) {
+    if (titleSimilarity(title, prev) >= DUPLICATE_THRESHOLD) return prev;
+  }
+  return null;
+}
+
+/** Titles of articles already delivered to a subscriber in the recent window. */
+async function loadDeliveredTitles(
+  supabase: any,
+  subscriberIds: string[],
+  days = 14,
+): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (subscriberIds.length === 0) return out;
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data: sends } = await supabase
+    .from('news_subscriber_sends')
+    .select('subscriber_id, article_id')
+    .in('subscriber_id', subscriberIds)
+    .eq('status', 'sent')
+    .gte('created_at', since);
+  const artIds = [...new Set((sends ?? []).map((s: any) => s.article_id))];
+  if (artIds.length === 0) return out;
+  const { data: arts } = await supabase
+    .from('news_articles')
+    .select('id, title')
+    .in('id', artIds);
+  const titleMap = new Map((arts ?? []).map((a: any) => [a.id, a.title as string]));
+  for (const s of sends ?? []) {
+    const t = titleMap.get(s.article_id);
+    if (!t) continue;
+    const list = out.get(s.subscriber_id) ?? [];
+    list.push(t);
+    out.set(s.subscriber_id, list);
+  }
+  return out;
+}
+
 
 function withUtm(url: string, campaign = 'news_alert'): string {
   try {
