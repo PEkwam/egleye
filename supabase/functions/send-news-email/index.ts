@@ -753,7 +753,7 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* noop */ }
   const action = String(body.action || '');
 
-  const requiresAdmin = ['process_queue', 'send_test', 'status', 'backfill_recent', 'list_backfill_candidates', 'delete_article'].includes(action);
+  const requiresAdmin = ['process_queue', 'send_test', 'status', 'backfill_recent', 'list_backfill_candidates', 'delete_article', 'delete_articles'].includes(action);
   if (requiresAdmin) {
     const token = req.headers.get('x-admin-token');
     const internalQueueProcessor = action === 'process_queue' && isServiceRoleCall(req);
@@ -1186,6 +1186,17 @@ Deno.serve(async (req) => {
       const { error: dErr } = await supabase.from('news_articles').delete().eq('id', articleId);
       if (dErr) throw dErr;
       return json({ deleted: true, articleId });
+    }
+
+    if (action === 'delete_articles') {
+      const ids: string[] = Array.isArray(body.articleIds)
+        ? body.articleIds.map((x: unknown) => String(x)).filter(Boolean)
+        : [];
+      if (ids.length === 0) return json({ error: 'Missing articleIds' }, 400);
+      if (ids.length > 200) return json({ error: 'Too many articles (max 200 per call)' }, 400);
+      const { error: dErr } = await supabase.from('news_articles').delete().in('id', ids);
+      if (dErr) throw dErr;
+      return json({ deleted: ids.length });
     }
 
     return json({ error: 'Unknown action' }, 400);

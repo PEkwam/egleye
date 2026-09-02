@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Pagination,
@@ -155,6 +156,8 @@ export function EmailDeliveryDashboard() {
     remaining: number;
   }
   const [backfillOpen, setBackfillOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   const backfillListQuery = useQuery({
     queryKey: ['backfill-candidates'],
@@ -189,6 +192,35 @@ export function EmailDeliveryDashboard() {
     },
     onError: (err: Error) => toast.error(err.message || 'Delete failed'),
   });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (articleIds: string[]) =>
+      callSender('delete_articles', { articleIds }) as Promise<{ deleted: number }>,
+    onSuccess: (res) => {
+      toast.success(`Deleted ${res.deleted} article${res.deleted === 1 ? '' : 's'}`);
+      setSelectedIds(new Set());
+      setConfirmBulkDelete(false);
+      backfillListQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Bulk delete failed');
+      setConfirmBulkDelete(false);
+    },
+  });
+
+  const candidates = backfillListQuery.data?.candidates ?? [];
+  const allSelected = candidates.length > 0 && candidates.every((c) => selectedIds.has(c.id));
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(candidates.map((c) => c.id)));
+  };
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   type DeleteRange = 'week' | 'month' | 'older_than_month' | 'all';
   const rangeLabels: Record<DeleteRange, string> = {
@@ -485,7 +517,7 @@ export function EmailDeliveryDashboard() {
     </AlertDialog>
 
     {/* Backfill candidates dialog */}
-    <Dialog open={backfillOpen} onOpenChange={setBackfillOpen}>
+    <Dialog open={backfillOpen} onOpenChange={(open) => { setBackfillOpen(open); if (!open) { setSelectedIds(new Set()); setConfirmBulkDelete(false); } }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Backfill recent news</DialogTitle>
@@ -507,11 +539,27 @@ export function EmailDeliveryDashboard() {
           )}
           {backfillListQuery.data && backfillListQuery.data.candidates.length > 0 && (
             <div className="divide-y divide-border/50 rounded-lg border border-border/60">
+              <div className="p-2.5 flex items-center gap-3 bg-muted/40">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all articles"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+                </span>
+              </div>
               {backfillListQuery.data.candidates.map((c) => {
                 const isSending = enqueueOneMutation.isPending && enqueueOneMutation.variables === c.id;
                 const isDeleting = deleteArticleMutation.isPending && deleteArticleMutation.variables === c.id;
                 return (
                   <div key={c.id} className="p-3 flex items-start gap-3 flex-wrap hover:bg-muted/30">
+                    <Checkbox
+                      checked={selectedIds.has(c.id)}
+                      onCheckedChange={() => toggleSelect(c.id)}
+                      aria-label={`Select ${c.title}`}
+                      className="mt-0.5"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate" title={c.title}>{c.title}</p>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
@@ -554,15 +602,50 @@ export function EmailDeliveryDashboard() {
           )}
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={() => backfillListQuery.refetch()} disabled={backfillListQuery.isFetching}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${backfillListQuery.isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+        <DialogFooter className="gap-2 sm:justify-between">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setConfirmBulkDelete(true)}
+            disabled={selectedIds.size === 0 || bulkDeleteMutation.isPending}
+            className="gap-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete selected{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
           </Button>
-          <Button variant="default" size="sm" onClick={() => setBackfillOpen(false)}>Close</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => backfillListQuery.refetch()} disabled={backfillListQuery.isFetching}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${backfillListQuery.isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button variant="default" size="sm" onClick={() => setBackfillOpen(false)}>Close</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Bulk delete confirmation */}
+    <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {selectedIds.size} article{selectedIds.size === 1 ? '' : 's'}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently remove the selected articles from the portal and any
+            queued deliveries for them. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={bulkDeleteMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); bulkDeleteMutation.mutate([...selectedIds]); }}
+            disabled={bulkDeleteMutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete all selected'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
