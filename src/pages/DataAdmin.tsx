@@ -1680,12 +1680,17 @@ const DataAdmin = () => {
           report_source: 'NIC Quarterly Report',
         }));
 
-        const { error } = await supabase
-          .from('broker_metrics')
-          .upsert(enrichedData, {
+        let error: { message: string } | null = null;
+        try {
+          await importMetrics({
+            action: 'upsert',
+            table: 'broker_metrics',
+            rows: enrichedData,
             onConflict: 'broker_name,report_year,report_quarter',
-            ignoreDuplicates: false,
           });
+        } catch (e) {
+          error = { message: e instanceof Error ? e.message : 'Import failed' };
+        }
 
         if (error) {
           errors.push(`${sheet.sheetName}: ${error.message}`);
