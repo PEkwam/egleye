@@ -849,7 +849,16 @@ async function fetchRSSFeed(
       await new Promise((r) => setTimeout(r, Math.min(retryAfter, 2) * 1000));
       response = await attempt();
     }
+    const isBft = /^https?:\/\/(www\.)?thebftonline\.com/i.test(feedUrl);
     if (!response.ok) {
+      // B&FT has no RSS feed — scrape the listing page directly.
+      if (isBft) {
+        const scraped = await scrapeBFTListing(feedUrl, category, sourceName, includeKeywords, excludeKeywords);
+        if (scraped.length) return { articles: scraped, status: 'ok' };
+        const msg = `HTTP ${response.status} (site scrape found nothing)`;
+        console.error(`B&FT scrape failed for ${sourceName}: ${msg}`);
+        return { articles: [], status: 'error', error: msg };
+      }
       // Proxy first (free), then Firecrawl, for blocked/anti-bot sources.
       const fallbackXml = (await fetchViaProxy(feedUrl)) ?? (await fetchViaFirecrawl(feedUrl));
       if (fallbackXml) {
