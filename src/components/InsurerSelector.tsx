@@ -52,7 +52,7 @@ export function InsurerSelector({
         return [];
       }
 
-      return data.map((d) => ({
+      return (data || []).map((d) => ({
         id: d.insurer_id,
         name: d.insurer_name,
         premium: d.gross_premium,
