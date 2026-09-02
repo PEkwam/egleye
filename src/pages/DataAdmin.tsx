@@ -921,10 +921,8 @@ const DataAdmin = () => {
     
     setIsClearingLife(true);
     try {
-      const { error } = await supabase
-        .from('insurer_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+      await importMetrics({ action: 'deleteAll', table: 'insurer_metrics' });
+      const error = null;
       
       if (error) throw error;
       
@@ -945,10 +943,8 @@ const DataAdmin = () => {
     
     setIsClearingNonLife(true);
     try {
-      const { error } = await supabase
-        .from('nonlife_insurer_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+      await importMetrics({ action: 'deleteAll', table: 'nonlife_insurer_metrics' });
+      const error = null;
       
       if (error) throw error;
       
@@ -967,10 +963,8 @@ const DataAdmin = () => {
     
     setIsClearingPension(true);
     try {
-      const { error } = await supabase
-        .from('pension_fund_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+      await importMetrics({ action: 'deleteAll', table: 'pension_fund_metrics' });
+      const error = null;
       
       if (error) throw error;
       
@@ -990,10 +984,8 @@ const DataAdmin = () => {
     
     setIsClearingBrokers(true);
     try {
-      const { error } = await supabase
-        .from('broker_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+      await importMetrics({ action: 'deleteAll', table: 'broker_metrics' });
+      const error = null;
       
       if (error) throw error;
       
