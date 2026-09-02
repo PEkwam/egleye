@@ -1843,12 +1843,17 @@ const DataAdmin = () => {
 
           const enrichedData = Array.from(deduped.values());
 
-          const { error } = await supabase
-            .from('insurer_metrics')
-            .upsert(enrichedData, {
+          let error: { message: string } | null = null;
+          try {
+            await importMetrics({
+              action: 'upsert',
+              table: 'insurer_metrics',
+              rows: enrichedData,
               onConflict: 'insurer_id,report_year,report_quarter',
-              ignoreDuplicates: false,
             });
+          } catch (e) {
+            error = { message: e instanceof Error ? e.message : 'Import failed' };
+          }
 
           if (error) {
             errors.push(`${sheet.sheetName} (Life): ${error.message}`);
@@ -1915,12 +1920,17 @@ const DataAdmin = () => {
 
           const enrichedData = Array.from(deduped.values());
 
-          const { error } = await supabase
-            .from('nonlife_insurer_metrics')
-            .upsert(enrichedData, {
+          let error: { message: string } | null = null;
+          try {
+            await importMetrics({
+              action: 'upsert',
+              table: 'nonlife_insurer_metrics',
+              rows: enrichedData,
               onConflict: 'insurer_id,report_year,report_quarter',
-              ignoreDuplicates: false,
             });
+          } catch (e) {
+            error = { message: e instanceof Error ? e.message : 'Import failed' };
+          }
 
           if (error) {
             errors.push(`${sheet.sheetName} (Non-Life): ${error.message}`);
