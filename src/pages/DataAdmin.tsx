@@ -1988,12 +1988,13 @@ const DataAdmin = () => {
         report_source: 'NIC Quarterly Report',
       }));
 
-      const { error } = await supabase
-        .from(tableName)
-        .upsert(enrichedData, { 
-          onConflict: 'insurer_id,report_year,report_quarter',
-          ignoreDuplicates: false 
-        });
+      await importMetrics({
+        action: 'upsert',
+        table: tableName,
+        rows: enrichedData,
+        onConflict: 'insurer_id,report_year,report_quarter',
+      });
+      const error = null;
 
       if (error) throw error;
 
