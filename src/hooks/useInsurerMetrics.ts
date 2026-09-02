@@ -170,7 +170,7 @@ export function useInsurerMetrics(category?: InsuranceCategory, year?: number, q
   // Real-time subscription for metric updates
   useEffect(() => {
     const channel = supabase
-      .channel('insurer-metrics-realtime')
+      .channel(`insurer-metrics-realtime-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
