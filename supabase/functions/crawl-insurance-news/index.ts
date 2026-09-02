@@ -1244,8 +1244,11 @@ async function runPostFetchPipeline(args: {
   let duplicatesSkipped = 0;
 
   try {
-    // Dedupe against existing URLs in DB
-    const normalizedBatch = batchUniques.map(normalizeArticleForInsert);
+    // Dedupe against existing URLs in DB (drop anything without a valid URL first)
+    const normalizedBatch = batchUniques
+      .map(normalizeArticleForInsert)
+      .map((a) => ({ ...a, source_url: canonicalizeUrl(a.source_url) ?? '' }))
+      .filter((a) => !!a.source_url);
     const urls = normalizedBatch.map((a) => a.source_url);
     let existingUrls = new Set<string>();
     if (urls.length > 0) {
@@ -1256,6 +1259,24 @@ async function runPostFetchPipeline(args: {
       existingUrls = new Set((existing ?? []).map((r: any) => r.source_url));
     }
     let toInsert = normalizedBatch.filter((a) => !existingUrls.has(a.source_url));
+
+    // Title-level dedup against the DB: the same story syndicated through a new
+    // aggregator URL must not be republished.
+    if (toInsert.length > 0) {
+      const since = new Date(Date.now() - 45 * 86_400_000).toISOString();
+      const { data: recent } = await supabase
+        .from('news_articles')
+        .select('title')
+        .gte('created_at', since)
+        .limit(3000);
+      const seenTitles = new Set((recent ?? []).map((r: any) => normalizeTitle(r.title)));
+      toInsert = toInsert.filter((a) => {
+        const key = normalizeTitle(a.title);
+        if (!key || seenTitles.has(key)) return false;
+        seenTitles.add(key);
+        return true;
+      });
+    }
     duplicatesSkipped = normalizedBatch.length - toInsert.length;
 
     // --- Auto-feature: promote the top clustered story if 3+ outlets covered it ---
