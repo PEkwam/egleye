@@ -87,6 +87,54 @@ function normalizeArticleForInsert(article: NewsArticle): NewsArticle {
   };
 }
 
+// ---------------------------------------------------------------------------
+// URL canonicalisation.
+// Aggregator feeds (Bing News mirror, Google News) wrap the real article in a
+// tracking redirect whose query string changes on EVERY fetch, which defeats
+// URL-based dedup and floods the portal with the same story. Unwrap to the
+// publisher URL and strip tracking params so one story == one row.
+// ---------------------------------------------------------------------------
+const TRACKING_PARAMS = /^(utm_|ref$|ref_|tid$|aid$|mkt$|cvid$|fbclid$|gclid$|oc$|hl$|gl$|ceid$|c$|form$|_gl$)/i;
+
+function canonicalizeUrl(raw: string): string | null {
+  let link = String(raw || '').trim()
+    .replace(/&amp;/gi, '&')
+    .replace(/&#38;/g, '&')
+    .replace(/\s+/g, '');
+  if (!link) return null;
+
+  for (let hop = 0; hop < 3; hop++) {
+    let u: URL;
+    try { u = new URL(link); } catch { return null; }
+    if (!/^https?:$/.test(u.protocol)) return null;
+
+    // Unwrap redirectors that carry the destination in a query param.
+    const inner = u.searchParams.get('url') || u.searchParams.get('u') || u.searchParams.get('q');
+    const isRedirector = /(^|\.)(bing\.com|news\.google\.com|google\.com|r\.jina\.ai|allorigins\.win)$/i.test(u.hostname);
+    if (isRedirector && inner && /^https?:\/\//i.test(decodeURIComponent(inner))) {
+      link = decodeURIComponent(inner);
+      continue;
+    }
+    if (isRedirector && /\/(news\/apiclick\.aspx|rss\/articles)/i.test(u.pathname)) {
+      // Redirector we cannot unwrap -> not a valid publisher URL.
+      return null;
+    }
+
+    // Strip tracking params and normalise.
+    for (const key of [...u.searchParams.keys()]) {
+      if (TRACKING_PARAMS.test(key)) u.searchParams.delete(key);
+    }
+    u.hash = '';
+    if (u.protocol === 'http:') u.protocol = 'https:';
+    if (!u.hostname.includes('.')) return null;
+    let out = u.toString();
+    if (out.endsWith('?')) out = out.slice(0, -1);
+    if (out.endsWith('/') && u.pathname !== '/') out = out.slice(0, -1);
+    return out;
+  }
+  return null;
+}
+
 // Ghana-specific keywords for filtering - COMPREHENSIVE
 // NOTE: This is a fallback list. The crawler also pulls insurer names + keywords
 // from the `insurers` DB table at runtime via `loadDbKeywords()` so renames
