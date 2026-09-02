@@ -87,6 +87,54 @@ function normalizeArticleForInsert(article: NewsArticle): NewsArticle {
   };
 }
 
+// ---------------------------------------------------------------------------
+// URL canonicalisation.
+// Aggregator feeds (Bing News mirror, Google News) wrap the real article in a
+// tracking redirect whose query string changes on EVERY fetch, which defeats
+// URL-based dedup and floods the portal with the same story. Unwrap to the
+// publisher URL and strip tracking params so one story == one row.
+// ---------------------------------------------------------------------------
+const TRACKING_PARAMS = /^(utm_|ref$|ref_|tid$|aid$|mkt$|cvid$|fbclid$|gclid$|oc$|hl$|gl$|ceid$|c$|form$|_gl$)/i;
+
+function canonicalizeUrl(raw: string): string | null {
+  let link = String(raw || '').trim()
+    .replace(/&amp;/gi, '&')
+    .replace(/&#38;/g, '&')
+    .replace(/\s+/g, '');
+  if (!link) return null;
+
+  for (let hop = 0; hop < 3; hop++) {
+    let u: URL;
+    try { u = new URL(link); } catch { return null; }
+    if (!/^https?:$/.test(u.protocol)) return null;
+
+    // Unwrap redirectors that carry the destination in a query param.
+    const inner = u.searchParams.get('url') || u.searchParams.get('u') || u.searchParams.get('q');
+    const isRedirector = /(^|\.)(bing\.com|news\.google\.com|google\.com|r\.jina\.ai|allorigins\.win)$/i.test(u.hostname);
+    if (isRedirector && inner && /^https?:\/\//i.test(decodeURIComponent(inner))) {
+      link = decodeURIComponent(inner);
+      continue;
+    }
+    if (isRedirector && /\/(news\/apiclick\.aspx|rss\/articles)/i.test(u.pathname)) {
+      // Redirector we cannot unwrap -> not a valid publisher URL.
+      return null;
+    }
+
+    // Strip tracking params and normalise.
+    for (const key of [...u.searchParams.keys()]) {
+      if (TRACKING_PARAMS.test(key)) u.searchParams.delete(key);
+    }
+    u.hash = '';
+    if (u.protocol === 'http:') u.protocol = 'https:';
+    if (!u.hostname.includes('.')) return null;
+    let out = u.toString();
+    if (out.endsWith('?')) out = out.slice(0, -1);
+    if (out.endsWith('/') && u.pathname !== '/') out = out.slice(0, -1);
+    return out;
+  }
+  return null;
+}
+
 // Ghana-specific keywords for filtering - COMPREHENSIVE
 // NOTE: This is a fallback list. The crawler also pulls insurer names + keywords
 // from the `insurers` DB table at runtime via `loadDbKeywords()` so renames
@@ -491,7 +539,12 @@ function parseRSS(
 
       // Extract link
       const linkMatch = item.match(/<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i);
-      const link = linkMatch ? linkMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+      const rawLink = linkMatch ? linkMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+      const guidMatch = item.match(/<guid[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/guid>/i);
+      const rawGuid = guidMatch ? guidMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+      const link = canonicalizeUrl(rawLink) ?? canonicalizeUrl(rawGuid) ?? '';
+      // Never publish an article without a real, resolvable publisher URL.
+      if (!link) return;
 
       // Extract description
       const descMatch = item.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i);
@@ -1191,8 +1244,11 @@ async function runPostFetchPipeline(args: {
   let duplicatesSkipped = 0;
 
   try {
-    // Dedupe against existing URLs in DB
-    const normalizedBatch = batchUniques.map(normalizeArticleForInsert);
+    // Dedupe against existing URLs in DB (drop anything without a valid URL first)
+    const normalizedBatch = batchUniques
+      .map(normalizeArticleForInsert)
+      .map((a) => ({ ...a, source_url: canonicalizeUrl(a.source_url) ?? '' }))
+      .filter((a) => !!a.source_url);
     const urls = normalizedBatch.map((a) => a.source_url);
     let existingUrls = new Set<string>();
     if (urls.length > 0) {
@@ -1203,6 +1259,24 @@ async function runPostFetchPipeline(args: {
       existingUrls = new Set((existing ?? []).map((r: any) => r.source_url));
     }
     let toInsert = normalizedBatch.filter((a) => !existingUrls.has(a.source_url));
+
+    // Title-level dedup against the DB: the same story syndicated through a new
+    // aggregator URL must not be republished.
+    if (toInsert.length > 0) {
+      const since = new Date(Date.now() - 45 * 86_400_000).toISOString();
+      const { data: recent } = await supabase
+        .from('news_articles')
+        .select('title')
+        .gte('created_at', since)
+        .limit(3000);
+      const seenTitles = new Set((recent ?? []).map((r: any) => normalizeTitle(r.title)));
+      toInsert = toInsert.filter((a) => {
+        const key = normalizeTitle(a.title);
+        if (!key || seenTitles.has(key)) return false;
+        seenTitles.add(key);
+        return true;
+      });
+    }
     duplicatesSkipped = normalizedBatch.length - toInsert.length;
 
     // --- Auto-feature: promote the top clustered story if 3+ outlets covered it ---
