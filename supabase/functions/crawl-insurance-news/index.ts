@@ -872,6 +872,13 @@ async function fetchRSSFeed(
     }
 
     const xml = await response.text();
+    // B&FT returns an HTML page, not RSS — scrape article links + og: metadata.
+    if (isBft || (!/<(item|entry)[\s>]/i.test(xml) && /<html/i.test(xml.slice(0, 2000)))) {
+      if (isBft) {
+        const scraped = await scrapeBFTListing(feedUrl, category, sourceName, includeKeywords, excludeKeywords);
+        if (scraped.length) return { articles: scraped, status: 'ok' };
+      }
+    }
     const articles = parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
     return { articles, status: 'ok' };
   } catch (error) {
