@@ -544,9 +544,10 @@ export function PensionDataManager() {
 
   const handleUpdateFund = async (fund: PensionFundEntry) => {
     try {
-      const { error } = await supabase
-        .from('pension_fund_metrics')
-        .update({
+      await importMetrics({
+        action: 'update',
+        table: 'pension_fund_metrics',
+        updates: {
           fund_name: fund.fund_name,
           fund_type: fund.fund_type,
           trustee_name: fund.trustee_name,
@@ -557,11 +558,9 @@ export function PensionDataManager() {
           total_contributors: fund.total_contributors,
           total_contributions: fund.total_contributions,
           total_benefits_paid: fund.total_benefits_paid,
-        })
-        .eq('fund_id', fund.fund_id)
-        .eq('report_year', parseInt(selectedYear));
-
-      if (error) throw error;
+        },
+        match: { fund_id: fund.fund_id, report_year: parseInt(selectedYear) },
+      });
 
       toast.success('Fund updated successfully');
       setIsEditDialogOpen(false);
@@ -577,13 +576,11 @@ export function PensionDataManager() {
     if (!confirm('Are you sure you want to delete this fund record?')) return;
     
     try {
-      const { error } = await supabase
-        .from('pension_fund_metrics')
-        .delete()
-        .eq('fund_id', fundId)
-        .eq('report_year', year);
-
-      if (error) throw error;
+      await importMetrics({
+        action: 'delete',
+        table: 'pension_fund_metrics',
+        match: { fund_id: fundId, report_year: year },
+      });
 
       toast.success('Fund deleted successfully');
       refetch();
