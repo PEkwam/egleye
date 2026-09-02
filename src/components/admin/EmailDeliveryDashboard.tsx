@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Pagination,
@@ -155,6 +156,8 @@ export function EmailDeliveryDashboard() {
     remaining: number;
   }
   const [backfillOpen, setBackfillOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   const backfillListQuery = useQuery({
     queryKey: ['backfill-candidates'],
@@ -189,6 +192,35 @@ export function EmailDeliveryDashboard() {
     },
     onError: (err: Error) => toast.error(err.message || 'Delete failed'),
   });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (articleIds: string[]) =>
+      callSender('delete_articles', { articleIds }) as Promise<{ deleted: number }>,
+    onSuccess: (res) => {
+      toast.success(`Deleted ${res.deleted} article${res.deleted === 1 ? '' : 's'}`);
+      setSelectedIds(new Set());
+      setConfirmBulkDelete(false);
+      backfillListQuery.refetch();
+      queryClient.invalidateQueries({ queryKey: ['email-delivery-sends'] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Bulk delete failed');
+      setConfirmBulkDelete(false);
+    },
+  });
+
+  const candidates = backfillListQuery.data?.candidates ?? [];
+  const allSelected = candidates.length > 0 && candidates.every((c) => selectedIds.has(c.id));
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(candidates.map((c) => c.id)));
+  };
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   type DeleteRange = 'week' | 'month' | 'older_than_month' | 'all';
   const rangeLabels: Record<DeleteRange, string> = {
