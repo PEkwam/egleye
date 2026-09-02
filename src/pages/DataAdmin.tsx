@@ -25,6 +25,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+// Route admin metric writes through the secured edge function (tables are service-role only)
+const importMetrics = async (body: Record<string, unknown>) => {
+  const { data, error } = await supabase.functions.invoke('import-metrics', {
+    headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+    body,
+  });
+  if (data?.error) throw new Error(data.error);
+  if (error) throw new Error(error.message);
+  return data;
+};
 import { useInsurerMetrics } from '@/hooks/useInsurerMetrics';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -910,10 +921,8 @@ const DataAdmin = () => {
     
     setIsClearingLife(true);
     try {
-      const { error } = await supabase
-        .from('insurer_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+      await importMetrics({ action: 'deleteAll', table: 'insurer_metrics' });
+      const error = null;
       
       if (error) throw error;
       
@@ -934,10 +943,8 @@ const DataAdmin = () => {
     
     setIsClearingNonLife(true);
     try {
-      const { error } = await supabase
-        .from('nonlife_insurer_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+      await importMetrics({ action: 'deleteAll', table: 'nonlife_insurer_metrics' });
+      const error = null;
       
       if (error) throw error;
       
@@ -956,10 +963,8 @@ const DataAdmin = () => {
     
     setIsClearingPension(true);
     try {
-      const { error } = await supabase
-        .from('pension_fund_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+      await importMetrics({ action: 'deleteAll', table: 'pension_fund_metrics' });
+      const error = null;
       
       if (error) throw error;
       
@@ -979,10 +984,8 @@ const DataAdmin = () => {
     
     setIsClearingBrokers(true);
     try {
-      const { error } = await supabase
-        .from('broker_metrics')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+      await importMetrics({ action: 'deleteAll', table: 'broker_metrics' });
+      const error = null;
       
       if (error) throw error;
       
@@ -1677,12 +1680,17 @@ const DataAdmin = () => {
           report_source: 'NIC Quarterly Report',
         }));
 
-        const { error } = await supabase
-          .from('broker_metrics')
-          .upsert(enrichedData, {
+        let error: { message: string } | null = null;
+        try {
+          await importMetrics({
+            action: 'upsert',
+            table: 'broker_metrics',
+            rows: enrichedData,
             onConflict: 'broker_name,report_year,report_quarter',
-            ignoreDuplicates: false,
           });
+        } catch (e) {
+          error = { message: e instanceof Error ? e.message : 'Import failed' };
+        }
 
         if (error) {
           errors.push(`${sheet.sheetName}: ${error.message}`);
@@ -1835,12 +1843,17 @@ const DataAdmin = () => {
 
           const enrichedData = Array.from(deduped.values());
 
-          const { error } = await supabase
-            .from('insurer_metrics')
-            .upsert(enrichedData, {
+          let error: { message: string } | null = null;
+          try {
+            await importMetrics({
+              action: 'upsert',
+              table: 'insurer_metrics',
+              rows: enrichedData,
               onConflict: 'insurer_id,report_year,report_quarter',
-              ignoreDuplicates: false,
             });
+          } catch (e) {
+            error = { message: e instanceof Error ? e.message : 'Import failed' };
+          }
 
           if (error) {
             errors.push(`${sheet.sheetName} (Life): ${error.message}`);
@@ -1907,12 +1920,17 @@ const DataAdmin = () => {
 
           const enrichedData = Array.from(deduped.values());
 
-          const { error } = await supabase
-            .from('nonlife_insurer_metrics')
-            .upsert(enrichedData, {
+          let error: { message: string } | null = null;
+          try {
+            await importMetrics({
+              action: 'upsert',
+              table: 'nonlife_insurer_metrics',
+              rows: enrichedData,
               onConflict: 'insurer_id,report_year,report_quarter',
-              ignoreDuplicates: false,
             });
+          } catch (e) {
+            error = { message: e instanceof Error ? e.message : 'Import failed' };
+          }
 
           if (error) {
             errors.push(`${sheet.sheetName} (Non-Life): ${error.message}`);
@@ -1970,12 +1988,13 @@ const DataAdmin = () => {
         report_source: 'NIC Quarterly Report',
       }));
 
-      const { error } = await supabase
-        .from(tableName)
-        .upsert(enrichedData, { 
-          onConflict: 'insurer_id,report_year,report_quarter',
-          ignoreDuplicates: false 
-        });
+      await importMetrics({
+        action: 'upsert',
+        table: tableName,
+        rows: enrichedData,
+        onConflict: 'insurer_id,report_year,report_quarter',
+      });
+      const error = null;
 
       if (error) throw error;
 
