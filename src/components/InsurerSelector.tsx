@@ -59,6 +59,7 @@ export function InsurerSelector({
         marketShare: d.market_share ? d.market_share * 100 : null, // Convert decimal to percentage
       }));
     },
+    enabled: Boolean(selectedYear) && Boolean(selectedQuarter),
   });
 
   const handleToggleInsurer = (insurerId: string) => {
