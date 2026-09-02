@@ -25,6 +25,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+// Route admin metric writes through the secured edge function (tables are service-role only)
+const importMetrics = async (body: Record<string, unknown>) => {
+  const { data, error } = await supabase.functions.invoke('import-metrics', {
+    headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+    body,
+  });
+  if (data?.error) throw new Error(data.error);
+  if (error) throw new Error(error.message);
+  return data;
+};
 import { useInsurerMetrics } from '@/hooks/useInsurerMetrics';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
