@@ -728,6 +728,86 @@ async function fetchViaProxy(feedUrl: string): Promise<string | null> {
 
 
 
+// --- B&FT Online direct site scraping ---
+// B&FT has no reliable public RSS feed, so we scrape the listing pages
+// (homepage + /category/insurance) for article links and read each article's
+// OpenGraph metadata. Articles are then run through the exact same parseRSS
+// pipeline (keyword filters, Ghana check, category assignment) by synthesizing
+// an RSS document, so the strict gatekeeping stays identical to RSS sources.
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function extractOg(html: string, prop: string): string | null {
+  const re1 = new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i');
+  const re2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, 'i');
+  const m = html.match(re1) || html.match(re2);
+  return m ? m[1].trim() : null;
+}
+
+async function scrapeBFTListing(
+  pageUrl: string,
+  category: string,
+  sourceName: string,
+  includeKeywords: string[],
+  excludeKeywords: string[],
+): Promise<NewsArticle[]> {
+  const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+  const get = async (u: string, timeoutMs: number): Promise<string | null> => {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      const res = await fetch(u, {
+        signal: ctrl.signal,
+        headers: { 'User-Agent': UA, 'Accept': 'text/html,*/*', 'Accept-Language': 'en-US,en;q=0.9' },
+      }).finally(() => clearTimeout(t));
+      if (!res.ok) return null;
+      return await res.text();
+    } catch { return null; }
+  };
+
+  const listingHtml = await get(pageUrl, 15_000);
+  if (!listingHtml) return [];
+
+  // Collect unique article links (B&FT uses /article/<slug> URLs).
+  const links = new Set<string>();
+  const hrefRe = /href=["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = hrefRe.exec(listingHtml)) !== null && links.size < 24) {
+    let href = m[1].trim();
+    if (href.startsWith('/')) href = 'https://thebftonline.com' + href;
+    if (!/^https?:\/\/(www\.)?thebftonline\.com\/article\//i.test(href)) continue;
+    href = href.split('#')[0].split('?')[0];
+    links.add(href);
+  }
+
+  const candidates = [...links].slice(0, 10);
+  const itemsXml: string[] = [];
+  for (const link of candidates) {
+    const html = await get(link, 12_000);
+    if (!html) continue;
+    const title = extractOg(html, 'og:title')
+      || (html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] ?? '').trim();
+    const description = (extractOg(html, 'og:description') || '').replace(/<[^>]*>/g, '').slice(0, 500);
+    const image = extractOg(html, 'og:image');
+    const pub = extractOg(html, 'article:published_time');
+    if (!title) continue;
+    const pubDate = pub ? new Date(pub).toUTCString() : new Date().toUTCString();
+    itemsXml.push(
+      `<item><title>${escapeXml(title)}</title><link>${escapeXml(link)}</link>` +
+      `<description>${escapeXml(description)}</description><pubDate>${pubDate}</pubDate>` +
+      (image ? `<enclosure url="${escapeXml(image)}"/>` : '') +
+      `</item>`
+    );
+  }
+
+  if (itemsXml.length === 0) return [];
+  const xml = `<rss><channel>${itemsXml.join('')}</channel></rss>`;
+  const articles = parseRSS(xml, category, sourceName, includeKeywords, excludeKeywords);
+  console.log(`B&FT scrape of ${pageUrl}: ${articles.length} articles from ${candidates.length} links`);
+  return articles;
+}
+
 async function fetchRSSFeed(
   feedUrl: string, 
   category: string, 
