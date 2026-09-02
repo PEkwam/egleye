@@ -602,15 +602,50 @@ export function EmailDeliveryDashboard() {
           )}
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={() => backfillListQuery.refetch()} disabled={backfillListQuery.isFetching}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${backfillListQuery.isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+        <DialogFooter className="gap-2 sm:justify-between">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setConfirmBulkDelete(true)}
+            disabled={selectedIds.size === 0 || bulkDeleteMutation.isPending}
+            className="gap-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete selected{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
           </Button>
-          <Button variant="default" size="sm" onClick={() => setBackfillOpen(false)}>Close</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => backfillListQuery.refetch()} disabled={backfillListQuery.isFetching}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${backfillListQuery.isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button variant="default" size="sm" onClick={() => setBackfillOpen(false)}>Close</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Bulk delete confirmation */}
+    <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {selectedIds.size} article{selectedIds.size === 1 ? '' : 's'}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently remove the selected articles from the portal and any
+            queued deliveries for them. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={bulkDeleteMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); bulkDeleteMutation.mutate([...selectedIds]); }}
+            disabled={bulkDeleteMutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete all selected'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
