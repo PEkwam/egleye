@@ -517,7 +517,7 @@ export function EmailDeliveryDashboard() {
     </AlertDialog>
 
     {/* Backfill candidates dialog */}
-    <Dialog open={backfillOpen} onOpenChange={setBackfillOpen}>
+    <Dialog open={backfillOpen} onOpenChange={(open) => { setBackfillOpen(open); if (!open) { setSelectedIds(new Set()); setConfirmBulkDelete(false); } }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Backfill recent news</DialogTitle>
@@ -539,11 +539,27 @@ export function EmailDeliveryDashboard() {
           )}
           {backfillListQuery.data && backfillListQuery.data.candidates.length > 0 && (
             <div className="divide-y divide-border/50 rounded-lg border border-border/60">
+              <div className="p-2.5 flex items-center gap-3 bg-muted/40">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all articles"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+                </span>
+              </div>
               {backfillListQuery.data.candidates.map((c) => {
                 const isSending = enqueueOneMutation.isPending && enqueueOneMutation.variables === c.id;
                 const isDeleting = deleteArticleMutation.isPending && deleteArticleMutation.variables === c.id;
                 return (
                   <div key={c.id} className="p-3 flex items-start gap-3 flex-wrap hover:bg-muted/30">
+                    <Checkbox
+                      checked={selectedIds.has(c.id)}
+                      onCheckedChange={() => toggleSelect(c.id)}
+                      aria-label={`Select ${c.title}`}
+                      className="mt-0.5"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate" title={c.title}>{c.title}</p>
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
