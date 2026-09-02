@@ -525,11 +525,12 @@ export function PensionDataManager() {
         report_source: `NPRA ${year} Annual Report`,
       }));
 
-      const { error } = await supabase
-        .from('pension_fund_metrics')
-        .upsert(metricsToInsert, { onConflict: 'fund_id,report_year' });
-
-      if (error) throw error;
+      await importMetrics({
+        action: 'upsert',
+        table: 'pension_fund_metrics',
+        rows: metricsToInsert,
+        onConflict: 'fund_id,report_year',
+      });
 
       toast.success(`Imported ${metricsToInsert.length} pension fund records for ${year}`);
       refetch();
