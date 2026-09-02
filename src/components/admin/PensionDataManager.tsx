@@ -13,6 +13,17 @@ import {
   Landmark, AlertTriangle, Check, Database, FileText, PieChart, BarChart3, Building2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+
+// Route admin metric writes through the secured edge function (tables are service-role only)
+const importMetrics = async (body: Record<string, unknown>) => {
+  const { data, error } = await supabase.functions.invoke('import-metrics', {
+    headers: { 'x-admin-token': sessionStorage.getItem('admin_token') ?? '' },
+    body,
+  });
+  if (data?.error) throw new Error(data.error);
+  if (error) throw new Error(error.message);
+  return data;
+};
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -466,11 +477,12 @@ export function PensionDataManager() {
         report_source: `Imported from file - ${new Date().toISOString()}`,
       }));
 
-      const { error } = await supabase
-        .from('pension_fund_metrics')
-        .upsert(metricsToInsert, { onConflict: 'fund_id,report_year' });
-
-      if (error) throw error;
+      await importMetrics({
+        action: 'upsert',
+        table: 'pension_fund_metrics',
+        rows: metricsToInsert,
+        onConflict: 'fund_id,report_year',
+      });
 
       toast.success(`Imported ${metricsToInsert.length} pension fund records for ${year}`);
       setIsColumnMappingOpen(false);
