@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Radar, RefreshCw, CalendarClock, CheckCircle2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Header } from '@/components/Header';
@@ -23,6 +23,7 @@ const UNITS = ['Enterprise Life', 'Enterprise Insurance', 'Enterprise Trustees',
 export default function RegulatoryScanner() {
   const { data = [], isLoading, refetch } = useRegulatoryUpdates();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [regulator, setRegulator] = useState('all');
   const [impact, setImpact] = useState('all');
   const [unit, setUnit] = useState('all');
@@ -54,7 +55,7 @@ export default function RegulatoryScanner() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header activeCategory="all" onCategoryChange={(c) => navigate(c === 'all' ? '/' : `/?category=${c}`)} onSearch={(q) => navigate(`/?q=${encodeURIComponent(q)}`)} />
       <main className="container mx-auto px-4 py-6 sm:py-10 space-y-6">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Home</Link>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
