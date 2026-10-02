@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Header } from '@/components/Header';
 import { BreakingTicker } from '@/components/BreakingTicker';
-import { NewsFilterBar } from '@/components/NewsFilterBar';
 import { NewArticleAlertProvider, useTrackArticles, useNewArticleAlerts } from '@/components/NewArticleAlertProvider';
 import { DesktopAlertsButton } from '@/components/DesktopAlertsButton';
 import { CommandPalette } from '@/components/CommandPalette';
