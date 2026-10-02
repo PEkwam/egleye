@@ -20,6 +20,15 @@ const IMPACT_RAIL: Record<string, string> = {
   low: 'border-l-border',
 };
 const UNITS = ['Enterprise Life', 'Enterprise Insurance', 'Enterprise Trustees', 'Transitions', 'Enterprise Properties', 'Acacia Health', 'Group'];
+const UNIT_KEYWORDS: Record<string, string[]> = {
+  'Enterprise Life': ['enterprise life', 'life insurance', 'life assurance', 'life insurer', 'life policy', 'whole life', 'term life', 'endowment', 'universal life', 'group life', 'life business'],
+  'Enterprise Insurance': ['enterprise insurance', 'non-life', 'nonlife', 'general insurance', 'motor insurance', 'property insurance', 'marine insurance', 'casualty', 'compulsory insurance'],
+  'Enterprise Trustees': ['enterprise trustees', 'trustee', 'trustees', 'pension'],
+  'Transitions': ['transitions', 'funeral'],
+  'Enterprise Properties': ['enterprise properties', 'real estate', 'properties'],
+  'Acacia Health': ['acacia', 'health insurance', 'acacia health', 'health cover'],
+  'Group': ['enterprise group'],
+};
 
 const deadlineDays = (d: string | null | undefined) => {
   if (!d) return null;
