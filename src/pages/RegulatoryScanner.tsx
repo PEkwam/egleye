@@ -20,6 +20,15 @@ const IMPACT_RAIL: Record<string, string> = {
   low: 'border-l-border',
 };
 const UNITS = ['Enterprise Life', 'Enterprise Insurance', 'Enterprise Trustees', 'Transitions', 'Enterprise Properties', 'Acacia Health', 'Group'];
+const UNIT_KEYWORDS: Record<string, string[]> = {
+  'Enterprise Life': ['enterprise life', 'life insurance', 'life assurance', 'life insurer', 'life policy', 'whole life', 'term life', 'endowment', 'universal life', 'group life', 'life business'],
+  'Enterprise Insurance': ['enterprise insurance', 'non-life', 'nonlife', 'general insurance', 'motor insurance', 'property insurance', 'marine insurance', 'casualty', 'compulsory insurance'],
+  'Enterprise Trustees': ['enterprise trustees', 'trustee', 'trustees', 'pension'],
+  'Transitions': ['transitions', 'funeral'],
+  'Enterprise Properties': ['enterprise properties', 'real estate', 'properties'],
+  'Acacia Health': ['acacia', 'health insurance', 'acacia health', 'health cover'],
+  'Group': ['enterprise group'],
+};
 
 const deadlineDays = (d: string | null | undefined) => {
   if (!d) return null;
@@ -116,19 +125,35 @@ export default function RegulatoryScanner() {
   const [sort, setSort] = useState<'newest' | 'deadline'>('newest');
   const [scanning, setScanning] = useState(false);
 
+  // When a business is picked, strict filter: specific tag or keyword match only.
+  // Generic rows tagged with (almost) every business are hidden unless the text
+  // itself mentions that business.
+  const matchUnit = (u: RegulatoryUpdate): 0 | 1 => {
+    if (unit === 'all') return 1;
+    const kws = UNIT_KEYWORDS[unit] ?? [unit.toLowerCase()];
+    const text = `${u.title} ${u.summary ?? ''} ${u.business_impact ?? ''}`.toLowerCase();
+    const hits = kws.some((k) => text.includes(k));
+    if (u.affected_units.includes(unit)) {
+      return u.affected_units.length >= 5 ? (hits ? 1 : 0) : 1;
+    }
+    return hits ? 1 : 0;
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = data.filter((u) =>
-      (regulator === 'all' || u.regulator === regulator) &&
-      (impact === 'all' || u.impact_level === impact) &&
-      (unit === 'all' || u.affected_units.includes(unit)) &&
-      (q === '' ||
-        u.title.toLowerCase().includes(q) ||
-        (u.summary ?? '').toLowerCase().includes(q) ||
-        (u.business_impact ?? '').toLowerCase().includes(q) ||
-        u.action_items.some((a) => a.toLowerCase().includes(q))));
+    const rows = data
+      .map((u) => ({ u, rank: matchUnit(u) }))
+      .filter(({ u, rank }) =>
+        rank === 1 &&
+        (regulator === 'all' || u.regulator === regulator) &&
+        (impact === 'all' || u.impact_level === impact) &&
+        (q === '' ||
+          u.title.toLowerCase().includes(q) ||
+          (u.summary ?? '').toLowerCase().includes(q) ||
+          (u.business_impact ?? '').toLowerCase().includes(q) ||
+          u.action_items.some((a) => a.toLowerCase().includes(q))));
     if (sort === 'deadline') {
-      return [...rows].sort((a, b) => {
+      return rows.map((r) => r.u).sort((a, b) => {
         const da = deadlineDays(a.deadline);
         const db = deadlineDays(b.deadline);
         if (da === null && db === null) return 0;
@@ -137,7 +162,7 @@ export default function RegulatoryScanner() {
         return da - db;
       });
     }
-    return rows;
+    return rows.map((r) => r.u);
   }, [data, regulator, impact, unit, query, sort]);
 
   const stats = useMemo(() => ({
