@@ -167,7 +167,23 @@ export default function RegulatoryScanner() {
                   )}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
                     {u.affected_units.map((a) => <Badge key={a} variant="secondary" className="text-[10px]">{a}</Badge>)}
-                    {u.deadline && <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-destructive"><CalendarClock className="h-3.5 w-3.5" />{u.deadline}</span>}
+                    {(() => {
+                      if (!u.deadline) return null;
+                      const days = deadlineDays(u.deadline);
+                      const urgent = days !== null && days <= 14;
+                      return (
+                        <span className={cn('ml-auto inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full',
+                          urgent ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground')}>
+                          <CalendarClock className="h-3.5 w-3.5" />
+                          {u.deadline}
+                          {days !== null && (
+                            <span className="uppercase tracking-wide">
+                              {days < 0 ? '· overdue' : days === 0 ? '· due today' : days === 1 ? '· due tomorrow' : `· in ${days} days`}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>
