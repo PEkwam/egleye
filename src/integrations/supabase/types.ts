@@ -1116,6 +1116,60 @@ export type Database = {
           },
         ]
       }
+      regulatory_updates: {
+        Row: {
+          action_items: string[]
+          affected_units: string[]
+          analyzed_at: string | null
+          business_impact: string | null
+          created_at: string
+          deadline: string | null
+          id: string
+          impact_level: string
+          published_at: string | null
+          regulator: string
+          source_name: string | null
+          source_url: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_items?: string[]
+          affected_units?: string[]
+          analyzed_at?: string | null
+          business_impact?: string | null
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          impact_level?: string
+          published_at?: string | null
+          regulator: string
+          source_name?: string | null
+          source_url: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_items?: string[]
+          affected_units?: string[]
+          analyzed_at?: string | null
+          business_impact?: string | null
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          impact_level?: string
+          published_at?: string | null
+          regulator?: string
+          source_name?: string | null
+          source_url?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           created_at: string
