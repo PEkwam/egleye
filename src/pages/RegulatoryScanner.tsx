@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Radar, RefreshCw, CalendarClock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Radar, RefreshCw, CalendarClock, CheckCircle2, Search, ArrowUpDown } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -27,12 +27,40 @@ export default function RegulatoryScanner() {
   const [regulator, setRegulator] = useState('all');
   const [impact, setImpact] = useState('all');
   const [unit, setUnit] = useState('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<'newest' | 'deadline'>('newest');
   const [scanning, setScanning] = useState(false);
 
-  const filtered = useMemo(() => data.filter((u) =>
-    (regulator === 'all' || u.regulator === regulator) &&
-    (impact === 'all' || u.impact_level === impact) &&
-    (unit === 'all' || u.affected_units.includes(unit))), [data, regulator, impact, unit]);
+  const deadlineDays = (d: string | null | undefined) => {
+    if (!d) return null;
+    const t = new Date(d).getTime();
+    if (isNaN(t)) return null;
+    return Math.ceil((t - Date.now()) / 86400000);
+  };
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = data.filter((u) =>
+      (regulator === 'all' || u.regulator === regulator) &&
+      (impact === 'all' || u.impact_level === impact) &&
+      (unit === 'all' || u.affected_units.includes(unit)) &&
+      (q === '' ||
+        u.title.toLowerCase().includes(q) ||
+        (u.summary ?? '').toLowerCase().includes(q) ||
+        (u.business_impact ?? '').toLowerCase().includes(q) ||
+        u.action_items.some((a) => a.toLowerCase().includes(q))));
+    if (sort === 'deadline') {
+      return [...rows].sort((a, b) => {
+        const da = deadlineDays(a.deadline);
+        const db = deadlineDays(b.deadline);
+        if (da === null && db === null) return 0;
+        if (da === null) return 1;
+        if (db === null) return -1;
+        return da - db;
+      });
+    }
+    return rows;
+  }, [data, regulator, impact, unit, query, sort]);
 
   const counts = useMemo(() => ({
     high: data.filter((u) => u.impact_level === 'high').length,
@@ -73,6 +101,27 @@ export default function RegulatoryScanner() {
         </div>
 
         <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search updates, impact notes, action items…"
+                className="w-full rounded-full border border-border bg-card pl-9 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setSort('newest')} className={cn('px-3 py-2 rounded-full text-xs font-semibold border transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
+                sort === 'newest' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-foreground border-border hover:bg-muted')}>
+                <ArrowUpDown className="h-3.5 w-3.5" />Newest first
+              </button>
+              <button onClick={() => setSort('deadline')} className={cn('px-3 py-2 rounded-full text-xs font-semibold border transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
+                sort === 'deadline' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-foreground border-border hover:bg-muted')}>
+                <CalendarClock className="h-3.5 w-3.5" />Deadline first
+              </button>
+            </div>
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             <Chip active={regulator === 'all'} onClick={() => setRegulator('all')}>All regulators</Chip>
             {Object.keys(REGULATOR_LABELS).map((r) => <Chip key={r} active={regulator === r} onClick={() => setRegulator(r)}>{r}</Chip>)}
@@ -118,7 +167,23 @@ export default function RegulatoryScanner() {
                   )}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
                     {u.affected_units.map((a) => <Badge key={a} variant="secondary" className="text-[10px]">{a}</Badge>)}
-                    {u.deadline && <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-destructive"><CalendarClock className="h-3.5 w-3.5" />{u.deadline}</span>}
+                    {(() => {
+                      if (!u.deadline) return null;
+                      const days = deadlineDays(u.deadline);
+                      const urgent = days !== null && days <= 14;
+                      return (
+                        <span className={cn('ml-auto inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full',
+                          urgent ? 'bg-destructive/10 text-destructive' : 'text-muted-foreground')}>
+                          <CalendarClock className="h-3.5 w-3.5" />
+                          {u.deadline}
+                          {days !== null && (
+                            <span className="uppercase tracking-wide">
+                              {days < 0 ? '· overdue' : days === 0 ? '· due today' : days === 1 ? '· due tomorrow' : `· in ${days} days`}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>
