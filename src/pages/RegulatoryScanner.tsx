@@ -125,19 +125,34 @@ export default function RegulatoryScanner() {
   const [sort, setSort] = useState<'newest' | 'deadline'>('newest');
   const [scanning, setScanning] = useState(false);
 
+  // When a business is picked, rank: exact tag → keyword match → generic (all-units) rows.
+  const matchUnit = (u: RegulatoryUpdate): 0 | 1 | 2 | 3 => {
+    if (unit === 'all') return 0;
+    if (u.affected_units.includes(unit)) {
+      // Rows tagged with (almost) every business are generic — rank them below specific ones.
+      return u.affected_units.length >= 5 ? 2 : 1;
+    }
+    const kws = UNIT_KEYWORDS[unit] ?? [unit.toLowerCase()];
+    const text = `${u.title} ${u.summary ?? ''} ${u.business_impact ?? ''}`.toLowerCase();
+    return kws.some((k) => text.includes(k)) ? 1 : 3;
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const rows = data.filter((u) =>
-      (regulator === 'all' || u.regulator === regulator) &&
-      (impact === 'all' || u.impact_level === impact) &&
-      (unit === 'all' || u.affected_units.includes(unit)) &&
-      (q === '' ||
-        u.title.toLowerCase().includes(q) ||
-        (u.summary ?? '').toLowerCase().includes(q) ||
-        (u.business_impact ?? '').toLowerCase().includes(q) ||
-        u.action_items.some((a) => a.toLowerCase().includes(q))));
+    const rows = data
+      .map((u) => ({ u, rank: matchUnit(u) }))
+      .filter(({ u, rank }) =>
+        rank !== 3 &&
+        (regulator === 'all' || u.regulator === regulator) &&
+        (impact === 'all' || u.impact_level === impact) &&
+        (q === '' ||
+          u.title.toLowerCase().includes(q) ||
+          (u.summary ?? '').toLowerCase().includes(q) ||
+          (u.business_impact ?? '').toLowerCase().includes(q) ||
+          u.action_items.some((a) => a.toLowerCase().includes(q))))
+      .sort((a, b) => a.rank - b.rank);
     if (sort === 'deadline') {
-      return [...rows].sort((a, b) => {
+      return rows.map((r) => r.u).sort((a, b) => {
         const da = deadlineDays(a.deadline);
         const db = deadlineDays(b.deadline);
         if (da === null && db === null) return 0;
@@ -146,7 +161,7 @@ export default function RegulatoryScanner() {
         return da - db;
       });
     }
-    return rows;
+    return rows.map((r) => r.u);
   }, [data, regulator, impact, unit, query, sort]);
 
   const stats = useMemo(() => ({
