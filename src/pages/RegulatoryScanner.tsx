@@ -125,16 +125,18 @@ export default function RegulatoryScanner() {
   const [sort, setSort] = useState<'newest' | 'deadline'>('newest');
   const [scanning, setScanning] = useState(false);
 
-  // When a business is picked, rank: exact tag → keyword match → generic (all-units) rows.
-  const matchUnit = (u: RegulatoryUpdate): 0 | 1 | 2 | 3 => {
+  // When a business is picked, strict filter: specific tag or keyword match only.
+  // Generic rows tagged with (almost) every business are hidden unless the text
+  // itself mentions that business.
+  const matchUnit = (u: RegulatoryUpdate): 0 | 1 => {
     if (unit === 'all') return 0;
-    if (u.affected_units.includes(unit)) {
-      // Rows tagged with (almost) every business are generic — rank them below specific ones.
-      return u.affected_units.length >= 5 ? 2 : 1;
-    }
     const kws = UNIT_KEYWORDS[unit] ?? [unit.toLowerCase()];
     const text = `${u.title} ${u.summary ?? ''} ${u.business_impact ?? ''}`.toLowerCase();
-    return kws.some((k) => text.includes(k)) ? 1 : 3;
+    const hits = kws.some((k) => text.includes(k));
+    if (u.affected_units.includes(unit)) {
+      return u.affected_units.length >= 5 ? (hits ? 1 : 0) : 1;
+    }
+    return hits ? 1 : 0;
   };
 
   const filtered = useMemo(() => {
