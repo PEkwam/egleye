@@ -232,6 +232,9 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
           {/* AI News Digest */}
           {showSections && <AINewsDigest />}
 
+          {showSections && <RegulatorySpotlight />}
+
+
           {showHero && (
             <HeroSection
               featuredArticle={featuredArticle}
@@ -248,8 +251,6 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
               isLoading={isLoading}
             />
           )}
-
-          {showSections && <RegulatorySpotlight />}
 
           {/* NIC Regulatory Section */}
           {showSections && (
