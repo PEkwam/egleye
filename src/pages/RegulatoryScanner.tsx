@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Radar, RefreshCw, CalendarClock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Radar, RefreshCw, CalendarClock, CheckCircle2, Search, ArrowUpDown } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
