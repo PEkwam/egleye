@@ -144,15 +144,14 @@ export default function RegulatoryScanner() {
     const rows = data
       .map((u) => ({ u, rank: matchUnit(u) }))
       .filter(({ u, rank }) =>
-        rank !== 3 &&
+        rank === 1 &&
         (regulator === 'all' || u.regulator === regulator) &&
         (impact === 'all' || u.impact_level === impact) &&
         (q === '' ||
           u.title.toLowerCase().includes(q) ||
           (u.summary ?? '').toLowerCase().includes(q) ||
           (u.business_impact ?? '').toLowerCase().includes(q) ||
-          u.action_items.some((a) => a.toLowerCase().includes(q))))
-      .sort((a, b) => a.rank - b.rank);
+          u.action_items.some((a) => a.toLowerCase().includes(q))));
     if (sort === 'deadline') {
       return rows.map((r) => r.u).sort((a, b) => {
         const da = deadlineDays(a.deadline);
