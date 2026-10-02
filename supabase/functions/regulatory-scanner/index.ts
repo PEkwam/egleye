@@ -28,17 +28,26 @@ const tag = (x: string, t: string) => { const m = x.match(new RegExp(`<${t}[^>]*
 
 async function fetchRegulator(code: string, q: string) {
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}+when:${MAX_AGE_DAYS}d&hl=en-GH&gl=GH&ceid=GH:en`;
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 EGLEYE-RegScanner" } });
+  const ua = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36" };
+  let res = await fetch(url, { headers: ua });
+  let bing = false;
+  if (!res.ok) {
+    await res.body?.cancel();
+    res = await fetch(`https://www.bing.com/news/search?q=${encodeURIComponent(q.replace(/ OR /g, " "))}&format=rss&cc=GH`, { headers: ua });
+    bing = true;
+  }
   if (!res.ok) throw new Error(`${code} feed HTTP ${res.status}`);
   const xml = await res.text();
   const cutoff = Date.now() - MAX_AGE_DAYS * 864e5;
   return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 12).map((m) => {
     const it = m[1];
     const rawTitle = tag(it, "title");
-    const source = tag(it, "source");
+    const source = tag(it, "source") || tag(it, "News:Source");
     const title = source && rawTitle.endsWith(` - ${source}`) ? rawTitle.slice(0, -(source.length + 3)) : rawTitle;
     const pub = tag(it, "pubDate");
-    return { regulator: code, title, source_url: tag(it, "link"), source_name: source || null,
+    let link = tag(it, "link");
+    if (bing) { try { link = new URL(link).searchParams.get("url") || link; } catch { /* keep */ } }
+    return { regulator: code, title, source_url: link, source_name: source || null,
       published_at: pub ? new Date(pub).toISOString() : null };
   }).filter((a) => a.title && a.source_url && (!a.published_at || Date.parse(a.published_at) >= cutoff));
 }
