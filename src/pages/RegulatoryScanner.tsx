@@ -27,12 +27,40 @@ export default function RegulatoryScanner() {
   const [regulator, setRegulator] = useState('all');
   const [impact, setImpact] = useState('all');
   const [unit, setUnit] = useState('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<'newest' | 'deadline'>('newest');
   const [scanning, setScanning] = useState(false);
 
-  const filtered = useMemo(() => data.filter((u) =>
-    (regulator === 'all' || u.regulator === regulator) &&
-    (impact === 'all' || u.impact_level === impact) &&
-    (unit === 'all' || u.affected_units.includes(unit))), [data, regulator, impact, unit]);
+  const deadlineDays = (d: string | null | undefined) => {
+    if (!d) return null;
+    const t = new Date(d).getTime();
+    if (isNaN(t)) return null;
+    return Math.ceil((t - Date.now()) / 86400000);
+  };
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = data.filter((u) =>
+      (regulator === 'all' || u.regulator === regulator) &&
+      (impact === 'all' || u.impact_level === impact) &&
+      (unit === 'all' || u.affected_units.includes(unit)) &&
+      (q === '' ||
+        u.title.toLowerCase().includes(q) ||
+        (u.summary ?? '').toLowerCase().includes(q) ||
+        (u.business_impact ?? '').toLowerCase().includes(q) ||
+        u.action_items.some((a) => a.toLowerCase().includes(q))));
+    if (sort === 'deadline') {
+      return [...rows].sort((a, b) => {
+        const da = deadlineDays(a.deadline);
+        const db = deadlineDays(b.deadline);
+        if (da === null && db === null) return 0;
+        if (da === null) return 1;
+        if (db === null) return -1;
+        return da - db;
+      });
+    }
+    return rows;
+  }, [data, regulator, impact, unit, query, sort]);
 
   const counts = useMemo(() => ({
     high: data.filter((u) => u.impact_level === 'high').length,
