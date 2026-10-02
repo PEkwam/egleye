@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 const HeroSection = lazy(() => import('@/components/HeroSection').then(m => ({ default: m.HeroSection })));
 const NewsGrid = lazy(() => import('@/components/NewsGrid').then(m => ({ default: m.NewsGrid })));
 const EnterpriseSection = lazy(() => import('@/components/EnterpriseSection').then(m => ({ default: m.EnterpriseSection })));
+const RegulatorySpotlight = lazy(() => import('@/components/RegulatorySpotlight').then(m => ({ default: m.RegulatorySpotlight })));
 const NICSection = lazy(() => import('@/components/NICSection').then(m => ({ default: m.NICSection })));
 const NPRASection = lazy(() => import('@/components/NPRASection').then(m => ({ default: m.NPRASection })));
 const ExecutiveDashboard = lazy(() => import('@/components/ExecutiveDashboard').then(m => ({ default: m.ExecutiveDashboard })));
@@ -247,6 +248,8 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
               isLoading={isLoading}
             />
           )}
+
+          {showSections && <RegulatorySpotlight />}
 
           {/* NIC Regulatory Section */}
           {showSections && (

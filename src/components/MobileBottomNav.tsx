@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, Brain, Lightbulb, BarChart3, Landmark, Building2, Newspaper, Heart, Car, MoreHorizontal, Settings, Sparkles, TrendingUp, Shield, Users } from 'lucide-react';
+import { Home, LayoutDashboard, Brain, Lightbulb, BarChart3, Landmark, Building2, Newspaper, Heart, Car, MoreHorizontal, Settings, Sparkles, TrendingUp, Shield, Users, Radar } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { InsurerComparison } from './InsurerComparison';
@@ -20,6 +20,7 @@ const primaryNavItems = [
 const moreNavItems = [
   { label: 'Brokers', icon: Building2, href: '/brokers-dashboard', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
   { label: 'AI Tracker', icon: Sparkles, href: '/insurance-ai', color: 'text-violet-500', bgColor: 'bg-violet-500/10' },
+  { label: 'Reg. Scanner', icon: Radar, href: '/regulatory-scanner', color: 'text-primary', bgColor: 'bg-primary/10' },
   { label: 'NPRA Reports', icon: Shield, href: '/npra-pensions', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
   { label: 'Data Admin', icon: Settings, href: '/admin', color: 'text-slate-500', bgColor: 'bg-slate-500/10' },
 ];
