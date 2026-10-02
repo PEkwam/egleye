@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, RefreshCw, Menu, X, Brain, ChevronRight, BarChart3, ChevronDown, Building2, Shield, Landmark, Newspaper, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { Search, RefreshCw, Menu, X, Brain, ChevronRight, BarChart3, ChevronDown, Building2, Shield, Landmark, Newspaper, Sparkles, TrendingUp, Users, Radar } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -127,6 +127,13 @@ export function Header({
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span className="ml-1.5 hidden xl:inline text-sm">Refresh</span>
             </Button>
+
+            <Link to="/regulatory-scanner">
+              <Button variant="ghost" size="sm" className="h-9 px-3 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10">
+                <Radar className="h-4 w-4" />
+                <span className="ml-1.5 hidden xl:inline text-sm">Reg. Scanner</span>
+              </Button>
+            </Link>
 
             <Link to="/insurance-ai">
               <Button
