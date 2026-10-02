@@ -85,8 +85,8 @@ export function NewsGrid({ articles, title, category, isLoading }: NewsGridProps
   return (
     <section className="container mx-auto px-4 py-6 md:py-8">
       {title && (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-6 md:mb-8">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold font-display text-foreground">{title}</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-6 md:mb-8 border-l-4 border-primary pl-3 sm:pl-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold font-display text-foreground leading-tight">{title}</h2>
         </div>
       )}
 
