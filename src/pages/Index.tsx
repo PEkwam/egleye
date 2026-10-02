@@ -185,14 +185,6 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
         activeInsuranceCategory={activeInsuranceCategory}
       />
 
-      {/* News Filter Bar */}
-      <NewsFilterBar
-        activeCategory={activeCategory}
-        onCategoryChange={handleCategoryChange}
-        searchQuery={searchQuery}
-        onSearchChange={handleSearch}
-        articleCount={articles.length}
-      />
 
       {/* Filters Section - Modern glassmorphism bar */}
       <div className="container mx-auto px-3 sm:px-4 py-2.5 md:py-3 border-b border-border/30">
