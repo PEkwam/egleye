@@ -252,8 +252,6 @@ const { articles, featuredArticle, enterpriseArticles, regulatorArticles, isLoad
             />
           )}
 
-          {showSections && <RegulatorySpotlight />}
-
           {/* NIC Regulatory Section */}
           {showSections && (
             <NICSection
