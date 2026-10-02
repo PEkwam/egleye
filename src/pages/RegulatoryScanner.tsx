@@ -101,6 +101,27 @@ export default function RegulatoryScanner() {
         </div>
 
         <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search updates, impact notes, action items…"
+                className="w-full rounded-full border border-border bg-card pl-9 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setSort('newest')} className={cn('px-3 py-2 rounded-full text-xs font-semibold border transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
+                sort === 'newest' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-foreground border-border hover:bg-muted')}>
+                <ArrowUpDown className="h-3.5 w-3.5" />Newest first
+              </button>
+              <button onClick={() => setSort('deadline')} className={cn('px-3 py-2 rounded-full text-xs font-semibold border transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
+                sort === 'deadline' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-foreground border-border hover:bg-muted')}>
+                <CalendarClock className="h-3.5 w-3.5" />Deadline first
+              </button>
+            </div>
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             <Chip active={regulator === 'all'} onClick={() => setRegulator('all')}>All regulators</Chip>
             {Object.keys(REGULATOR_LABELS).map((r) => <Chip key={r} active={regulator === r} onClick={() => setRegulator(r)}>{r}</Chip>)}
