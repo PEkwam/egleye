@@ -58,10 +58,13 @@ export function RegulatorySpotlight() {
   return (
     <section className="container mx-auto px-4 py-8">
       <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between gap-4 mb-1">
           <h2 className="text-xl font-extrabold flex items-center gap-2"><Radar className="h-5 w-5 text-primary" />Regulatory Horizon</h2>
-          <Link to="/regulatory-scanner" className="text-sm font-semibold text-primary inline-flex items-center">Open scanner<ChevronRight className="h-4 w-4" /></Link>
+          <Link to="/regulatory-scanner" className="text-sm font-semibold text-primary inline-flex items-center shrink-0">Open scanner<ChevronRight className="h-4 w-4" /></Link>
         </div>
+        <p className="text-sm text-muted-foreground mb-4 max-w-2xl">
+          Live monitoring of NIC, Bank of Ghana, SEC, Cyber Security Authority and Data Protection Commission announcements — and what each one means for Enterprise Group.
+        </p>
         <div className="grid md:grid-cols-3 gap-3">
           {top.map((u) => (
             <Link key={u.id} to="/regulatory-scanner" className="rounded-xl border border-border p-4 hover:bg-muted transition-colors block">
