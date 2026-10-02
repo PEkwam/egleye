@@ -129,7 +129,7 @@ export default function RegulatoryScanner() {
   // Generic rows tagged with (almost) every business are hidden unless the text
   // itself mentions that business.
   const matchUnit = (u: RegulatoryUpdate): 0 | 1 => {
-    if (unit === 'all') return 0;
+    if (unit === 'all') return 1;
     const kws = UNIT_KEYWORDS[unit] ?? [unit.toLowerCase()];
     const text = `${u.title} ${u.summary ?? ''} ${u.business_impact ?? ''}`.toLowerCase();
     const hits = kws.some((k) => text.includes(k));
