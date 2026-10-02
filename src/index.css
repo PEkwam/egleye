@@ -141,7 +141,7 @@
 
     /* Muted tones */
     --muted: 340 10% 92%;
-    --muted-foreground: 340 10% 45%;
+    --muted-foreground: 340 18% 34%;
 
     --border: 340 15% 88%;
     --input: 340 15% 88%;
@@ -183,7 +183,7 @@
     --secondary-foreground: 340 15% 95%;
 
     --muted: 340 12% 16%;
-    --muted-foreground: 340 12% 55%;
+    --muted-foreground: 340 12% 68%;
 
     --border: 340 12% 18%;
     --input: 340 12% 18%;
@@ -317,7 +317,7 @@
 
   /* Badge variant for use on dark/image backgrounds */
   .category-badge-overlay {
-    @apply bg-white/20 text-white font-bold border border-white/30 backdrop-blur-sm;
+    @apply bg-background/90 text-foreground font-bold border border-background/70 backdrop-blur-sm;
   }
 
   .breaking-badge {

@@ -111,8 +111,8 @@ const CredibilityBadge = forwardRef<HTMLSpanElement, { sourceName: string | null
   if (!badge) return null;
   
   const styles = overlay
-    ? { official: 'bg-white/20 text-white border-white/30 backdrop-blur-sm', verified: 'bg-white/20 text-white border-white/30 backdrop-blur-sm', standard: 'bg-white/20 text-white border-white/30 backdrop-blur-sm' }
-    : { official: 'bg-blue-500/10 text-blue-600 border-blue-500/30', verified: 'bg-green-500/10 text-green-600 border-green-500/30', standard: 'bg-muted text-muted-foreground border-border/50' };
+    ? { official: 'bg-background/90 text-foreground border-background/70 backdrop-blur-sm', verified: 'bg-background/90 text-foreground border-background/70 backdrop-blur-sm', standard: 'bg-background/90 text-foreground border-background/70 backdrop-blur-sm' }
+    : { official: 'bg-secondary text-secondary-foreground border-border', verified: 'bg-primary/10 text-primary border-primary/25', standard: 'bg-secondary text-secondary-foreground border-border' };
   
   const icons = {
     official: <Shield className="h-3 w-3" />,
@@ -187,10 +187,10 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
             <CredibilityBadge sourceName={article.source_name} />
             <span className="text-[10px] text-muted-foreground">{readingTime} min</span>
           </div>
-          <h3 className="font-serif font-semibold text-base text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+          <h3 className="font-serif font-bold text-base text-card-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
             {sanitizeText(article.title)}
           </h3>
-          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 mt-2 text-xs font-medium text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>{publishedDate}</span>
           </div>
@@ -280,12 +280,12 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
           <CredibilityBadge sourceName={article.source_name} overlay />
         </div>
         <div className="absolute top-4 right-4">
-          <span className="px-2 py-1 text-[10px] font-medium rounded-md bg-black/40 backdrop-blur-sm text-white">{readingTime} min</span>
+          <span className="px-2 py-1 text-[10px] font-semibold rounded-md bg-background/90 backdrop-blur-sm text-foreground">{readingTime} min</span>
         </div>
       </div>
 
       <div className="flex flex-col flex-1 p-5">
-        <h3 className="text-lg md:text-xl font-serif font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-2 leading-[1.2] tracking-tight">
+        <h3 className="text-lg md:text-xl font-serif font-bold text-card-foreground line-clamp-2 group-hover:text-primary transition-colors mb-2 leading-[1.2] tracking-tight">
           {sanitizeText(article.title)}
         </h3>
         {insight && (
@@ -295,14 +295,14 @@ export const NewsCard = forwardRef<HTMLAnchorElement, NewsCardProps>(({ article,
           </div>
         )}
         {article.description && (
-          <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-4">{sanitizeText(article.description)}</p>
+          <p className="text-sm font-medium text-muted-foreground line-clamp-3 flex-1 mb-4">{sanitizeText(article.description)}</p>
         )}
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t border-border/50">
+        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground pt-4 border-t border-border">
           <div className="flex items-center gap-2">
             <Clock className="h-3.5 w-3.5" />
             <span>{publishedDate}</span>
           </div>
-          {article.source_name && <span className="truncate max-w-[120px] font-medium">{article.source_name}</span>}
+          {article.source_name && <span className="truncate max-w-[120px] font-bold text-card-foreground/80">{article.source_name}</span>}
         </div>
       </div>
     </a>
